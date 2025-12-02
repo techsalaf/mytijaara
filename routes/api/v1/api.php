@@ -1,8 +1,6 @@
 <?php
 
-use App\WebSockets\Handler\DMLocationSocketHandler;
 use Illuminate\Support\Facades\Route;
-use BeyondCode\LaravelWebSockets\Facades\WebSocketsRouter;
 
 /*
 |--------------------------------------------------------------------------
@@ -114,6 +112,7 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
             Route::get('order', 'DeliverymanController@get_order');
             Route::put('send-order-otp', 'DeliverymanController@send_order_otp');
             Route::put('update-fcm-token', 'DeliverymanController@update_fcm_token');
+            Route::post('parcel-return', 'DeliverymanController@parcelReturn');
             //Remove account
             Route::delete('remove-account', 'DeliverymanController@remove_account');
 
@@ -128,6 +127,11 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
                 Route::post('make-default', 'DeliverymanController@disbursement_withdrawal_method_default');
                 Route::delete('delete', 'DeliverymanController@disbursement_withdrawal_method_delete');
             });
+
+
+            Route::get('get-withdraw-list', 'DeliverymanController@withdraw_list');
+            Route::post('request-withdraw', 'DeliverymanController@request_withdraw');
+            Route::post('add-return-date', 'DeliverymanController@addReturnDate');
 
 
             Route::post('make-collected-cash-payment', 'DeliverymanController@make_payment')->name('make_payment');
@@ -308,6 +312,8 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
         Route::get('place-api-details', 'ConfigController@place_api_details');
         Route::get('geocode-api', 'ConfigController@geocode_api');
         Route::get('get-PaymentMethods', 'ConfigController@getPaymentMethods');
+        Route::get('get-analytic-scripts', 'ConfigController@analyticScripts');
+
     });
 
     Route::group(['prefix' => 'testimonial'], function () {
@@ -394,11 +400,12 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
                 Route::put('cancel', 'OrderController@cancel_order');
                 Route::post('refund-request', 'OrderController@refund_request');
                 Route::get('refund-reasons', 'OrderController@refund_reasons');
-                Route::get('track', 'OrderController@track_order');
+                Route::get('track', 'OrderController@track_order')->withoutMiddleware('auth:apiGuestCheck');
                 Route::put('payment-method', 'OrderController@update_payment_method');
                 Route::put('offline-payment', 'OrderController@offline_payment');
                 Route::put('offline-payment-update', 'OrderController@update_offline_payment_info');
                 Route::post('get-surge-price', 'OrderController@getSurgePriceAmount');
+                Route::post('parcel-return', 'OrderController@parcelReturn');
 
             });
 
@@ -511,6 +518,6 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
     });
     Route::get('vehicle/extra_charge', 'ConfigController@extra_charge');
     Route::get('get-vehicles', 'ConfigController@get_vehicles');
+    Route::get('get-parcel-cancellation-reasons', 'ConfigController@parcel_cancellation_reason');
 });
 
-WebSocketsRouter::webSocket('/delivery-man/live-location', DMLocationSocketHandler::class);

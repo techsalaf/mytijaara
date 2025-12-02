@@ -46,12 +46,12 @@
                                 </div>
                                 <div class="col-12">
                                     <div class="form-group mb-0">
-                                        <label class="input-label" for="target">{{translate('messages.send_to')}}</label>
+                                        <label class="input-label" for="tergat">{{translate('messages.send_to')}}</label>
 
-                                        <select name="target" class="form-control" id="target" data-placeholder="{{translate('messages.select_target')}}" required>
-                                            <option value="customer" {{$notification->target=='customer'?'selected':''}}>{{translate('messages.customer')}}</option>
-                                            <option value="deliveryman" {{$notification->target=='deliveryman'?'selected':''}}>{{translate('messages.deliveryman')}}</option>
-                                            <option value="store" {{$notification->target=='store'?'selected':''}}>{{translate('messages.store')}}</option>
+                                        <select name="tergat" class="form-control" id="tergat" data-placeholder="{{translate('messages.select_tergat')}}" required>
+                                            <option value="customer" {{$notification->tergat=='customer'?'selected':''}}>{{translate('messages.customer')}}</option>
+                                            <option value="deliveryman" {{$notification->tergat=='deliveryman'?'selected':''}}>{{translate('messages.deliveryman')}}</option>
+                                            <option value="store" {{$notification->tergat=='store'?'selected':''}}>{{translate('messages.store')}}</option>
                                         </select>
                                     </div>
                                 </div>

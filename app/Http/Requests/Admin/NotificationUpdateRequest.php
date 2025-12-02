@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
  * @property bool status
  * @property Carbon|null created_at
  * @property Carbon|null updated_at
- * @property string|null target
+ * @property string|null tergat
  * @property int|null zone_id
  */
 class NotificationUpdateRequest extends FormRequest
@@ -37,7 +37,7 @@ class NotificationUpdateRequest extends FormRequest
         return [
             'notification_title' => 'required|max:191',
             'description' => 'required|max:1000',
-            'target' => 'required',
+            'tergat' => 'required',
         ];
     }
 

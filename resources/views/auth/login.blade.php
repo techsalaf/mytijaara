@@ -211,7 +211,7 @@
                 {{ translate('Send_Mail_to_Your_Email') }} ?
             </h4>
             <p>
-                {{ translate('A mail will be sent to your registered email') }} {{ isset($role) && $role == 'admin'  ? \App\Models\Admin::where('role_id',1)->first()?->masked_email : ''  }} {{ translate('with a  link to change your password') }}
+                {{ translate('A mail will be send to your registered email') }} {{ isset($role) && $role == 'admin'  ? \App\Models\Admin::where('role_id',1)->first()?->masked_email : ''  }} {{ translate('with a  link to change passowrd') }}
             </p>
             <a class="btn btn-lg btn-block btn--primary mt-3" href="{{route('reset-password')}}">
                 {{ translate('Send Mail') }}

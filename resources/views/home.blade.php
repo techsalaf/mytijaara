@@ -1,25 +1,17 @@
 @extends('layouts.landing.app')
-@php($business_name = \App\CentralLogics\Helpers::get_settings('business_name'))
+@php($business_name =    \App\CentralLogics\Helpers::get_business_settings('business_name'))
 @section('title', translate('messages.landing_page') . ' | ' . $business_name != 'null' ? $business_name : 'Sixam Mart')
 @section('content')
 
     <!-- Basic Settings -->
-    @php($front_end_url = \App\Models\BusinessSetting::where(['key' => 'front_end_url'])->first())
-    @php($front_end_url = $front_end_url ? $front_end_url->value : null)
-    @php($landing_page_text = \App\Models\BusinessSetting::where(['key' => 'landing_page_text'])->first())
-    @php($landing_page_text = isset($landing_page_text->value) ? json_decode($landing_page_text->value, true) : null)
-    @php($landing_page_links = \App\Models\BusinessSetting::where(['key' => 'landing_page_links'])->first())
-    @php($landing_page_links = isset($landing_page_links->value) ? json_decode($landing_page_links->value, true) : null)
-    @php($landing_page_images = \App\Models\BusinessSetting::where(['key' => 'landing_page_images'])->first())
-    @php($landing_page_images = isset($landing_page_images->value) ? json_decode($landing_page_images->value, true) : null)
+    @php($landing_page_links =   \App\CentralLogics\Helpers::get_business_settings('landing_page_links'))
     <!-- ==== Banner Section Starts Here ==== -->
-    @php($logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first())
     <section class="banner-section position-relative">
         <div class="container">
             <div class="banner-content wow fadeInUp">
                 <h1 class="title">{{ $landing_data['fixed_header_title'] }}</h1>
                 <img class="w-100 onerror-image" data-onerror-image="{{ asset('public/assets/admin/img/160x160/img2.jpg') }}"
-                    src="{{ \App\CentralLogics\Helpers::get_full_url('business', $logo?->value ?? '', $logo?->storage[0]?->value ?? 'public', 'favicon') }}"
+                    src="{{ \App\CentralLogics\Helpers::logoFullUrl()}}"
                     alt="">
                 <div class="text">
                     {{ $landing_data['fixed_header_sub_title'] }}
@@ -241,7 +233,6 @@
                                 {{ $landing_data['fixed_referal_title'] }}
 
                             </div>
-                            {{-- <div class="text--base">{{ isset($landing_page_text['refer_section_sub_title']) ? $landing_page_text['refer_section_sub_title'] : '' }}</div> --}}
                         </h2>
                     </div>
                     <div class="text">
@@ -1863,12 +1854,11 @@
                                 <div class="text">{{ translate('messages.customer') }}</div>
                             </div>
                         </div>
-                        @php($fav = \App\Models\BusinessSetting::where(['key' => 'icon'])->first())
+
                         <div class="right-side d-flex word-nowrap align-items-center">
                             <img class="onerror-image"
                                 data-onerror-image="{{ asset('public/assets/admin/img/160x160/img2.jpg') }}"
-                                {{--                        src="{{ asset('storage/app/public/business/' . $fav) }}" --}}
-                                src="{{ \App\CentralLogics\Helpers::get_full_url('business', $fav?->value ?? '', $fav?->storage[0]?->value ?? 'public', 'favicon') }}"
+                                src="{{\App\CentralLogics\Helpers::iconFullUrl() }}"
                                 alt="image">
                             {{ translate('messages.Still increasing') }}
                         </div>

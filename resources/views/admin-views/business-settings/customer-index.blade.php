@@ -466,7 +466,7 @@
 
 
                     <div class="col-lg-12">
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" id="reset_btn"
                                 class="btn btn--reset location-reload">{{ translate('reset') }}</button>
                             <button type="submit" id="submit"

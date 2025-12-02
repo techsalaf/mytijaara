@@ -261,6 +261,20 @@
                                     <label class="form-check-label qcont text-dark" for="subscription">{{translate('messages.subscription')}}</label>
                                 </div>
                             </div>
+                            <div class="check-item">
+                                <div class="form-group form-check form--check">
+                                    <input type="checkbox" name="modules[]" value="brand" class="form-check-input"
+                                           id="brand">
+                                    <label class="form-check-label qcont text-dark" for="brand">{{translate('messages.brand')}}</label>
+                                </div>
+                            </div>
+                            <div class="check-item">
+                                <div class="form-group form-check form--check">
+                                    <input type="checkbox" name="modules[]" value="common_condition" class="form-check-input"
+                                           id="common_condition">
+                                    <label class="form-check-label qcont text-dark" for="common_condition">{{translate('messages.common_condition')}}</label>
+                                </div>
+                            </div>
                         </div>
                         @if (addon_published_status('Rental'))
                             <div class="pt-5">

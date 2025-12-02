@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <?php
 
-$country=\App\Models\BusinessSetting::where('key','country')->first();
-$countryCode= strtolower($country?$country->value:'auto');
+$country= \App\CentralLogics\Helpers::get_business_settings('country');
+$countryCode= strtolower($country?$country:'auto');
 ?>
 <html dir="{{ session()->get('site_direction') }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{session()->get('site_direction') === 'rtl'?'active':'' }}">
 <head>
@@ -30,6 +30,8 @@ $countryCode= strtolower($country?$country->value:'auto');
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/style.css')}}">
 
     <link rel="stylesheet" href="{{asset('public/assets/admin/intltelinput/css/intlTelInput.css')}}">
+    <link rel="stylesheet" href="{{asset('public/assets/admin/css/upload-single-image.css')}}">
+
 
     @stack('css_or_js')
 
@@ -88,6 +90,16 @@ $countryCode= strtolower($country?$country->value:'auto');
 @include('layouts.admin.partials._footer')
 <!-- End Footer -->
 
+    <div class="d-none" id="text-validate-translate"
+        data-required="{{ translate('this_field_is_required') }}"
+        data-something-went-wrong="{{ translate('something_went_wrong!') }}"
+        data-max-limit-crossed="{{ translate('max_limit_crossed') }}"
+        data-file-size-larger="{{ translate('file_size_is_larger') }}"
+        data-passwords-do-not-match="{{ translate('passwords_do_not_match') }}"
+        data-valid-email="{{ translate('please_enter_a_valid_email') }}"
+        data-password-validation="{{ translate('password_must_be_8+_chars_with_upper,_lower,_number_&_symbol') }}"
+    ></div>
+
     <div class="modal fade" id="popup-modal">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
@@ -121,7 +133,7 @@ $countryCode= strtolower($country?$country->value:'auto');
                     <div class="max-349 mx-auto mb-20">
                         <div>
                             <div class="text-center">
-                                <img id="toggle-image" alt="" class="mb-20">
+                                <img id="toggle-image" alt="" class="mb-20 initial--10">
                                 <h5 class="modal-title" id="toggle-title"></h5>
                             </div>
                             <div class="text-center" id="toggle-message">
@@ -151,7 +163,7 @@ $countryCode= strtolower($country?$country->value:'auto');
                     <div class="max-349 mx-auto mb-20">
                         <div>
                             <div class="text-center">
-                                <img id="toggle-status-image" alt="" class="mb-20">
+                                <img id="toggle-status-image" alt="" class="mb-20 initial--10">
                                 <h5 class="modal-title" id="toggle-status-title"></h5>
                             </div>
                             <div class="text-center" id="toggle-status-message">
@@ -241,6 +253,35 @@ $countryCode= strtolower($country?$country->value:'auto');
     </div>
 
 
+    <!--- Global Image -->
+    <div id="imageModal" class="imageModal modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header justify-content-end gap-3 border-0 p-2">
+                    <button type="button" class="modal_img-btn border-0 btn-circle rounded-circle bg-section2 shadow-none fs-8 m-0"
+                            data-dismiss="modal" aria-label="Close">
+                            <i class="tio-clear"></i>
+                    </button>
+                </div>
+                <div class="modal-body text-center p-3 pt-0">
+                    <div class="imageModal_img_wrapper">
+                        <img src="" class="img-fluid imageModal_img" alt="{{ translate('Preview_Image') }}">
+                        <div class="imageModal_btn_wrapper">
+                            <a href="javascript:" class="btn icon-btn download_btn" title="{{ translate('Download') }}" download>
+                                <i class="tio-arrow-large-downward"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-none" id="default-text-data"
+         data-default-image-src="{{ asset('public/assets/admin/img/upload-img.png') }}"
+    ></div>
+
+
 
 <?php
 $current_module_type_for_search = null;
@@ -261,6 +302,7 @@ if(in_array(config('module.current_module_type'),config('module.module_type') ))
 <!-- JS Front -->
 
 <script src="{{asset('public/assets/admin')}}/js/vendor.min.js"></script>
+<script src="{{asset('public/assets/admin')}}/js/jquery.validate.min.js"></script>
 <script src="{{asset('public/assets/admin')}}/js/theme.min.js"></script>
 <script src="{{asset('public/assets/admin')}}/js/sweet_alert.js"></script>
 <script src="{{asset('public/assets/admin')}}/js/bootstrap-tour-standalone.min.js"></script>
@@ -268,6 +310,8 @@ if(in_array(config('module.current_module_type'),config('module.module_type') ))
 <script src="{{asset('public/assets/admin')}}/js/emogi-area.js"></script>
 <script src="{{asset('public/assets/admin')}}/js/toastr.js"></script>
 <script src="{{asset('public/assets/admin/js/app-blade/admin.js')}}"></script>
+<script src="{{asset('public/assets/admin/js/form-validate.js')}}"></script>
+<script src="{{asset('public/assets/admin/js/upload-single-image.js')}}"></script>
 
 
 {!! Toastr::message() !!}
@@ -307,16 +351,14 @@ if(in_array(config('module.current_module_type'),config('module.module_type') ))
 "use strict";
 
 
-    @php($modules = \App\Models\Module::Active()->get())
+    @php($hasModules = \App\Models\Module::Active()->exists())
 
-    @if(isset($modules) && ($modules->count()<1))
+    @if(!$hasModules)
     $('#instruction-modal').show();
     @endif
 
-
-
     $('.restart-Tour').on('click',function (){
-        @if(isset($modules) && ($modules->count()>0))
+        @if($hasModules)
             tour.restart();
             $('body').css('overflow','hidden')
         @endif
@@ -332,12 +374,10 @@ if(in_array(config('module.current_module_type'),config('module.module_type') ))
             confirmButtonColor: '#FC6A57',
             cancelButtonColor: '#363636',
             confirmButtonText: `{{ translate('yes')}}`,
-            cancelButtonText: `{{ translate('Do_not_Logout')}}`,
+            cancelButtonText: `{{ translate('Cancel')}}`,
             }).then((result) => {
             if (result.value) {
             location.href='{{route('logout')}}';
-            } else{
-            Swal.fire('{{ translate('messages.canceled') }}', '', 'info')
             }
         })
 
@@ -584,13 +624,11 @@ if(in_array(config('module.current_module_type'),config('module.module_type') ))
     let admin_zone_id=null;
     let admin_role_id=null;
 
-    @php($order_notification_type = \App\Models\BusinessSetting::where('key', 'order_notification_type')->first())
-    @php($order_notification_type = $order_notification_type ? $order_notification_type->value : 'firebase')
+    @php($order_notification_type = \App\CentralLogics\Helpers::get_business_settings('order_notification_type') ??'manual')
     messaging.onMessage(function(payload) {
         console.log(payload.data)
         if(payload.data.order_id && payload.data.type == "order_request"){
-                @php($admin_order_notification = \App\Models\BusinessSetting::where('key', 'admin_order_notification')->first())
-                @php($admin_order_notification = $admin_order_notification ? $admin_order_notification->value : 0)
+                @php($admin_order_notification = \App\CentralLogics\Helpers::get_business_settings('admin_order_notification') ?? 0)
                 @if (\App\CentralLogics\Helpers::module_permission_check('order') && $admin_order_notification && $order_notification_type == 'firebase')
                 new_order_type = payload.data.order_type
                 new_module_id = payload.data.module_id
@@ -633,8 +671,7 @@ if(in_array(config('module.current_module_type'),config('module.module_type') ))
     });
 
     @if(\App\CentralLogics\Helpers::module_permission_check('order') && $order_notification_type == 'manual')
-        @php($admin_order_notification=\App\Models\BusinessSetting::where('key','admin_order_notification')->first())
-        @php($admin_order_notification=$admin_order_notification?$admin_order_notification->value:0)
+        @php($admin_order_notification=\App\CentralLogics\Helpers::get_business_settings('admin_order_notification') ?? 0)
         @if($admin_order_notification)
             setInterval(function () {
                 $.get({
@@ -960,5 +997,58 @@ $(document).on('keyup', 'input[type="tel"]', function () {
 <script>
     if (/MSIE \d|Trident.*rv:/.test(navigator.userAgent)) document.write('<script src="{{asset('public/assets/admin')}}/vendor/babel-polyfill/polyfill.min.js"><\/script>');
 </script>
+
+    <!-- Landing Tab Menu -->
+    <script>
+        const container = document.querySelector('.tabs-inner');
+        const btnPrevWrap = document.querySelector('.button-prev');
+        const btnNextWrap = document.querySelector('.button-next');
+        const item = document.querySelector('.tabs-slide_items'); 
+
+        document.querySelectorAll('.tabs-slide_items').forEach(el => {
+            el.style.flex = '0 0 auto';
+        });
+        function updateArrows() {
+            if (!container || !btnPrevWrap || !btnNextWrap) return;
+
+            const hasOverflow = container.scrollWidth > container.clientWidth;
+            if (!hasOverflow) {
+                btnPrevWrap.style.display = 'none';
+                btnNextWrap.style.display = 'none';
+                return;
+            }
+            const scrollLeft = container.scrollLeft;
+            const maxScroll = container.scrollWidth - container.clientWidth;
+
+            if (scrollLeft > 2) {
+                btnPrevWrap.style.display = 'flex';
+            } else {
+                btnPrevWrap.style.display = 'none';
+            }
+
+            if (scrollLeft < maxScroll - 2) {
+                btnNextWrap.style.display = 'flex';
+            } else {
+                btnNextWrap.style.display = 'none';
+            }
+        }
+        document.querySelector('.btn-click-prev')?.addEventListener('click', () => {
+            const itemWidth = item?.offsetWidth || 100;
+            container.scrollBy({ left: -itemWidth, behavior: 'smooth' });
+        });
+        document.querySelector('.btn-click-next')?.addEventListener('click', () => {
+            const itemWidth = item?.offsetWidth || 100;
+            container.scrollBy({ left: itemWidth, behavior: 'smooth' });
+        });
+
+        container.addEventListener('scroll', updateArrows);
+        ['load', 'resize'].forEach(evt => window.addEventListener(evt, updateArrows));
+        new MutationObserver(updateArrows).observe(container, { childList: true, subtree: true });
+        new ResizeObserver(updateArrows).observe(container);
+
+        // Initial update
+        updateArrows();
+
+    </script>
 </body>
 </html>

@@ -68,10 +68,14 @@
                                                 data-original-title="{{ translate('Write_the_title_within_80_characters') }}">
                                                 <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                     alt="">
-                                            </span></label>
+                                            </span>
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
                                         <input id="feature_title" type="text" maxlength="80" name="feature_title[]"
                                             value="{{ $feature_title?->getRawOriginal('value') }}" class="form-control"
-                                            placeholder="{{ translate('Ex_:_Remarkable_Features_that_You_Can_Count') }}">
+                                            placeholder="{{ translate('Ex_:_Remarkable_Features_that_You_Can_Count') }}" required>
                                     </div>
                                     <div class="col-sm-6">
                                         <label for="feature_short_description" class="form-label">{{ translate('Short Description') }}
@@ -80,10 +84,14 @@
                                                 data-original-title="{{ translate('Write_the_title_within_240_characters') }}">
                                                 <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                     alt="">
-                                            </span></label>
+                                            </span>
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
                                         <input id="feature_short_description" type="text" maxlength="240" name="feature_short_description[]"
                                             value="{{ $feature_short_description?->getRawOriginal('value') }}" class="form-control"
-                                            placeholder="{{ translate('Ex_:_Jam-packed_with_outstanding_features…') }}">
+                                            placeholder="{{ translate('Ex_:_Jam-packed_with_outstanding_features…') }}" required>
                                     </div>
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
@@ -156,7 +164,7 @@
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                             @endif
-                            <div class="btn--container justify-content-end mt-3">
+                            <div class="btn--container justify-content-end mt-20">
                                 <button type="reset" class="btn btn--reset mb-2">{{ translate('Reset') }}</button>
                                 <button type="submit"
                                     class="btn btn--primary mb-2">{{ translate('Save') }}</button>
@@ -181,9 +189,13 @@
                                                         data-original-title="{{ translate('Write_the_title_within_20_characters') }}">
                                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                             alt="">
-                                                    </span></label>
+                                                    </span>
+                                                    <span class="form-label-secondary text-danger"
+                                                          data-toggle="tooltip" data-placement="right"
+                                                          data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
                                                 <input id="title" type="text" maxlength="20" name="title[]" class="form-control"
-                                                    placeholder="{{ translate('Ex_:_Shopping') }}">
+                                                    placeholder="{{ translate('Ex_:_Shopping') }}" required>
                                             </div>
                                             <div class="col-12">
                                                 <label for="sub_title" class="form-label">{{ translate('Sub Title') }}
@@ -193,10 +205,14 @@
                                                         data-original-title="{{ translate('Write_the_title_within_80_characters') }}">
                                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                             alt="">
-                                                    </span></label>
+                                                    </span>
+                                                    <span class="form-label-secondary text-danger"
+                                                          data-toggle="tooltip" data-placement="right"
+                                                          data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
                                                 <input id="sub_title" type="text" maxlength="80" name="sub_title[]"
                                                     class="form-control"
-                                                    placeholder="{{ translate('Ex_:_Best_shopping_experience') }}">
+                                                    placeholder="{{ translate('Ex_:_Best_shopping_experience') }}" required>
                                             </div>
                                         </div>
                                     </div>
@@ -264,8 +280,15 @@
                                 @endif
 
                                 <div class="col-md-6">
-                                    <label class="form-label d-block mb-2">
+                                    <label class="form-label d-block mb-3">
                                         {{ translate('messages.Image') }} <span class="text--primary">{{translate('(size:_1:1)')}}</span>
+                                        <span class="form-label-secondary text-danger"
+                                              data-toggle="tooltip" data-placement="right"
+                                              data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                        <div class="fs-12 opacity-70">
+                                            {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                        </div>
                                     </label>
                                     <label class="upload-img-3 m-0">
                                         <div class="img">
@@ -273,11 +296,11 @@
                                             data-onerror-image="{{ asset('/public/assets/admin/img/aspect-1.png') }}"
                                                 alt="image" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
                                         </div>
-                                        <input type="file" name="image" hidden>
+                                        <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="image" hidden>
                                     </label>
                                 </div>
                             </div>
-                            <div class="btn--container justify-content-end mt-3">
+                            <div class="btn--container justify-content-end mt-20">
                                 <button type="reset" class="btn btn--reset mb-2">{{ translate('Reset') }}</button>
                                 <button type="submit" class="btn btn--primary mb-2">{{ translate('Add') }}</button>
                             </div>

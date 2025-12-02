@@ -329,7 +329,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="btn--container justify-content-end mt-3">
+                                    <div class="btn--container justify-content-end mt-20">
                                         <button type="reset" id="reset_btn" class="btn btn--reset">{{translate('Reset')}}</button>
                                         <button type="submit" class="btn btn--primary">{{translate('Save')}}</button>
                                     </div>

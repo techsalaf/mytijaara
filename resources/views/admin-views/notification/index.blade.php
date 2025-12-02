@@ -48,9 +48,9 @@
                                         </div>
                                         <div class="col-12">
                                             <div class="form-group mb-0">
-                                                <label class="input-label" for="target">{{translate('messages.send_to')}}</label>
+                                                <label class="input-label" for="tergat">{{translate('messages.send_to')}}</label>
 
-                                                <select name="target" class="form-control" id="target" data-placeholder="{{translate('messages.select_target')}}" required>
+                                                <select name="tergat" class="form-control" id="tergat" data-placeholder="{{translate('messages.select_tergat')}}" required>
                                                     <option value="customer">{{translate('messages.customer')}}</option>
                                                     <option value="deliveryman">{{translate('messages.deliveryman')}}</option>
                                                     <option value="store">{{translate('messages.store')}}</option>
@@ -165,7 +165,7 @@
                                     <th class="border-0">{{translate('messages.description')}}</th>
                                     <th class="border-0">{{translate('messages.image')}}</th>
                                     <th class="border-0">{{translate('messages.zone')}}</th>
-                                    <th class="border-0">{{translate('messages.target')}}</th>
+                                    <th class="border-0">{{translate('messages.tergat')}}</th>
                                     <th class="text-center border-0">{{translate('messages.status')}}</th>
                                     <th class="text-center border-0">{{translate('messages.action')}}</th>
                                 </tr>
@@ -196,7 +196,7 @@
                                         {{$notification->zone_id==null?translate('messages.all'):($notification->zone?$notification->zone->name:translate('messages.zone_deleted'))}}
                                     </td>
                                     <td class="text-uppercase">
-                                        {{translate($notification->target)}}
+                                        {{translate($notification->tergat)}}
                                     </td>
                                     <td>
                                         <label class="toggle-switch toggle-switch-sm" for="stocksCheckbox{{$notification->id}}">
@@ -212,7 +212,7 @@
                                             href="{{route('admin.notification.edit',[$notification['id']])}}" title="{{translate('messages.edit_notification')}}"><i class="tio-edit"></i>
                                             </a>
                                             <a class="btn action-btn btn--danger btn-outline-danger form-alert" href="javascript:"
-                                               data-id="notification-{{$notification['id']}}" data-message="{{ translate('Want to delete this notification?') }}" title="{{translate('messages.delete_notification')}}"><i class="tio-delete-outlined"></i>
+                                               data-id="notification-{{$notification['id']}}" data-message="{{ translate('Want to delete this notification ?') }}" title="{{translate('messages.delete_notification')}}"><i class="tio-delete-outlined"></i>
                                             </a>
                                             <form action="{{route('admin.notification.delete',[$notification['id']])}}" method="post" id="notification-{{$notification['id']}}">
                                                 @csrf @method('delete')
@@ -257,9 +257,14 @@
 
             Swal.fire({
                 title: '{{translate('messages.are_you_sure')}}',
-                text: '{{translate('messages.you want to send notification to ')}}'+$('#target').val()+'?',
-                type: 'info',
+                text: '{{translate('messages.you want to sent notification to ')}}'+$('#tergat').val()+'?',
+                imageUrl: '{{ asset('public/assets/admin/img/off-danger.png') }}',
+                imageWidth: 80,
+                imageHeight: 80,
+                imageAlt: 'Custom icon',
                 showCancelButton: true,
+                showCloseButton: true,
+                closeButtonHtml: '×',
                 cancelButtonColor: 'default',
                 confirmButtonColor: 'primary',
                 cancelButtonText: '{{translate('messages.no')}}',
@@ -287,7 +292,7 @@
                                     });
                                 }
                             } else {
-                                toastr.success('Notification sent successfully!', {
+                                toastr.success('Notifiction sent successfully!', {
                                     CloseButton: true,
                                     ProgressBar: true
                                 });

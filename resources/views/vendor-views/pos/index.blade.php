@@ -215,14 +215,14 @@
                         </button>
                     </div>
                     <div class="modal-body row ff-emoji">
-                        <div class="col-md-12">
+                        {{-- <div class="col-md-12">
                             <div class="text-center">
                                 <input type="button" class="btn btn--primary non-printable text-white print-Div"
                                     value="Proceed, If thermal printer is ready." />
                                 <a href="{{ url()->previous() }}" class="btn btn-danger non-printable">{{translate('messages.back')}}</a>
                             </div>
                             <hr class="non-printable">
-                        </div>
+                        </div> --}}
                         <div class="row m-auto" id="print-modal-content">
                             @include('vendor-views.pos.invoice')
                         </div>
@@ -238,7 +238,7 @@
 
 @push('script_2')
     <script
-        src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places&callback=initMap&v=3.49">
+        src="https://maps.googleapis.com/maps/api/js?key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=places,marker&callback=initMap&v=3.61">
     </script>
 
     <script src="{{asset('public/assets/admin/js/view-pages/pos.js')}}"></script>
@@ -259,12 +259,15 @@
 
 
         function initMap() {
+        const mapId = "{{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}"
+
             let map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 13,
                 center: {
                     lat: {{ $store_data ? $store_data['latitude'] : '23.757989' }},
                     lng: {{ $store_data ? $store_data['longitude'] : '90.360587' }}
-                }
+                },
+                mapId: mapId
             });
 
             let zonePolygon = null;
@@ -329,19 +332,12 @@
 
                     document.getElementById('latitude').value = place.geometry.location.lat();
                     document.getElementById('longitude').value = place.geometry.location.lng();
-
-                    const icon = {
-                        url: place.icon,
-                        size: new google.maps.Size(71, 71),
-                        origin: new google.maps.Point(0, 0),
-                        anchor: new google.maps.Point(17, 34),
-                        scaledSize: new google.maps.Size(25, 25),
-                    };
+                    const { AdvancedMarkerElement } = google.maps.marker;
+                    
                     // Create a marker for each place.
                     markers.push(
-                        new google.maps.Marker({
+                        new AdvancedMarkerElement({
                             map,
-                            icon,
                             title: place.name,
                             position: place.geometry.location,
                         })

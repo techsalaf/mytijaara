@@ -103,7 +103,7 @@
 
                                 <td class="d-flex">
                                     @if ($review->item)
-                                        <a class="media align-items-center mb-1" href="{{route('admin.item.view',[$review->item['id']])}}">
+                                        <a class="media align-items-center min-w-60px d-block mb-1" href="{{route('admin.item.view',[$review->item['id']])}}">
                                             <img class="avatar avatar-lg mr-3 onerror-image"
                                                  src="{{ $review->item['image_full_url'] ?? asset('public/assets/admin/img/160x160/img2.jpg') }}"
                                                  data-onerror-image="{{asset('public/assets/admin/img/160x160/img2.jpg')}}"

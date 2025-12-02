@@ -313,7 +313,7 @@
                 </div>
             </div>
         </div>
-        <div class="btn--container justify-content-end mt-3">
+        <div class="btn--container justify-content-end mt-20">
             <button type="reset" id="reset_btn" class="btn btn--reset min-w-120px">Reset</button>
             <button type="submit" class="btn btn--primary min-w-120px">Submit</button>
         </div>

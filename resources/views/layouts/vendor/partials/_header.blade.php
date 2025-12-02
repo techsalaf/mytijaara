@@ -259,7 +259,7 @@ $val= (string) ($cash_in_hand_overflow_store_amount - (($cash_in_hand_overflow_s
                     $pers=  439.6 * $pers / 100;
             }
         ?>
-        @if ($store_data?->store_sub?->is_trial == 0 && $store_data?->store_sub?->expiry_date_parsed && $store_data?->store_sub->expiry_date_parsed->subDays($subscription_deadline_warning_days)->isBefore(now()) && Request::is('vendor-panel'))
+        @if ($store_data?->store_sub?->is_trial == 0 && $store_data?->store_sub?->expiry_date_parsed && $store_data?->store_sub->expiry_date_parsed->subDays((int) $subscription_deadline_warning_days)->isBefore(now()) && Request::is('vendor-panel'))
 
                 <!--Always in header Renew -->
                 <div class="renew-badge mb-20" id="renew-badge">
@@ -277,7 +277,7 @@ $val= (string) ($cash_in_hand_overflow_store_amount - (($cash_in_hand_overflow_s
 
 
 
-        @elseif ( Session::get('subscription_renew_close_btn') !== true && $store_data?->store_sub?->is_trial == 0  && $store_data?->store_sub?->expiry_date_parsed && $store_data?->store_sub->expiry_date_parsed->subDays($subscription_deadline_warning_days)->isBefore(now()) && !Request::is('vendor-panel'))
+        @elseif ( Session::get('subscription_renew_close_btn') !== true && $store_data?->store_sub?->is_trial == 0  && $store_data?->store_sub?->expiry_date_parsed && $store_data?->store_sub->expiry_date_parsed->subDays( (int) $subscription_deadline_warning_days)->isBefore(now()) && !Request::is('vendor-panel'))
 
 
                 <div class="renew-badge mb-20 hide-warning" id="renew-badge">
@@ -470,12 +470,10 @@ $val= (string) ($cash_in_hand_overflow_store_amount - (($cash_in_hand_overflow_s
                 confirmButtonColor: '#FC6A57',
                 cancelButtonColor: '#363636',
                 confirmButtonText: `{{ translate('yes')}}`,
-                cancelButtonText: `{{ translate('Do_not_Logout')}}`,
+                cancelButtonText: `{{ translate('Cancel')}}`,
                 }).then((result) => {
                 if (result.value) {
                 location.href='{{route('logout')}}';
-                } else{
-                Swal.fire('{{ translate('messages.canceled') }}', '', 'info')
                 }
             })
         });

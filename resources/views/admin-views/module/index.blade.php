@@ -192,7 +192,7 @@
                 <div class="single-item-slider owl-carousel">
                     <div class="item">
                         <div class="modal-header pt-0">
-                            <h2 class="modal-title">{{translate('How does it work?')}}</h2>
+                            <h2 class="modal-title">{{translate('How does it works ?')}}</h2>
                         </div>
                         <div class="modal-body">
                             <div class="how-it-works">
@@ -231,7 +231,7 @@
                                     {{translate("Otherwise this zone won't function properly & will work show anything against this zone")}}
                                 </p>
                             </div>
-                            <img src="{{asset('/public/assets/admin/img/zone-settings-popup-arrow.gif')}}" alt="admin/img" class="w-100 h-unset">
+                            <img src="{{asset('/public/assets/admin/img/zone-settings-popup-arro.gif')}}" alt="admin/img" class="w-100 h-unset">
                         </div>
                     </div>
                     <div class="item px-xl-4">

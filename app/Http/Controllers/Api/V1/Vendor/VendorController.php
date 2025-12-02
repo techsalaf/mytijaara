@@ -481,6 +481,8 @@ class VendorController extends Controller
             }
             $order->cancellation_reason=$request->reason;
             $order->canceled_by='store';
+        } else if ($order->order_type != 'parcel' && in_array($request->status, ['picked_up']) ) {
+            Helpers::sendOrderDeliveryVerificationOtp($order);
         }
 
         $order->order_status = $request['status'];
@@ -609,7 +611,7 @@ class VendorController extends Controller
 
         $notifications = Notification::active()->where(function($q) use($vendor){
             $q->whereNull('zone_id')->orWhere('zone_id', $vendor->stores[0]->zone_id);
-        })->where('target', 'store')->where('created_at', '>=', \Carbon\Carbon::today()->subDays(7))->get();
+        })->where('tergat', 'store')->where('created_at', '>=', \Carbon\Carbon::today()->subDays(7))->get();
 
         $notifications->append('data');
 
@@ -932,6 +934,7 @@ class VendorController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
             $orderTaxIds=[];
+            $additionalCharges=[];
         if($request->order_amount){
             $vendor = $request['vendor'];
             $vendor_store = Helpers::store_data_formatting($vendor->stores[0], false);
@@ -982,7 +985,7 @@ class VendorController extends Controller
             $store_discount_amount = $order->store_discount_amount;
 
 
-        // $discount=$order->store_discount_amount;
+
         $discount_on_product_by = $order->discount_on_product_by ?? 'vendor' ;
 
         $store_discount = Helpers::get_store_discount($store);
@@ -997,7 +1000,7 @@ class VendorController extends Controller
 
         $order->discount_on_product_by= $discount_on_product_by;
         $store_discount_amount=$discount;
-        $additionalCharges=[];
+
 
 
         $coupon_discount_amount = $coupon ? CouponLogic::get_discount($coupon, $product_price + $total_addon_price - $store_discount_amount) : 0;
@@ -1032,24 +1035,11 @@ class VendorController extends Controller
                 $order->dm_tips = 0;
             }
 
-            //Added service charge
             $order->additional_charge =$order->additional_charge;
 
             if ($additional_charge_status == 1) {
                 $order->additional_charge = $additional_charge ?? 0;
-                // $additionalCharges['tax_on_additional_charge'] = $order->additional_charge;
             }
-
-
-
-            // extra packaging charge
-
-            // $order->extra_packaging_amount =  (!empty($extra_packaging_data) && $request?->extra_packaging_amount > 0 && $store && ($extra_packaging_data[$store->module->module_type] == '1') && ($store?->storeConfig?->extra_packaging_status == '1')) ? $store?->storeConfig?->extra_packaging_amount : 0;
-
-            // if ($order->extra_packaging_amount > 0) {
-            //     $additionalCharges['tax_on_packaging_charge'] =  $order->extra_packaging_amount;
-            // }
-
 
                     $taxData =  \Modules\TaxModule\Services\CalculateTaxService::getCalculatedTax(
                     amount: $total_price ,

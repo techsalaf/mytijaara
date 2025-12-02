@@ -51,7 +51,7 @@
                                     data-original-title="{{ translate('messages.Write_a_short_description_of_your_new_business_module_within_100_words_(550_characters)')}}"><img
                                         src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
                                         alt="{{ translate('messages.veg_non_veg') }}"></span></label>
-                                <textarea  data-value="{!! $module->description !!}" id="description"  class="ckeditor form-control" name="description[]">{!! $module?->getRawOriginal('description') !!}</textarea>
+                                <textarea  data-value="{!! $module->description ?? '' !!}" id="description"  class="ckeditor form-control" name="description[]">{!! $module?->getRawOriginal('description') ?? '' !!}</textarea>
                             </div>
                         </div>
 
@@ -115,7 +115,7 @@
                                         <div class="card-body p-0">
                                             <div class="module-radio-group">
                                             @foreach (config('module.module_type') as $key)
-                                            @if($key != 'rental' )
+                                            @if($key != 'rental'  )
                                             <label class="form-check form--check">
                                                 <input class="form-check-input" disabled type="radio" name="module_type" value="{{$key}}" {{$key==$module->module_type?'checked':''}}>
                                                 <span class="form-check-label">
@@ -140,7 +140,7 @@
                                 </div>
                             </div>
                         <div class="col-lg-6">
-                            <h6 class="mb-3">{{translate('Choose related images')}}</h6>
+                            <h6 class="mb-3">{{translate('Chose related images')}}</h6>
                             <div class="card module-logo-card mb-3">
                                 <div class="card-body">
                                     <div class="row h-100">
@@ -187,7 +187,7 @@
                     </div>
                 </div>
             </div>
-            <div class="btn--container justify-content-end mt-3">
+            <div class="btn--container justify-content-end mt-20">
                 <button type="reset" id="reset_btn" class="btn btn--reset">{{translate('messages.reset')}}</button>
                 <button type="submit" class="btn btn--primary">{{translate('messages.Save_changes')}}</button>
             </div>
@@ -202,33 +202,7 @@
     <script src="{{asset('public/assets/admin/ckeditor/ckeditor.js')}}"></script>
     <script>
         "use strict";
-        $('.module-change').on('click', function (){
-            let id = $(this).val();
-            modulChange(id)
-        })
-        function modulChange(id)
-        {
-            $.get({
-                url: "{{url('/')}}/admin/module/type/?module_type="+id,
-                dataType: 'json',
-                success: function (data) {
-                    if(data.data.description.length)
-                    {
-                        $('#module_des_card').show();
-                        $('#module_description').html(data.data.description);
-                    }
-                    else
-                    {
-                        $('#module_des_card').hide();
-                    }
-                    if(id=='parcel')
-                    {
-                        $('#module_theme').hide();
 
-                    }
-                },
-            });
-        }
 
         function readURL(input, id) {
             if (input.files && input.files[0]) {
@@ -250,23 +224,11 @@
             readURL(this,'viewer2');
         });
 
-        $(".lang_link").click(function(e){
-            e.preventDefault();
-            $(".lang_link").removeClass('active');
-            $(".lang_form").addClass('d-none');
-            $(this).addClass('active');
 
-            let form_id = this.id;
-            let lang = form_id.substring(0, form_id.length - 5);
-            console.log(lang);
-            $("#"+lang+"-form").removeClass('d-none');
-        });
 
         $(document).ready(function () {
             @if ($module->module_type=='parcel')
                 $('#module_des_card').hide();
-                $('#module_theme').hide();
-                $('#zone_check').hide();
             @endif
             $('.ckeditor').ckeditor();
         });

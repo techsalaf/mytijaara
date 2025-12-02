@@ -96,6 +96,7 @@
                         "description": "{{ $data->payment_amount }}",
                         "image": "{{ $business_logo }}",
                         "order_id": orderData.order_id,
+                        "callback_url": "{{ route('razor-pay.callback') }}",
                         "handler": function (response) {
                             console.log("Payment successful!", response);
                             window.location.href = "{{ route('razor-pay.verify-payment') }}?" + new URLSearchParams({

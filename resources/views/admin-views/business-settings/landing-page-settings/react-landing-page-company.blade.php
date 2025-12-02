@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-4 mt-2">
+    <div class="mb-20 mt-2">
         <div class="js-nav-scroller hs-nav-scroller-horizontal">
             @include('admin-views.business-settings.landing-page-settings.top-menu-links.react-landing-page-links')
         </div>
@@ -250,7 +250,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="btn--container justify-content-end mt-3">
+                <div class="btn--container justify-content-end mt-20">
                     <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                     <button type="submit"   class="btn btn--primary mb-2">{{translate('Save Information')}}</button>
                 </div>

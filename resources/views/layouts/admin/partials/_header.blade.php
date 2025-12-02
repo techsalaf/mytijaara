@@ -160,13 +160,13 @@
                         <div class="hs-unfold">
                             <div>
                                 @php( $local = session()->has('local')?session('local'): null)
-                                @php($lang = \App\Models\BusinessSetting::where('key', 'system_language')->first())
+                                @php($lang  = \App\CentralLogics\Helpers::get_business_settings('system_language'))
                                 @if ($lang)
                                     <div
                                         class="topbar-text dropdown disable-autohide text-capitalize d-flex">
                                         <a class="topbar-link dropdown-toggle d-flex align-items-center title-color"
                                            href="#" data-toggle="dropdown">
-                                            @foreach(json_decode($lang['value'],true) as $data)
+                                            @foreach($lang  as $data)
                                                 @if($data['code']==$local)
                                                     <i class="tio-globe"></i> {{$data['code']}}
 
@@ -176,7 +176,7 @@
                                             @endforeach
                                         </a>
                                         <ul class="dropdown-menu lang-menu">
-                                            @foreach(json_decode($lang['value'],true) as $key =>$data)
+                                            @foreach($lang as $key =>$data)
                                                 @if($data['status']==1)
                                                     <li>
                                                         <a class="dropdown-item py-1"
@@ -192,7 +192,7 @@
                             </div>
                         </div>
                     </li>
-                    @php($mod = \App\Models\Module::find(Config::get('module.current_module_id')))
+                    @php($mod = \App\Models\Module::with('storage')->find(Config::get('module.current_module_id')))
                     <div class="nav-item __nav-item">
                         <a href="javascript:void(0)" class="__nav-link module--nav-icon" id="tourb-0">
                             @if ($mod)
@@ -306,46 +306,40 @@
     </div>
 </div>
 
-<!-- <div class="toggle-tour">
-    <a href="https://youtube.com/playlist?list=PLLFMbDpKMZBxgtX3n3rKJvO5tlU8-ae2Y" target="_blank"
-       class="d-flex align-items-center gap-10px">
-        <img src="{{ asset('public/assets/admin/img/tutorial.svg') }}" alt="">
-        <span>
-            <span class="text-capitalize">{{ translate('Tutorial') }}</span>
-        </span>
-    </a>
-    <div class="d-flex align-items-center gap-10px restart-Tour">
-        <img src="{{ asset('public/assets/admin/img/tour.svg') }}" alt="">
-        <span>
-            <span class="text-capitalize">{{ translate('Tour') }}</span>
-        </span>
-    </div>
-</div> -->
+
 
 <div class="toggle-tour">
     <button type="button" class="tour-guide_btn w-40px h-40px border-0 bg-white d-flex align-items-center justify-content-center ">
         <span class="w-32 h-32px  min-w-32 d-flex align-items-center justify-content-center  bg-primary rounded-8"><img src="{{ asset('public/assets/admin/img/solar_multiple-forward-right-line-duotone.svg') }}" alt=""></span>
     </button>
-    <div class="d-flex flex-column">        
-        <!-- <div class="tour-guide-items text-capitalize fs-14 text-title">Guideline</div>                 -->
+    <div class="d-flex flex-column">
+
+    @if (Request::is('taxvat*'))
+        <div class="tour-guide-items offcanvas-trigger text-capitalize fs-14 text-title cursor-pointer" data-target="#global_guideline_offcanvas">{{ translate('Guideline') }}</div>
+    @endif
+
         <div class="tour-guide-items">
             <a href="https://youtube.com/playlist?list=PLLFMbDpKMZBxgtX3n3rKJvO5tlU8-ae2Y" target="_blank"
                class="d-flex align-items-center gap-10px">
-                <span class="text-capitalize fs-14 text-title">{{ translate('Tutorial') }}</span>
+                <span class="text-capitalize fs-14 text-title">{{ translate('Turotial') }}</span>
             </a>
-        </div>    
+        </div>
         <div class="tour-guide-items d-flex cursor-pointer align-items-center gap-10px restart-Tour">
             <span class="text-capitalize fs-14 text-title">{{ translate('Tour') }}</span>
         </div>
-        <!-- <div class="tour-guide-items text-capitalize d-flex align-items-center gap-3 fs-14 text-title">
-            Toggle RTL
+        @if ( getEnvMode() == 'demo')
+        <div class="tour-guide-items text-capitalize d-flex align-items-center gap-3 fs-14 text-title">
+            {{ translate('Toggle RTL') }}
             <label class="toggle-switch toggle-switch-sm" for="rtl_toggle">
                 <input type="checkbox" class="toggle-switch-input" id="rtl_toggle">
                 <span class="toggle-switch-label">
                     <span class="toggle-switch-indicator"></span>
                 </span>
             </label>
-        </div> -->
+        </div>
+        @endif
     </div>
 </div>
+
+
 

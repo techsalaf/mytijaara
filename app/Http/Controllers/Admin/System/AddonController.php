@@ -72,19 +72,11 @@ class AddonController extends Controller
         $full_data = include($request['path'] . '/Addon/info.php');
         $path = $request['path'];
         $addon_name = $full_data['name'];
-        
-        // DEV MODE: Skip license validation for development/testing
-        $dev_mode = env('APP_ENV') == 'local' || env('APP_ENV') == 'live' || env('APP_DEBUG') == true || env('APP_MODE') == 'dev' || strpos(url('/'), 'localhost') !== false;
-        
-        if ($dev_mode) {
-            // Allow bypassing license validation in development mode
-        } else {
-            if ($full_data['purchase_code'] == null || $full_data['username'] == null) {
-                return response()->json([
-                    'flag' => 'inactive',
-                    'view' => view('admin-views.system.addon.partials.activation-modal-data', compact('full_data', 'path', 'addon_name'))->render(),
-                ]);
-            }
+        if ($full_data['purchase_code'] == null || $full_data['username'] == null) {
+            return response()->json([
+                'flag' => 'inactive',
+                'view' => view('admin-views.system.addon.partials.activation-modal-data', compact('full_data', 'path', 'addon_name'))->render(),
+            ]);
         }
         $full_data['is_published'] = $full_data['is_published'] ? 0 : 1;
         $str = "<?php return " . var_export($full_data, true) . ";";
@@ -106,24 +98,6 @@ class AddonController extends Controller
             Toastr::info(translate('messages.update_option_is_disable_for_demo'));
             return back();
         }
-        
-        // DEV MODE: Bypass license validation for development/testing
-        $dev_mode = env('APP_ENV') == 'local' || env('APP_ENV') == 'live' || env('APP_DEBUG') == true || env('APP_MODE') == 'dev' || strpos(url('/'), 'localhost') !== false;
-        
-        if ($dev_mode) {
-            $full_data = include($request['path'] . '/Addon/info.php');
-            
-            $full_data['is_published'] = 1;
-            $full_data['username'] = $request['username'];
-            $full_data['purchase_code'] = $request['purchase_code'];
-            $str = "<?php return " . var_export($full_data, true) . ";";
-            file_put_contents(base_path($request['path'] . '/Addon/info.php'), $str);
-            $this->rentalPublish($full_data['is_published']);
-
-            Toastr::success(translate('activated_successfully'));
-            return back();
-        }
-        
         $remove = ["http://", "https://", "www."];
         $url = str_replace($remove, "", url('/'));
         $full_data = include($request['path'] . '/Addon/info.php');

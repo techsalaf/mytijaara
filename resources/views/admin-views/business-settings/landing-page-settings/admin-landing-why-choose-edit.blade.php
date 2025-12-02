@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-4 mt-2">
+    <div class="mb-20 mt-2">
         <div class="js-nav-scroller hs-nav-scroller-horizontal">
             @include('admin-views.business-settings.landing-page-settings.top-menu-links.admin-landing-page-links')
         </div>
@@ -65,8 +65,11 @@
                                                         data-original-title="{{ translate('Write_the_title_within_40_characters') }}">
                                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                             alt="">
-                                                    </span></label>
-                                                <input id="title" type="text" maxlength="40" name="title[]" value="{{ $criteria['title']??'' }}" class="form-control" placeholder="{{translate('messages.title_here...')}}">
+                                                    </span><span class="form-label-secondary text-danger"
+                                                                 data-toggle="tooltip" data-placement="right"
+                                                                 data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
+                                                <input required id="title" type="text" maxlength="40" name="title[]" value="{{ $criteria['title']??'' }}" class="form-control" placeholder="{{translate('messages.title_here...')}}">
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                                     @foreach(json_decode($language) as $lang)
@@ -103,22 +106,30 @@
                                 <div class="col-sm-6">
                                     <div>
 
-                                        <label class="form-label">{{translate('Criteria Icon/ Image')}}<span class="form-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{ translate('Icon_ratio_(1:1)_and_max_size_2_MB.') }}">
+                                        <label class="form-label mb-3">{{translate('Criteria Icon/ Image')}}<span class="form-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}">
                                             <img src="{{asset('public/assets/admin/img/info-circle.svg')}}" alt="">
-                                        </span></label>
+                                        </span>
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                            <div class="fs-12 opacity-70">
+                                                {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                            </div>
+                                        </label>
                                     </div>
                                     <label class="upload-img-3 m-0">
                                         <div class="position-relative">
                                         <div class="img">
                                             <img
-
                                             src="{{ $criteria['image_full_url'] ?? asset('/public/assets/admin/img/aspect-1.png') }}"
                                         data-onerror-image="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
                                         </div>
-                                          <input type="file"  name="image" hidden>
+                                          <input class="upload-file__input single_file_input" type="file"  name="image" hidden>
                                             @if (isset($criteria['image']))
-                                                <span id="fixed_header_image" class="remove_image_button remove-image"
+                                                <span id="fixed_header_image" class="remove_image_button remove-image dynamic-checkbox"
                                                       data-id="fixed_header_image"
+                                                      data-image-off="{{ asset('/public/assets/admin/img/delete-confirmation.png') }}"
                                                       data-title="{{translate('Warning!')}}"
                                                       data-text="<p>{{translate('Are_you_sure_you_want_to_remove_this_image_?')}}</p>"
                                                 > <i class="tio-clear"></i></span>
@@ -127,7 +138,7 @@
                                     </label>
                                 </div>
                             </div>
-                            <div class="btn--container justify-content-end mt-3">
+                            <div class="btn--container justify-content-end mt-20">
                                 <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                                 <button type="submit"   class="btn btn--primary mb-2">{{translate('messages.Update')}}</button>
                             </div>

@@ -130,12 +130,12 @@
                         <tr>
                             <td>{{$key+$deliveryMen->firstItem()}}</td>
                             <td>
-                                <a class="table-rest-info" href="{{route('admin.users.delivery-man.preview',[$dm['id']])}}">
+                                <a class="table-rest-info max-w-400px min-w-220" href="{{route('admin.users.delivery-man.preview',[$dm['id']])}}">
                                     <img class="onerror-image" data-onerror-image="{{asset('public/assets/admin/img/160x160/img1.jpg')}}"
                                     src="{{$dm['image_full_url'] }}"
                                     alt="{{$dm['f_name']}} {{$dm['l_name']}}">
                                     <div class="info">
-                                        <h5 class="text-hover-primary mb-0">{{$dm['f_name'].' '.$dm['l_name']}}</h5>
+                                        <h5 class="text-hover-primary line--limit-2 text-wrap mb-0">{{$dm['f_name'].' '.$dm['l_name']}}</h5>
                                         <span class="d-block text-body">
                                             <span class="rating">
                                             <i class="tio-star"></i> {{count($dm->rating)>0?number_format($dm->rating[0]->average, 1, '.', ' '):0}}

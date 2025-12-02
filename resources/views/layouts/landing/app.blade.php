@@ -2,8 +2,9 @@
 <!DOCTYPE html>
 <?php
     $landing_site_direction = session()->get('landing_site_direction');
-    $country=\App\Models\BusinessSetting::where('key','country')->first();
-$countryCode= strtolower($country?$country->value:'auto');
+    $country= \App\CentralLogics\Helpers::get_business_settings('country')  ;
+    $countryCode= strtolower($country??'auto');
+   $metaData=  \App\Models\DataSetting::where('type','admin_landing_page')->whereIn('key',['meta_title','meta_description','meta_image'])->get()->keyBy('key')??[];
 ?>
 <html dir="{{ $landing_site_direction }}" lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
@@ -11,8 +12,8 @@ $countryCode= strtolower($country?$country->value:'auto');
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>@yield('title')</title>
+    @include('layouts.landing._seo')
 
     <link rel="stylesheet" href="{{ asset('public/assets/landing/css/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('public/assets/landing/css/customize-animate.css') }}" />
@@ -23,11 +24,10 @@ $countryCode= strtolower($country?$country->value:'auto');
 
     <link rel="stylesheet" href="{{asset('public/assets/admin/intltelinput/css/intlTelInput.css')}}">
 
-    @php($icon = \App\Models\BusinessSetting::where(['key' => 'icon'])->first())
-    <link rel="icon" type="image/x-icon" href="{{\App\CentralLogics\Helpers::get_full_url('business', $icon?->value?? '', $icon?->storage[0]?->value ?? 'public','favicon')}}">
+
+    <link rel="icon" type="image/x-icon" href="{{\App\CentralLogics\Helpers::iconFullUrl()}}">
     @stack('css_or_js')
-    @php($backgroundChange = \App\Models\BusinessSetting::where(['key' => 'backgroundChange'])->first())
-    @php($backgroundChange = isset($backgroundChange) && $backgroundChange->value ? json_decode($backgroundChange->value,true):'')
+     @php($backgroundChange = \App\CentralLogics\Helpers::get_business_settings('backgroundChange')??[])
     @if (isset($backgroundChange['primary_1_hex']) && isset($backgroundChange['primary_2_hex']))
         <style>
             :root {
@@ -41,8 +41,7 @@ $countryCode= strtolower($country?$country->value:'auto');
 </head>
 
 <body>
-    @php($landing_page_text = \App\Models\BusinessSetting::where(['key' => 'landing_page_text'])->first())
-    @php($landing_page_text = isset($landing_page_text->value) ? json_decode($landing_page_text->value, true) : null)
+
     @php($fixed_link = \App\Models\DataSetting::where(['key'=>'fixed_link','type'=>'admin_landing_page'])->first())
     @php($fixed_link = isset($fixed_link->value)?json_decode($fixed_link->value, true):null)
     <!-- ==== Preloader ==== -->
@@ -53,12 +52,11 @@ $countryCode= strtolower($country?$country->value:'auto');
         <div class="navbar-bottom">
             <div class="container">
                 <div class="navbar-bottom-wrapper">
-                    @php($fav = \App\Models\BusinessSetting::where(['key' => 'icon'])->first())
-                    @php($logo = \App\Models\BusinessSetting::where(['key' => 'logo'])->first())
+
                     <a href="{{route('home')}}" class="logo">
                         <img class="onerror-image"  data-onerror-image="{{ asset('public/assets/admin/img/160x160/img2.jpg') }}"
 
-                    src="{{\App\CentralLogics\Helpers::get_full_url('business', $logo?->value?? '', $logo?->storage[0]?->value ?? 'public','favicon')}}"
+                    src="{{ \App\CentralLogics\Helpers::logoFullUrl()}}"
 
                     alt="image">
                     </a>
@@ -90,11 +88,11 @@ $countryCode= strtolower($country?$country->value:'auto');
                         <span></span>
                     </div>
                     @php( $local = session()->has('landing_local')?session('landing_local'):null)
-                    @php($lang = \App\Models\BusinessSetting::where('key', 'system_language')->first())
+                    @php($lang = \App\CentralLogics\Helpers::get_business_settings('system_language') )
                     @if ($lang)
                         <div class="dropdown--btn-hover position-relative">
                             <a class="dropdown--btn border-0 px-3 header--btn text-capitalize d-flex align-items-center" href="javascript:void(0)">
-                                @foreach(json_decode($lang['value'],true) as $data)
+                                @foreach($lang as $data)
                                 @if($data['code']==$local)
                                     <span class="me-1">{{$data['code']}}</span>
                                 @elseif(!$local &&  $data['default'] == true)
@@ -106,7 +104,7 @@ $countryCode= strtolower($country?$country->value:'auto');
                                 </svg>
                             </a>
                             <ul class="dropdown-list py-0" style="min-width:120px; top:100%">
-                                @foreach(json_decode($lang['value'],true) as $key =>$data)
+                                @foreach($lang as $key =>$data)
                                 @if($data['status']==1)
                                     <li class="py-0">
                                         <a class="" href="{{route('lang',[$data['code']])}}">
@@ -184,7 +182,7 @@ $countryCode= strtolower($country?$country->value:'auto');
                         <form method="post" action="{{route('newsletter.subscribe')}}">
                             @csrf
                             <div class="input--grp">
-                                <input type="email" name="email" required class="form-control" placeholder="Enter your email address">
+                                <input type="email" name="email" required class="form-control" placeholder="{{ translate('Enter your email address') }}">
                                 <button class="search-btn" type="submit">
                                     <svg width="46" height="46" viewBox="0 0 46 46" fill="none"
                                         xmlns="http://www.w3.org/2000/svg">
@@ -213,7 +211,7 @@ $countryCode= strtolower($country?$country->value:'auto');
                     <div class="footer-widget">
                         <div class="footer-logo">
                             <a class="logo">
-                                <img  class="onerror-image"  data-onerror-image="{{ asset('public/assets/admin/img/160x160/img2.jpg') }}" src="{{\App\CentralLogics\Helpers::get_full_url('business', $logo?->value?? '', $logo?->storage[0]?->value ?? 'public','favicon')}}" alt="image">
+                                <img  class="onerror-image"  data-onerror-image="{{ asset('public/assets/admin/img/160x160/img2.jpg') }}" src="{{\App\CentralLogics\Helpers::logoFullUrl()}}" alt="image">
                             </a>
                         </div>
                         <div class="txt">
@@ -334,8 +332,7 @@ $countryCode= strtolower($country?$country->value:'auto');
     <script src="{{ asset('public/assets/landing/js/odometer.min.js') }}"></script>
     <script src="{{ asset('public/assets/landing/js/owl.min.js') }}"></script>
     <script src="{{ asset('public/assets/landing/js/main.js') }}"></script>
-    <script src="{{ asset('public/assets/admin') }}/js/toastr.js"></script>
-
+    <script src="{{ asset('public/assets/admin/js/toastr.js') }}"></script>
     {!! Toastr::message() !!}
     @if ($errors->any())
         <script>

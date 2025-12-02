@@ -23,7 +23,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-4 mt-2">
+    <div class="mb-20 mt-2">
         <div class="js-nav-scroller hs-nav-scroller-horizontal">
             @include('admin-views.business-settings.landing-page-settings.top-menu-links.flutter-landing-page-links')
         </div>
@@ -167,7 +167,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>
@@ -232,7 +232,7 @@
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                             @endif
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Add')}}</button>
                         </div>
@@ -327,7 +327,7 @@
                                 {{translate('NB_:_All_the_modules_and_their_information_will_be_dynamically_added_from_the_module_setup_section._You_just_need_to_add_the_title_and_subtitle_of_the_Module_List_Section.')}}
                             </div>
                         </div>
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>

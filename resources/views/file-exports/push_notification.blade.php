@@ -40,7 +40,7 @@
         {{-- <td>{{ $coupon->image ?? translate('N/A') }}</td> --}}
         <td>{{ $coupon?->zone?->name ??  translate('All') }}</td>
 
-        <td>{{ translate($coupon->target) }}</td>
+        <td>{{ translate($coupon->tergat) }}</td>
 
 
             </tr>

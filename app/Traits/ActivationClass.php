@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+// use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 trait ActivationClass
@@ -59,31 +60,8 @@ trait ActivationClass
         return 60 * 60 * 24 * $days;
     }
 
-    // Função para verificar se é um usuário com licença gratuita
-    private function isFreeUser(string $username = null): bool
-    {
-        $freeUsers = [
-            'siptsgcr',
-            // Adicione outros nomes aqui se necessário
-        ];
-        
-        return in_array(strtoupper(trim($username ?? '')), $freeUsers);
-    }
-
     public function getRequestConfig(string|null $username = null, string|null $purchaseKey = null, string|null $softwareId = null, string|null $softwareType = null): array
     {
-        // Verifica se é um usuário com licença gratuita
-        if ($this->isFreeUser($username)) {
-            return [
-                "active" => "1", // Sempre ativo para usuários gratuitos
-                "username" => trim($username),
-                "purchase_key" => $purchaseKey,
-                "software_id" => $softwareId ?? SOFTWARE_ID,
-                "domain" => $this->getDomain(),
-                "software_type" => $softwareType,
-            ];
-        }
-
         $activeStatus = base64_encode(1);
         if(!$this->is_local()) {
             try {
@@ -117,15 +95,6 @@ trait ActivationClass
         }
 
         $config = $this->getAddonsConfig();
-        
-        // PRIMEIRA VERIFICAÇÃO: Se existe configuração para o app
-        if (isset($config[$app])) {
-            // Verifica se é usuário gratuito SEMPRE, independente do status
-            if ($this->isFreeUser($config[$app]['username'] ?? null)) {
-                return true;
-            }
-        }
-
         $cacheKey = $this->getSystemAddonCacheKey(app: $app);
 
         if (isset($config[$app]) && (!isset($config[$app]['active']) || $config[$app]['active'] == 0)) {
@@ -133,9 +102,8 @@ trait ActivationClass
             return false;
         } else {
             $appConfig = $config[$app];
-            
             return Cache::remember($cacheKey, $this->getCacheTimeoutByDays(days: 1), function () use ($app, $appConfig) {
-                $response = $this->getRequestConfig(username: $appConfig['username'] ?? null, purchaseKey: $appConfig['purchase_key'] ?? null, softwareId: $appConfig['software_id'] ?? null, softwareType: $appConfig['software_type'] ?? base64_decode('cHJvZHVjdA=='));
+                $response = $this->getRequestConfig(username: $appConfig['username'], purchaseKey: $appConfig['purchase_key'], softwareId: $appConfig['software_id'], softwareType: $appConfig['software_type'] ?? base64_decode('cHJvZHVjdA=='));
                 $this->updateActivationConfig(app: $app, response: $response);
                 return (bool)$response['active'];
             });
@@ -144,6 +112,9 @@ trait ActivationClass
 
     public function updateActivationConfig($app, $response): void
     {
+        if('admin.business-settings.addon-activation.index' === \Illuminate\Support\Facades\Route::currentRouteName() ){
+            return;
+        }
         $config = $this->getAddonsConfig();
         $config[$app] = $response;
         $configContents = "<?php return " . var_export($config, true) . ";";

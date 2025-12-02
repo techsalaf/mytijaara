@@ -108,7 +108,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="btn--container justify-content-end mt-3">
+                            <div class="btn--container justify-content-end mt-20">
                                 <button type="reset" id="reset_btn"
                                         class="btn btn--reset">{{ translate('messages.reset') }}</button>
                                 <button type="submit" id="submit"

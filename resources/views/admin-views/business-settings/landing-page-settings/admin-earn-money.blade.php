@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-4 mt-2">
+    <div class="mb-20 mt-2">
         <div class="js-nav-scroller hs-nav-scroller-horizontal">
             @include('admin-views.business-settings.landing-page-settings.top-menu-links.admin-landing-page-links')
         </div>
@@ -68,8 +68,12 @@
                                                         data-original-title="{{ translate('Write_the_title_within_40_characters') }}">
                                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                             alt="">
-                                                    </span></label>
-                                                <input id="earning_title" type="text" maxlength="40" name="earning_title[]" class="form-control" value="{{$earning_title?->getRawOriginal('value')}}" placeholder="{{translate('messages.title_here...')}}">
+                                                    </span>
+                                        <span class="form-label-secondary text-danger"
+                                              data-toggle="tooltip" data-placement="right"
+                                              data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
+                                                <input required id="earning_title" type="text" maxlength="40" name="earning_title[]" class="form-control" value="{{$earning_title?->getRawOriginal('value')}}" placeholder="{{translate('messages.title_here...')}}">
                                 </div>
                                 <div class="col-sm-6">
                                     <label for="sub-text" class="form-label">{{translate('Sub Title')}} ({{ translate('messages.default') }})<span
@@ -78,8 +82,12 @@
                                                         data-original-title="{{ translate('Write_the_title_within_80_characters') }}">
                                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                             alt="">
-                                                    </span></label>
-                                                <input id="sub-text" type="text" maxlength="80" name="earning_sub_title[]" class="form-control" value="{{$earning_sub_title?->getRawOriginal('value')}}" placeholder="{{translate('messages.sub_title_here...')}}">
+                                                    </span>
+                                        <span class="form-label-secondary text-danger"
+                                              data-toggle="tooltip" data-placement="right"
+                                              data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
+                                                <input required id="sub-text" type="text" maxlength="80" name="earning_sub_title[]" class="form-control" value="{{$earning_sub_title?->getRawOriginal('value')}}" placeholder="{{translate('messages.sub_title_here...')}}">
                                 </div>
                             </div>
                             <input type="hidden" name="lang[]" value="default">
@@ -155,7 +163,7 @@
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                             @endif
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>
@@ -174,8 +182,15 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-7">
-                                <label class="form-label d-block mb-2">
+                                <label class="form-label d-block mb-3">
                                     {{translate('Banner')}}  <span class="text--primary">{{translate('(size: 3:1)')}}</span>
+                                    <span class="form-label-secondary text-danger"
+                                          data-toggle="tooltip" data-placement="right"
+                                          data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                    <div class="fs-12 opacity-70">
+                                        {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                    </div>
                                 </label>
                                 <label class="upload-img-3 m-0 d-block">
                                     <div class="position-relative">
@@ -187,10 +202,10 @@
                                         class="vertical-img mw-100 vertical onerror-image" alt="">
 
                                     </div>
-                                    <input type="file" name="earning_seller_image"  hidden>
+                                    <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="earning_seller_image"  hidden>
                                     @if (isset($earning_seller_image['value']))
-                                            <span id="earning_seller_img" class="remove_image_button remove-image"
-                                            data-id="earning_seller_img"
+                                            <span id="earning_seller_img" class="remove_image_button remove-image dynamic-checkbox"
+                                            data-id="earning_seller_img" data-image-off="{{ asset('/public/assets/admin/img/delete-confirmation.png') }}"
                                             data-title="{{translate('Warning!')}}"
                                             data-text="<p>{{translate('Are_you_sure_you_want_to_remove_this_image_?')}}</p>"
                                                 > <i class="tio-clear"></i></span>
@@ -270,7 +285,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>
@@ -298,8 +313,15 @@
 
                         <div class="row g-3">
                             <div class="col-md-7">
-                                <label class="form-label d-block mb-2">
+                                <label class="form-label d-block mb-3">
                                     {{translate('Banner')}}  <span class="text--primary">{{translate('(size: 3:1)')}}</span>
+                                    <span class="form-label-secondary text-danger"
+                                          data-toggle="tooltip" data-placement="right"
+                                          data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                    <div class="fs-12 opacity-70">
+                                        {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                    </div>
                                 </label>
                                 <label class="upload-img-3 m-0 d-block">
                                     <div class="position-relative">
@@ -309,10 +331,11 @@
 
                                         data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
                                     </div>
-                                        <input type="file" name="earning_delivery_image"  hidden>
+                                        <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="earning_delivery_image"  hidden>
                                             @if (isset($earning_delivery_image['value']))
-                                            <span id="earning_delivery_img" class="remove_image_button  remove-image"
+                                            <span id="earning_delivery_img" class="remove_image_button  remove-image dynamic-checkbox"
                                                   data-id="earning_delivery_img"
+                                                  data-image-off="{{ asset('/public/assets/admin/img/delete-confirmation.png') }}"
                                                   data-title="{{translate('Warning!')}}"
                                                   data-text="<p>{{translate('Are_you_sure_you_want_to_remove_this_image_?')}}</p>"
                                                 > <i class="tio-clear"></i></span>
@@ -397,7 +420,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>

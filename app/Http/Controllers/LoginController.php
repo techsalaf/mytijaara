@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Admin;
-use App\Models\ExternalConfiguration;
-use App\Models\Module;
+ use App\Models\Module;
 use App\Models\Vendor;
 use App\Models\DataSetting;
 use Illuminate\Http\Request;
@@ -14,10 +13,8 @@ use Illuminate\Support\Carbon;
 use App\Models\BusinessSetting;
 use App\CentralLogics\SMS_module;
 use App\Models\PhoneVerification;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use App\Models\SubscriptionPackage;
-use Gregwar\Captcha\CaptchaBuilder;
+ use Illuminate\Support\Facades\DB;
+ use Gregwar\Captcha\CaptchaBuilder;
 use Illuminate\Support\Facades\App;
 use App\Http\Controllers\Controller;
 use App\Mail\AdminPasswordResetMail;
@@ -32,8 +29,7 @@ use Modules\Gateways\Traits\SmsGateway;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Cache;
-
+ 
 class LoginController extends Controller
 {
     public function __construct()
@@ -120,26 +116,6 @@ class LoginController extends Controller
             }
         }
         return false;
-    }
-
-
-    public function externalLoginFromDrivemond(Request $request)
-    {
-        $drivemondToken = ExternalConfiguration::where(['key' => 'drivemond_token'])->first()->value ?? null;
-        $systemSelfToken = ExternalConfiguration::where(['key' => 'system_self_token'])->first()->value ?? null;
-        $drivemondBaseUrl = ExternalConfiguration::where(['key' => 'drivemond_base_url'])->first()->value ?? null;
-        if ($drivemondBaseUrl != null && $drivemondToken != null && $systemSelfToken != null) {
-            $user = Admin::where('role_id', 1)->first();
-            if (isset($user)) {
-                if (Auth::guard("admin")->loginUsingId($user->id)) {
-                    $admin = Auth::guard("admin")->user();
-                    $admin->is_logged_in = 1;
-                    $admin->save();
-                    return redirect()->route('admin.dashboard');
-                }
-            }
-        }
-        return redirect()->route('login');
     }
 
 

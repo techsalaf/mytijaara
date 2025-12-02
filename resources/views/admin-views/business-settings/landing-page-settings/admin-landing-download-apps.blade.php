@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-4 mt-2">
+    <div class="mb-20 mt-2">
         <div class="js-nav-scroller hs-nav-scroller-horizontal">
             @include('admin-views.business-settings.landing-page-settings.top-menu-links.admin-landing-page-links')
         </div>
@@ -101,7 +101,7 @@
                                 <input id="customer_count_numbers" type="number" min="0" max="9999999999" name="customer_count_numbers" value="{{ $counter['customer_count_numbers'] ?? '' }}" placeholder="{{translate('Ex: 500')}}" class="form-control">
                             </div>
                         </div>
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>
@@ -226,28 +226,34 @@
                                     <input type="hidden" name="lang[]" value="default">
                                 @endif
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label d-block mb-2">
-                                    {{ translate('messages.Banner') }}  <span class="text--primary">{{ translate('(size: 1:1)') }}</span>
-                                </label>
-                                <label class="upload-img-3 m-0">
-                                    <div class="position-relative">
-                                    <div class="img">
-                                        <img
-                                        src="{{\App\CentralLogics\Helpers::get_full_url('download_user_app_image', $download_user_app_image?->value?? '', $download_user_app_image?->storage[0]?->value ?? 'public','aspect_1')}}"
+                            <div class="row g-3">
+                                <div class="col-md-7">
+                                    <label class="form-label d-block mb-3">
+                                        {{ translate('messages.Banner') }}  <span class="text--primary">{{ translate('(size: 1:1)') }}</span>
+                                        <div class="fs-12 opacity-70">
+                                            {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                        </div>
+                                    </label>
+                                    <label class="upload-img-3 m-0">
+                                        <div class="position-relative">
+                                            <div class="img">
+                                                <img
+                                                    src="{{\App\CentralLogics\Helpers::get_full_url('download_user_app_image', $download_user_app_image?->value?? '', $download_user_app_image?->storage[0]?->value ?? 'public','aspect_1')}}"
 
-                                        data-onerror-image="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
-                                    </div>
-                                      <input type="file"  name="image" hidden>
+                                                    data-onerror-image="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
+                                            </div>
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file"  name="image" hidden>
                                             @if (isset($download_user_app_image['value']))
-                                            <span id="download_user_app_image" class="remove_image_button remove-image"
-                                                  data-id="download_user_app_image"
-                                                  data-title="{{translate('Warning!')}}"
-                                                  data-text="<p>{{translate('Are_you_sure_you_want_to_remove_this_image_?')}}</p>"
-                                            > <i class="tio-clear"></i></span>
+                                                <span id="download_user_app_image" class="remove_image_button remove-image dynamic-checkbox"
+                                                      data-id="download_user_app_image"
+                                                      data-image-off="{{ asset('/public/assets/admin/img/delete-confirmation.png') }}"
+                                                      data-title="{{translate('Warning!')}}"
+                                                      data-text="<p>{{translate('Are_you_sure_you_want_to_remove_this_image_?')}}</p>"
+                                                > <i class="tio-clear"></i></span>
                                             @endif
                                         </div>
-                                </label>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div class="row g-3 mt-3">
@@ -319,7 +325,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>

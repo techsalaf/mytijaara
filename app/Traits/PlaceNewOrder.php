@@ -179,6 +179,8 @@ trait PlaceNewOrder
                 $order_status = 'confirmed';
             }
 
+            $order->bring_change_amount = $request['bring_change_amount'] ?? 0 ;
+
             $order->user_id = $request->user ? $request->user->id : $request['guest_id'];
             $order->order_amount = $request['order_amount'] ?? 0;
             $order->payment_status = ($request->partial_payment ? 'partially_paid' : ($request['payment_method'] == 'wallet' ? 'paid' : 'unpaid'));
@@ -1064,7 +1066,7 @@ trait PlaceNewOrder
                             return [
                                 'status_code' => 403,
                                 'code' => 'stock',
-                                'message' => $product->title . ' ' . translate('messages.is_out_of_stock')
+                                'message' => $isCampaign ? $product?->title : $product?->name . ' ' . translate('messages.is_out_of_stock')
                             ];
                         }
                         $product_data[] = [
@@ -1240,7 +1242,7 @@ trait PlaceNewOrder
                                 return [
                                     'status_code' => 403,
                                     'code' => 'stock',
-                                    'message' => $product->title . ' ' . translate('messages.is_out_of_stock')
+                                    'message' => $isCampaign ? $product?->title : $product?->name . ' ' . translate('messages.is_out_of_stock')
                                 ];
                             }
 
@@ -1255,7 +1257,6 @@ trait PlaceNewOrder
                     $product = Helpers::product_data_formatting($product, false, false, app()->getLocale());
                     $addon_data = Helpers::calculate_addon_price(AddOn::whereIn('id', $c['add_ons'])->get(), $c['add_on_qtys']);
                     $product_discount = Helpers::product_discount_calculate($product, $price, $store, false);
-
 
                     $discount_type = $product_discount['discount_type'];
 
@@ -1401,7 +1402,6 @@ trait PlaceNewOrder
                             $price = $product['price'];
                         }
                     } else {
-                        //                        if (count(json_decode($product['variations'], true)) > 0 && count($c['variation']) > 0) {
                         if (
                             is_array(json_decode($product['variations'], true)) && count(json_decode($product['variations'], true)) > 0 &&
                             is_array($c['variation']) && count($c['variation']) > 0
@@ -1420,7 +1420,7 @@ trait PlaceNewOrder
                                 return [
                                     'status_code' => 403,
                                     'code' => 'stock',
-                                    'message' => $product->title . ' ' . translate('messages.is_out_of_stock')
+                                    'message' => $isCampaign ? $product?->title : $product?->name . ' ' . translate('messages.is_out_of_stock')
                                 ];
                             }
                             $product_data[] = [

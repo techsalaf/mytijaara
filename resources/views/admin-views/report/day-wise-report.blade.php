@@ -402,7 +402,7 @@
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table id="datatable" class="table table-thead-bordered table-align-middle card-table">
-                        <thead class="thead-light">
+                        <thead class="thead-light text-nowrap">
                             <tr>
                                 <th class="border-0">{{ translate('sl') }}</th>
                                 <th class="border-0">{{ translate('messages.order_id') }}</th>

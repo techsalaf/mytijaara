@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-4 mt-2">
+    <div class="mb-20 mt-2">
         <div class="js-nav-scroller hs-nav-scroller-horizontal">
             @include('admin-views.business-settings.landing-page-settings.top-menu-links.admin-landing-page-links')
         </div>
@@ -62,8 +62,11 @@
                                                         data-original-title="{{ translate('Write_the_title_within_80_characters') }}">
                                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                             alt="">
-                                                    </span></label>
-                                                <input id="why_choose_title" type="text" maxlength="80" name="why_choose_title[]" class="form-control" value="{{$why_choose_title?->getRawOriginal('value')}}" placeholder="{{translate('messages.title_here...')}}">
+                                                    </span><span class="form-label-secondary text-danger"
+                                                                 data-toggle="tooltip" data-placement="right"
+                                                                 data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
+                                                <input required id="why_choose_title" type="text" maxlength="80" name="why_choose_title[]" class="form-control" value="{{$why_choose_title?->getRawOriginal('value')}}" placeholder="{{translate('messages.title_here...')}}">
                                 </div>
                             </div>
                             <input type="hidden" name="lang[]" value="default">
@@ -109,7 +112,7 @@
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                             @endif
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>
@@ -133,8 +136,12 @@
                                                         data-original-title="{{ translate('Write_the_title_within_40_characters') }}">
                                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                             alt="">
-                                                    </span></label>
-                                                <input id="title" type="text" maxlength="40" name="title[]" class="form-control" placeholder="{{translate('messages.title_here...')}}">
+                                                    </span>
+                                        <span class="form-label-secondary text-danger"
+                                              data-toggle="tooltip" data-placement="right"
+                                              data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
+                                                <input required id="title" type="text" maxlength="40" name="title[]" class="form-control" placeholder="{{translate('messages.title_here...')}}">
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                                     @foreach(json_decode($language) as $lang)
@@ -166,19 +173,25 @@
                                 <div class="col-sm-6">
                                     <div>
 
-                                        <label class="form-label">{{translate('Criteria Icon/ Image')}}<span class="form-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{ translate('Icon_ratio_(1:1)_and_max_size_2_MB.') }}">
+                                        <label class="form-label mb-3">{{translate('Criteria Icon/ Image')}}<span class="form-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}">
                                             <img src="{{asset('public/assets/admin/img/info-circle.svg')}}" alt="">
-                                        </span></label>
+                                        </span>
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span><div class="fs-12 opacity-70">
+                                                {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                            </div></label>
                                     </div>
                                     <label class="upload-img-3 m-0">
                                         <div class="img">
                                             <img src="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px">
                                         </div>
-                                          <input type="file"  name="image" hidden>
+                                          <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file"  name="image" hidden>
                                     </label>
                                 </div>
                             </div>
-                            <div class="btn--container justify-content-end mt-3">
+                            <div class="btn--container justify-content-end mt-20">
                                 <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                                 <button type="submit"   class="btn btn--primary mb-2">{{translate('Add')}}</button>
                             </div>

@@ -210,7 +210,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="btn--container justify-content-end mt-3">
+                    <div class="btn--container justify-content-end mt-20">
                         <button type="reset" id="reset_btn" class="btn btn--reset">{{ translate('Reset') }}</button>
                         <button type="button"  class="btn btn--primary mb-2 zip-upload" id="update_setting">
                             {{ translate('Save_Information') }}</button>

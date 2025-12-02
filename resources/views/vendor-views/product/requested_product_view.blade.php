@@ -160,11 +160,13 @@
                                     <strong>{{ Str::limit(($product?->category?->parent ? $product?->category?->parent?->name : $product?->category?->name )  ?? translate('messages.uncategorize')
                                         , 20, '...') }}</strong>
                                 </span>
+
                                 <span class="d-block mb-1">
                                     <span>{{ translate('messages.Sub_Category') }} : </span>
-                                    <strong>{{ Str::limit(($product?->category?->name )  ?? translate('messages.uncategorize')
+                                    <strong>{{ Str::limit(( $product?->category?->parent?->name ? $product?->category?->name : '---' )
                                         , 20, '...') }}</strong>
                                 </span>
+
                                 @if ($product->module->module_type == 'grocery')
                                 <span class="d-block mb-1">
                                     <span>{{ translate('messages.Is_Organic') }} : </span>
@@ -214,7 +216,7 @@
                                     <strong> {{ $product->discount_type == 'percent' ? $product->discount .'%' :  \App\CentralLogics\Helpers::format_currency($product['discount']) }} </strong>
                                 </span>
 
-                               
+
 
                             </td>
 

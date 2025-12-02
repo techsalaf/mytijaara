@@ -54,7 +54,7 @@ class CategoryController extends BaseController
     {
         $categories = $this->categoryRepo->getListWhere(
             searchValue: $request['search'],
-            filters: ['position' => $request['position']],
+            filters: ['position' => $request['position'] ?? 0],
             relations: ['module'],
             dataLimit: config('default_pagination')
         );
@@ -69,7 +69,7 @@ class CategoryController extends BaseController
         $categoryWiseTax = $taxData['categoryWiseTax'];
         $taxVats = $taxData['taxVats'];
 
-        return view($this->categoryService->getViewByPosition($request['position']), compact('categories','language','mainCategories','categoryWiseTax','taxVats'));
+        return view($this->categoryService->getViewByPosition($request['position'] ?? 0), compact('categories', 'language', 'mainCategories', 'categoryWiseTax', 'taxVats'));
     }
 
     public function add(CategoryAddRequest $request): RedirectResponse
@@ -83,29 +83,29 @@ class CategoryController extends BaseController
         );
         $this->translationRepo->addByModel(request: $request, model: $category, modelPath: 'App\Models\Category', attribute: 'name');
 
-            if(addon_published_status('TaxModule')){
-                $SystemTaxVat= \Modules\TaxModule\Entities\SystemTaxSetup::where('is_active',1)->where('is_default',1)->first();
-                if($SystemTaxVat?->tax_type == 'category_wise'){
+        if (addon_published_status('TaxModule')) {
+            $SystemTaxVat = \Modules\TaxModule\Entities\SystemTaxSetup::where('is_active', 1)->where('is_default', 1)->first();
+            if ($SystemTaxVat?->tax_type == 'category_wise') {
 
-                    foreach($request['tax_ids'] ?? [] as $tax_ids){
-                        \Modules\TaxModule\Entities\Taxable::create(
-                                    [
-                                        'taxable_type' => 'App\Models\Category',
-                                        'taxable_id' => $category->id,
-                                        'system_tax_setup_id' => $SystemTaxVat->id
-                                        ,'tax_id' => $tax_ids
-                                    ],
-                                );
-                    }
-
+                foreach ($request['tax_ids'] ?? [] as $tax_ids) {
+                    \Modules\TaxModule\Entities\Taxable::create(
+                        [
+                            'taxable_type' => 'App\Models\Category',
+                            'taxable_id' => $category->id,
+                            'system_tax_setup_id' => $SystemTaxVat->id
+                            , 'tax_id' => $tax_ids
+                        ],
+                    );
                 }
-            }
 
-        Toastr::success( $request['position'] == 0 ?    translate('messages.category_added_successfully') : translate('messages.Sub_category_added_successfully'));
+            }
+        }
+
+        Toastr::success($request['position'] == 0 ? translate('messages.category_added_successfully') : translate('messages.Sub_category_added_successfully'));
         return back();
     }
 
-    public function getUpdateView(string|int $id): View
+    public function getUpdateView(string|int $id): JsonResponse
     {
         $category = $this->categoryRepo->getFirstWithoutGlobalScopeWhere(params: ['id' => $id]);
         $language = getWebConfig('language');
@@ -113,9 +113,14 @@ class CategoryController extends BaseController
         $taxData = Helpers::getTaxSystemType();
         $categoryWiseTax = $taxData['categoryWiseTax'];
         $taxVats = $taxData['taxVats'];
-        $taxVatIds = $categoryWiseTax ? $category->taxVats()->pluck('tax_id')->toArray(): [];
-
-        return view(CategoryViewPath::UPDATE['view'], compact('category','language','categoryWiseTax','taxVats','taxVatIds'));
+        $taxVatIds = $categoryWiseTax ? $category->taxVats()->pluck('tax_id')->toArray() : [];
+        $mainCategories = $this->categoryRepo->getMainList(
+            filters: ['position' => 0],
+            relations: ['module'],
+        );
+        return response()->json([
+            'view' => view('admin-views.category._edit', compact('mainCategories', 'category', 'taxVats', 'categoryWiseTax', 'language', 'taxVatIds'))->render(),
+        ]);
     }
 
     public function updateStatus(Request $request): RedirectResponse
@@ -139,33 +144,33 @@ class CategoryController extends BaseController
         $this->translationRepo->updateByModel(request: $request, model: $category, modelPath: 'App\Models\Category', attribute: 'name');
 
 
-        if(addon_published_status('TaxModule') && $category['position'] == 0){
+        if (addon_published_status('TaxModule') && $category['position'] == 0) {
             $taxVatIds = $category->taxVats()->pluck('tax_id')->toArray() ?? [];
-            $newTaxVatIds =  array_map('intval', $request['tax_ids'] ?? []);
+            $newTaxVatIds = array_map('intval', $request['tax_ids'] ?? []);
             sort($newTaxVatIds);
             sort($taxVatIds);
-                if( $newTaxVatIds != $taxVatIds ){
-                    $category->taxVats()->delete();
-                    $SystemTaxVat= \Modules\TaxModule\Entities\SystemTaxSetup::where('is_active',1)->where('is_default',1)->first();
-                    if($SystemTaxVat?->tax_type == 'category_wise'){
-                        foreach($request['tax_ids'] ?? [] as $tax_ids){
-                            \Modules\TaxModule\Entities\Taxable::create(
-                                        [
-                                            'taxable_type' => 'App\Models\Category',
-                                            'taxable_id' => $category->id,
-                                            'system_tax_setup_id' => $SystemTaxVat->id
-                                            ,'tax_id' => $tax_ids
-                                        ],
-                                    );
-                        }
-
+            if ($newTaxVatIds != $taxVatIds) {
+                $category->taxVats()->delete();
+                $SystemTaxVat = \Modules\TaxModule\Entities\SystemTaxSetup::where('is_active', 1)->where('is_default', 1)->first();
+                if ($SystemTaxVat?->tax_type == 'category_wise') {
+                    foreach ($request['tax_ids'] ?? [] as $tax_ids) {
+                        \Modules\TaxModule\Entities\Taxable::create(
+                            [
+                                'taxable_type' => 'App\Models\Category',
+                                'taxable_id' => $category->id,
+                                'system_tax_setup_id' => $SystemTaxVat->id
+                                , 'tax_id' => $tax_ids
+                            ],
+                        );
                     }
+
                 }
             }
+        }
 
 
-        Toastr::success( $category['position'] == 0 ?    translate('messages.category_updated_successfully') : translate('messages.Sub_category_updated_successfully'));
-        return redirect()->route('admin.category.add',['position' => $mainCategory->position]);
+        Toastr::success($category['position'] == 0 ? translate('messages.category_updated_successfully') : translate('messages.Sub_category_updated_successfully'));
+        return redirect()->route('admin.category.add', ['position' => $mainCategory->position]);
     }
 
     public function delete(Request $request): RedirectResponse
@@ -182,7 +187,7 @@ class CategoryController extends BaseController
     public function getNameList(Request $request): JsonResponse
     {
         $data = $this->categoryRepo->getNameList(request: $request, dataLimit: 8);
-        $data[] = (object)['id' => 'all', 'text' => 'All'];
+        $data[] = (object)['id' => 'all', 'text' => translate('messages.all')];
         return response()->json($data);
     }
 

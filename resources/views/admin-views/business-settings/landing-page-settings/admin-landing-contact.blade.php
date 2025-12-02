@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-4 mt-2">
+    <div class="mb-20 mt-2">
         <div class="js-nav-scroller hs-nav-scroller-horizontal">
             @include('admin-views.business-settings.landing-page-settings.top-menu-links.admin-landing-page-links')
         </div>
@@ -67,8 +67,12 @@
                                         data-original-title="{{ translate('Write_the_title_within_20_characters') }}">
                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                             alt="">
-                                    </span></label>
-                                <input id="contact_us_title" type="text" maxlength="20" name="contact_us_title[]" value="{{ $contact_us_title?->getRawOriginal('value') }}" class="form-control" placeholder="{{translate('Ex_:_Contact_Us')}}">
+                                    </span>
+                                                <span class="form-label-secondary text-danger"
+                                                      data-toggle="tooltip" data-placement="right"
+                                                      data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
+                                <input required id="contact_us_title" type="text" maxlength="20" name="contact_us_title[]" value="{{ $contact_us_title?->getRawOriginal('value') }}" class="form-control" placeholder="{{translate('Ex_:_Contact_Us')}}">
                                         </div>
                                         <div class="col-12">
                                             <label for="contact_us_sub_title" class="form-label">{{translate('Sub Title')}} ({{ translate('messages.default') }})<span
@@ -77,8 +81,12 @@
                                         data-original-title="{{ translate('Write_the_title_within_80_characters') }}">
                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                             alt="">
-                                    </span></label>
-                                <input id="contact_us_sub_title" type="text" maxlength="80" name="contact_us_sub_title[]" value="{{ $contact_us_sub_title?->getRawOriginal('value') }}" class="form-control" placeholder="{{translate('Ex_:_Any_questions_or_remarks_?_Just_write_us_a_message!')}}">
+                                    </span>
+                                                <span class="form-label-secondary text-danger"
+                                                      data-toggle="tooltip" data-placement="right"
+                                                      data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
+                                <input required id="contact_us_sub_title" type="text" maxlength="80" name="contact_us_sub_title[]" value="{{ $contact_us_sub_title?->getRawOriginal('value') }}" class="form-control" placeholder="{{translate('Ex_:_Any_questions_or_remarks_?_Just_write_us_a_message!')}}">
                                         </div>
                                     </div>
                                 </div>
@@ -161,8 +169,15 @@
                                 @endif
                             </div>
                             <div class="col-md-6">
-                                    <label class="form-label d-block mb-2">
+                                    <label class="form-label d-block mb-3">
                                         {{ translate('messages.Banner') }}  <span class="text--primary">(size: 6:1)</span>
+                                        <span class="form-label-secondary text-danger"
+                                              data-toggle="tooltip" data-placement="right"
+                                              data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                        <div class="fs-12 opacity-70">
+                                            {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                        </div>
                                     </label>
                                     <label class="upload-img-3 m-0 d-block">
                                         <div class="position-relative">
@@ -172,10 +187,11 @@
 
                                           class="vertical-img mw-100 onerror-image" alt="contact_us_image" data-onerror-image="{{asset("public/assets/admin/img/upload-4.png")}}">
                                         </div>
-                                          <input type="file"  name="image" hidden="">
+                                          <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file"  name="image" hidden="">
                                           @if (isset($contact_us_image['value']))
-                                            <span id="contact_image" class="remove_image_button remove-image"
+                                            <span id="contact_image" class="remove_image_button remove-image dynamic-checkbox"
                                                   data-id="contact_image"
+                                                  data-image-off="{{ asset('/public/assets/admin/img/delete-confirmation.png') }}"
                                                   data-title="{{translate('Warning!')}}"
                                                   data-text="<p>{{translate('Are_you_sure_you_want_to_remove_this_image_?')}}</p>"
                                             > <i class="tio-clear"></i></span>
@@ -261,7 +277,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="btn--container justify-content-end mt-3">
+                <div class="btn--container justify-content-end mt-20">
                     <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                     <button type="submit"   class="btn btn--primary mb-2">{{translate('Save Information')}}</button>
                 </div>

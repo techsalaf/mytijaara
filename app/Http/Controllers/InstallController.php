@@ -39,7 +39,7 @@ class InstallController extends Controller
             $permission['zip'] = extension_loaded('zip');
             $permission['fileinfo'] = extension_loaded('fileinfo');
             $permission['gd'] = extension_loaded('gd');
-            $permission['sodium'] = extension_loaded('sodium') || function_exists('sodium_crypto_generichash');
+            $permission['sodium'] = extension_loaded('sodium');
             $permission['pdo_mysql'] = extension_loaded('pdo_mysql');
             $permission['db_file_write_perm'] = is_writable(base_path('.env'));
             $permission['routes_file_write_perm'] = is_writable(base_path('app/Providers/RouteServiceProvider.php'));
@@ -164,7 +164,7 @@ class InstallController extends Controller
         if (self::check_database_connection($request->DB_HOST, $request->DB_DATABASE, $request->DB_USERNAME, $request->DB_PASSWORD)) {
 
             $key = base64_encode(random_bytes(32));
-            $output = 'APP_NAME=6ammart'.time().
+            $output = 'APP_NAME=MyTijaara'.time().
                     'APP_ENV=live
                     APP_KEY=base64:' . $key . '
                     APP_DEBUG=false
@@ -199,7 +199,7 @@ class InstallController extends Controller
                     BUYER_USERNAME=' . session('username') . '
                     SOFTWARE_ID=MzY3NzIxMTI=
 
-                    SOFTWARE_VERSION=3.3
+                    SOFTWARE_VERSION=3.5
                     REACT_APP_KEY=45370351
                     ';
             $file = fopen(base_path('.env'), 'w');

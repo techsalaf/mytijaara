@@ -4,20 +4,11 @@ namespace App\CentralLogics;
 
 use Illuminate\Support\Facades\DB;
 use Twilio\Rest\Client;
-use App\Models\BusinessSetting;
 
 class SMS_module
 {
     public static function send($receiver, $otp)
     {
-
-        $config = self::get_awg_settings('truceptWG');
-        if (isset($config) && $config['status'] == 1) {
-            $response = self::truceptWG($receiver, $otp);
-            if ($response === 'success') return $response;
-        }
-
-
         $config = self::get_settings('twilio');
         if (isset($config) && $config['status'] == 1) {
             return self::twilio($receiver, $otp);
@@ -44,50 +35,6 @@ class SMS_module
 
         return 'not_found';
     }
-
-
-    public static function get_awg_settings($name)
-    {
-        $config = null;
-        $data = BusinessSetting::where(['key' => $name])->first();
-        if (isset($data)) {
-            $config = json_decode($data['value'], true);
-            if (is_null($config)) {
-                $config = $data['value'];
-            }
-        }
-        return $config;
-    }
-
-    public static function truceptWG($receiver, $otp)
-    {
-        $truceptWG = self::get_awg_settings('truceptWG');
-
-        if (isset($truceptWG) && $truceptWG['status'] == 1) {
-            $msgdata['description'] = str_replace("#OTP#", $otp, $truceptWG['otp_template']);
-            $response = \App\CentralLogics\Helpers::send_wa_notif_to_device($receiver, $msgdata, $truceptWG);
-            $res = json_decode($response, true);
-            if (!empty($res['success'])) {
-                return 'success';
-            } else {
-                return 'fallback';
-            }
-        } elseif (empty($truceptWG)) {
-            DB::table('business_settings')->updateOrInsert(['key' => 'truceptWG'], [
-                'key' => 'truceptWG',
-                'value' => json_encode([
-                    'status' => 0,
-                    'nodeurl' => 'https://wa.trucept.pro/api/send',
-                    'access_token' => '',
-                    'instance_id'  => '',
-                    'otp_template' => 'OTP Code: #OTP#',
-                ]),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-    }
-
 
     public static function twilio($receiver, $otp): string
     {
@@ -144,18 +91,25 @@ class SMS_module
         }
         return $response;
     }
-
-    public static function two_factor($receiver, $otp): string
+        public static function two_factor($receiver, $otp): string
     {
         $config = self::get_settings('2factor');
         $response = 'error';
+
         if (isset($config) && $config['status'] == 1) {
             $api_key = $config['api_key'];
-            $otp_template = $config['otp_template']  ?? 'Your OTP is: #OTP#';
-            $apiUrl = "https://2factor.in/API/V1/$api_key/SMS/$receiver/$otp/$otp_template";
+            $otp_template = $config['otp_template'] ?? 'Your OTP is: #OTP#';
+
+            $apiUrl = sprintf(
+                'https://2factor.in/API/V1/%s/SMS/%s/%s/%s',
+                urlencode($api_key),
+                urlencode($receiver),
+                urlencode($otp),
+                urlencode($otp_template)
+            );
 
             $curl = curl_init();
-            curl_setopt_array($curl, array(
+            curl_setopt_array($curl, [
                 CURLOPT_URL => $apiUrl,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_ENCODING => "",
@@ -163,19 +117,22 @@ class SMS_module
                 CURLOPT_TIMEOUT => 30,
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                 CURLOPT_CUSTOMREQUEST => "GET",
-            ));
+            ]);
+
             $response = curl_exec($curl);
             $err = curl_error($curl);
             curl_close($curl);
 
-            if (!$err) {
-                $response = 'success';
+            if ($err) {
+                $response = $err;
             } else {
-                $response = 'error';
+                $response = 'success';
             }
         }
+
         return $response;
     }
+
 
     public static function msg_91($receiver, $otp): string
     {

@@ -42,7 +42,7 @@
                             <input type="number" min="1" name="show_limit" class="form-control" value="{{ request()->get('show_limit')}}" class="form-control" placeholder="{{translate('Ex : 100')}}">
                         </div>
                     </div>
-                    <div class="btn--container justify-content-end mt-3">
+                    <div class="btn--container justify-content-end mt-20">
                         <button type="submit" class="btn btn--primary">{{translate('Filter')}}</button>
                     </div>
                 </form>

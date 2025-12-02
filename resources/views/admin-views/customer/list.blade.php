@@ -177,7 +177,7 @@
                                     <td class="table-column-pl-0">
                                         <div class="d-flex align-items-center gap-2">
                                             <img class="rounded aspect-1-1 object-cover" width="40" data-onerror-image="{{asset('public/assets/admin/img/160x160/img1.jpg')}}" src="{{ $customer->image_full_url }}" alt="Image Description">
-                                            <a href="{{ route('admin.users.customer.view', [$customer['id']]) }}" class="text--hover">
+                                            <a href="{{ route('admin.users.customer.view', [$customer['id']]) }}" class="text--hover max-w-400px min-w-220">
                                                 {{ $customer['f_name'] ?  $customer['f_name'] . ' ' . $customer['l_name'] : translate('messages.Incomplete_Profile') }}
                                             </a>
                                         </div>

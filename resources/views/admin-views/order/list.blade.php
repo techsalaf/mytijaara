@@ -576,7 +576,7 @@
                         </div>
                         <div class="custom-control custom-radio mb-2">
                             <input type="radio" id="delivery" name="order_type" class="custom-control-input" value="delivery" {{isset($order_type)?($order_type=='delivery'?'checked':''):''}}>
-                            <label class="custom-control-label text-uppercase" for="delivery">{{translate('messages.delivery')}}</label>
+                            <label class="custom-control-label text-uppercase" for="delivery">{{translate('messages.home_delivery')}}</label>
                         </div>
                     @endif
 

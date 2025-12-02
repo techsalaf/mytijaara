@@ -345,7 +345,7 @@ class POSController extends Controller
             $selected_item = $request->all();
             $stock= $this->get_stocks($product,$selected_item);
             if($product?->maximum_cart_quantity > 0){
-                if((isset($stock) && min($stock, $product?->maximum_cart_quantity < $request->quantity )||  $product?->maximum_cart_quantity <  $request->quantity  ) ){
+                if(((isset($stock) && min($stock, $product?->maximum_cart_quantity) < $request->quantity )||  $product?->maximum_cart_quantity <  $request->quantity  ) ){
                     return response()->json([
                         'data' => 0
                     ]);
@@ -711,7 +711,7 @@ class POSController extends Controller
         $order->created_at = now();
         $order->updated_at = now();
         $order->otp = rand(1000, 9999);
- 
+
 
         $additionalCharges = [];
         $settings = BusinessSetting::whereIn('key', [
@@ -749,7 +749,8 @@ class POSController extends Controller
         $total_price = $product_price + $total_addon_price - $store_discount_amount - $flash_sale_admin_discount_amount - $flash_sale_vendor_discount_amount;
         $totalDiscount = $store_discount_amount + $flash_sale_admin_discount_amount + $flash_sale_vendor_discount_amount;
 
-
+        $order->flash_admin_discount_amount = round($flash_sale_admin_discount_amount, config('round_up_to_digit'));
+        $order->flash_store_discount_amount = round($flash_sale_vendor_discount_amount, config('round_up_to_digit'));
         $finalCalculatedTax =  Helpers::getFinalCalculatedTax($order_details, $additionalCharges, $totalDiscount, $total_price, $store->id);
 
         $tax_amount = $finalCalculatedTax['tax_amount'];

@@ -20,12 +20,12 @@
                     {{translate('Registration OTP')}}
                 </a>
             </li>
-            <li class="nav-item">
+            {{-- <li class="nav-item">
                 <a class="nav-link {{ Request::is('admin/business-settings/email-setup/user/login-otp') ? 'active' : '' }}"
                 href="{{ route('admin.business-settings.email-setup', ['user','login-otp']) }}">
                     {{translate('Login OTP')}}
                 </a>
-            </li>
+            </li> --}}
             <li class="nav-item">
                 <a class="nav-link {{ Request::is('admin/business-settings/email-setup/user/forgot-password') ? 'active' : '' }}"
                 href="{{ route('admin.business-settings.email-setup', ['user','forgot-password']) }}">

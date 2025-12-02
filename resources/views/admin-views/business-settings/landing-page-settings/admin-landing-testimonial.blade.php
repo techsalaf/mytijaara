@@ -22,7 +22,7 @@
             </div>
         </div>
     </div>
-    <div class="mb-4 mt-2">
+    <div class="mb-20 mt-2">
         <div class="js-nav-scroller hs-nav-scroller-horizontal">
             @include('admin-views.business-settings.landing-page-settings.top-menu-links.admin-landing-page-links')
         </div>
@@ -63,8 +63,12 @@
                                         data-original-title="{{ translate('Write_the_title_within_40_characters') }}">
                                         <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                             alt="">
-                                    </span></label>
-                                <input id="testimonial_title" type="text" maxlength="40" name="testimonial_title[]" class="form-control" value="{{$testimonial_title?->getRawOriginal('value')}}" placeholder="{{translate('messages.title_here...')}}">
+                                    </span>
+                                        <span class="form-label-secondary text-danger"
+                                              data-toggle="tooltip" data-placement="right"
+                                              data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span></label>
+                                <input required id="testimonial_title" type="text" maxlength="40" name="testimonial_title[]" class="form-control" value="{{$testimonial_title?->getRawOriginal('value')}}" placeholder="{{translate('messages.title_here...')}}">
                                 </div>
                             </div>
                             <input type="hidden" name="lang[]" value="default">
@@ -110,7 +114,7 @@
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                             @endif
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Save')}}</button>
                         </div>
@@ -129,12 +133,22 @@
                             <div class="col-md-6">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label for="name" class="form-label">{{translate('Reviewer Name')}}</label>
-                                        <input id="name" type="text" name="name" class="form-control" placeholder="{{translate('Ex:  John Doe')}}">
+                                        <label for="name" class="form-label">{{translate('Reviewer Name')}}
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                        </label>
+                                        <input required id="name" type="text" name="name" class="form-control" placeholder="{{translate('Ex:  John Doe')}}">
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="designation" class="form-label">{{translate('Designation')}}</label>
-                                        <input id="designation" type="text" name="designation" class="form-control" placeholder="{{translate('Ex:  CTO')}}">
+                                        <label for="designation" class="form-label">{{translate('Designation')}}
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                        </label>
+                                        <input required id="designation" type="text" name="designation" class="form-control" placeholder="{{translate('Ex:  CTO')}}">
                                     </div>
                                     <div class="col-md-12">
                                         <label for="review" class="form-label">{{translate('messages.review')}}<span
@@ -143,40 +157,59 @@
                                             data-original-title="{{ translate('Write_the_title_within_250_characters') }}">
                                             <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}"
                                                 alt="">
-                                        </span></label>
-                                        <textarea id="review" name="review" maxlength="250" placeholder="{{translate('Very Good Company')}}" class="form-control h92px"></textarea>
+                                        </span>
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                        </label>
+                                        <textarea required id="review" name="review" maxlength="250" placeholder="{{translate('Very Good Company')}}" class="form-control h92px"></textarea>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="d-flex gap-40px">
                                     <div>
-                                        <label class="form-label d-block mb-2">
-                                            {{translate('Reviewer Image *')}}  <span class="text--primary">{{ translate('(1:1)') }}</span>
+                                        <label class="form-label d-block mb-3">
+                                            {{translate('Reviewer Image')}}  <span class="text--primary">{{ translate('(1:1)') }}</span>
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                            <div class="fs-12 opacity-70">
+                                                {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                            </div>
                                         </label>
                                         <label class="upload-img-3 m-0 d-block">
                                             <div class="img">
                                                 <img src="{{asset("/public/assets/admin/img/aspect-1.png")}}"
                                                 data-onerror-image="{{asset("/public/assets/admin/img/aspect-1.png")}}" class="img__aspect-1 min-w-187px max-w-187px onerror-image" alt="">
                                             </div>
-                                            <input type="file"  name="reviewer_image" hidden="">
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file"  name="reviewer_image" hidden="">
                                         </label>
                                     </div>
                                     <div class="d-flex flex-column">
-                                        <label class="form-label d-block mb-2">
-                                            {{translate('Company Logo *')}}  <span class="text--primary">(3:1)</span>
+                                        <label class="form-label d-block mb-3">
+                                            {{translate('Company Logo')}}  <span class="text--primary">(3:1)</span>
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                                </span>
+                                            <div class="fs-12 opacity-70">
+                                                {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
+                                            </div>
                                         </label>
                                         <label class="upload-img-4 m-0 d-block my-auto">
                                             <div class="img">
                                                 <img src="{{asset("/public/assets/admin/img/aspect-3-1.png")}}" data-onerror-image="{{asset("/public/assets/admin/img/aspect-3-1.png")}}" class="vertical-img max-w-187px onerror-image" alt="">
                                             </div>
-                                            <input type="file" id="image-upload-2" name="company_image" hidden="">
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" id="image-upload-2" name="company_image" hidden="">
                                         </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit"   class="btn btn--primary mb-2">{{translate('Add')}}</button>
                         </div>

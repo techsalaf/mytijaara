@@ -295,7 +295,7 @@
                             </div>
                         </div>
                         @if ($order?->offline_payments->status != 'verified')
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             @if ($order?->offline_payments->status != 'denied')
                             <button type="button" class="btn btn--danger btn-outline-danger offline_payment_cancelation_note" data-toggle="modal" data-target="#offline_payment_cancelation_note" data-id="{{ $order['id'] }}" class="btn btn--reset">{{translate('Payment_Didn’t_Recerive')}}</button>
                             @elseif ($order?->offline_payments->status == 'denied')

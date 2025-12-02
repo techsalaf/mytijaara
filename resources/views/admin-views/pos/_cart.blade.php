@@ -246,7 +246,7 @@
                     </div>
                     <label class="form-label">Coupon Code</label>
                     <input type="text" class="form-control">
-                    <div class="btn--container justify-content-end mt-3">
+                    <div class="btn--container justify-content-end mt-20">
                         <button class="btn btn--reset" type="button" data-dismiss="modal">
                             Cancel
                         </button>
@@ -350,7 +350,7 @@
                         </div>
                     </div>
                     <div class="col-md-12">
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button class="btn btn-sm btn--primary w-100 delivery-Address-Store" type="button">
                                 {{  translate('Update_Delivery address') }}
                             </button>

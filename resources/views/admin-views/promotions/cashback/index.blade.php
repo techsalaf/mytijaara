@@ -54,8 +54,12 @@
                                             <label class="input-label"
                                                 for="default_title">{{ translate('messages.title') }}
                                                 ({{ translate('Default') }})
+                                                <span class="form-label-secondary text-danger"
+                                                      data-toggle="tooltip" data-placement="right"
+                                                      data-original-title="{{ translate('messages.Required.')}}"> *
+                                            </span>
                                             </label>
-                                            <input type="text" value="{{ old('title.0') }}" name="title[]" maxlength="254" id="default_title"
+                                            <input required type="text" value="{{ old('title.0') }}" name="title[]" maxlength="254" id="default_title"
                                                 class="form-control" placeholder="{{ translate('messages.Eid_Dhamaka') }}" >
                                         </div>
                                         <input type="hidden" name="lang[]" value="default">
@@ -90,7 +94,11 @@
 
                                 <div class="col-md-4 col-lg-4 col-sm-6" id="customer_wise">
                                     <div class="form-group">
-                                        <label class="input-label" for="select_customer">{{translate('messages.select_customer')}}</label>
+                                        <label class="input-label" for="select_customer">{{translate('messages.select_customer')}}
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                            </span></label>
                                         <select required name="customer_id[]" id="select_customer"
                                             class="form-control js-select2-custom"
                                             multiple="multiple" data-placeholder="{{translate('messages.select_customer')}}">
@@ -142,33 +150,49 @@
 
                                 <div class="col-md-4 col-lg-4 col-sm-6">
                                     <div class="form-group">
-                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.Minimum_Purchase')}} ({{ \App\CentralLogics\Helpers::currency_symbol() }})</label>
+                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.Minimum_Purchase')}} ({{ \App\CentralLogics\Helpers::currency_symbol() }})
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                            </span></label>
                                         <input type="number" step="0.01" id="min_purchase" value="{{  old('min_purchase') }}" required name="min_purchase" value="0" min="0" max="999999999999.99" class="form-control"
                                              placeholder="{{ translate('messages.Ex:_100') }}">
                                     </div>
                                 </div>
                                 <div class="col-md-4 col-lg-4 col-sm-6">
                                     <div class="form-group">
-                                        <label class="input-label" for="max_discount">{{translate('messages.Maximum_Discount')}} ({{ \App\CentralLogics\Helpers::currency_symbol() }})</label>
+                                        <label class="input-label" for="max_discount">{{translate('messages.Max Cashback')}} ({{ \App\CentralLogics\Helpers::currency_symbol() }})</label>
                                         <input type="number"   placeholder="{{ translate('messages.Ex:_100') }}" step="0.01" min="0" value="{{  old('cashback_type')  == 'percentage' ?  old('max_discount') : null }}" max="999999999999.99" name="max_discount" id="max_discount" class="form-control">
                                     </div>
                                 </div>
 
                                 <div class="col-md-4 col-lg-4 col-sm-6">
                                     <div class="form-group">
-                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.Start_Date')}}</label>
+                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.Start_Date')}}
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                            </span></label>
                                         <input type="date" name="start_date" value="{{  old('start_date') }}" class="form-control" id="date_from" required>
                                     </div>
                                 </div>
                                 <div class="col-md-4 col-lg-4 col-sm-6">
                                     <div class="form-group">
-                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.End_Date')}}</label>
+                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.End_Date')}}
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                            </span></label>
                                         <input type="date" name="end_date"  value="{{  old('end_date') }}" class="form-control" id="date_to" required>
                                     </div>
                                 </div>
                                 <div class="col-md-4 col-lg-4 col-sm-6">
                                     <div class="form-group">
-                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.Limit_for_Same_User')}}</label>
+                                        <label class="input-label" for="exampleFormControlInput1">{{translate('messages.Limit_for_Same_User')}}
+                                            <span class="form-label-secondary text-danger"
+                                                  data-toggle="tooltip" data-placement="right"
+                                                  data-original-title="{{ translate('messages.Required.')}}"> *
+                                            </span></label>
                                         <input type="number" step="1" required  value="{{  old('same_user_limit') }}" name="same_user_limit" value="0" min="0" max="9999999" class="form-control"
                                              placeholder="{{ translate('messages.Ex:_5') }}">
                                     </div>

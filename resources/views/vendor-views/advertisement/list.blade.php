@@ -80,7 +80,7 @@ active
                 @endif
                 <div class="input--group input-group input-group-merge input-group-flush">
 
-                    <input id="datatableSearch" type="search" name="search"  value="{{ request()?->search ?? null }}"  class="form-control" placeholder="{{ translate('Search by ads ID or store name') }}" aria-label="{{translate('messages.search_here')}}">
+                    <input id="datatableSearch" type="search" name="search"  value="{{ request()?->search ?? null }}"  class="form-control" placeholder="{{ translate('Search by ads ID') }}" aria-label="{{translate('messages.search_here')}}">
                     <button type="submit" class="btn btn--secondary"><i class="tio-search"></i></button>
                 </div>
                 <!-- End Search -->

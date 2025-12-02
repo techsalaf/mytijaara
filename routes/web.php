@@ -48,7 +48,6 @@ Route::get('activation-check', 'HomeController@getActivationCheckView')->name('s
 Route::post('activation-check', 'HomeController@activationCheck');
 
 Route::get('login/{tab}', 'LoginController@login')->name('login');
-Route::post('external-login-from-drivemond', 'LoginController@externalLoginFromDrivemond');
 Route::post('login_submit', 'LoginController@submit')->name('login_post')->middleware('actch');
 Route::get('logout', 'LoginController@logout')->name('logout');
 Route::get('/reload-captcha', 'LoginController@reloadCaptcha')->name('reload-captcha');
@@ -152,12 +151,11 @@ if (!$is_published) {
         //PAYSTACK
         Route::group(['prefix' => 'paystack', 'as' => 'paystack.'], function () {
             Route::get('pay', [PaystackController::class, 'index'])->name('pay');
-            Route::post('payment', [PaystackController::class, 'redirectToGateway'])->name('payment');
             Route::get('callback', [PaystackController::class, 'handleGatewayCallback'])->name('callback');
+            Route::get('cancel', [PaystackController::class, 'cancel'])->name('cancel');
         });
 
         //BKASH
-
         Route::group(['prefix' => 'bkash', 'as' => 'bkash.'], function () {
             // Payment Routes for bKash
             Route::get('make-payment', [BkashPaymentController::class, 'make_tokenize_payment'])->name('make-payment');
@@ -215,6 +213,7 @@ Route::group(['prefix' => 'vendor', 'as' => 'restaurant.'], function () {
 
     Route::get('back', 'VendorController@back')->name('back');
     Route::post('business-plan', 'VendorController@business_plan')->name('business_plan');
+    Route::get('business-plan', 'VendorController@secondStep')->name('secondStep');
     Route::post('payment', 'VendorController@payment')->name('payment');
     Route::get('final-step', 'VendorController@final_step')->name('final_step');
 });

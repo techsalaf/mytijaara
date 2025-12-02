@@ -86,7 +86,7 @@
                         </div>
 
                         <!-- BUTTON -->
-                        <div class="btn--container justify-content-end mt-3">
+                        <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--secondary">{{translate('Reset')}}</button>
                             <button type="submit" class="btn btn--primary demo_check">{{translate('Submit')}}</button>
                         </div>

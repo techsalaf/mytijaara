@@ -19,7 +19,7 @@ class NotificationService
             'title' => $request->notification_title,
             'description' => $request->description,
             'image' => $imageName,
-            'target' => $request->target,
+            'tergat' => $request->tergat,
             'status' => 1,
             'zone_id' => $request->zone=='all'?null:$request->zone,
         ];
@@ -35,7 +35,7 @@ class NotificationService
             'title' => $request->notification_title,
             'description' => $request->description,
             'image' => $imageName,
-            'target' => $request->target,
+            'tergat' => $request->tergat,
             'status' => 1,
             'zone_id' => $request->zone=='all'?null:$request->zone,
             'updated_at' => now(),
@@ -56,7 +56,7 @@ class NotificationService
             'store'=>'zone_'.$request->zone.'_store',
         ];
 
-        return $request->zone == 'all'?$topicAllZone[$request->target]:$topicZoneWise[$request->target];
+        return $request->zone == 'all'?$topicAllZone[$request->tergat]:$topicZoneWise[$request->tergat];
     }
 
 

@@ -1,14 +1,14 @@
 <?php return array (
-  'admin_panel' => 
+  'admin_panel' =>
   array (
-    'active' => '1',
-    'username' => 'siptsgcr',
-    'purchase_key' => '7a7b2216-4acb-4dc6-b243-99edabf3ba66',
+    'active' => '0',
+    'username' => '1',
+    'purchase_key' => '1',
     'software_id' => 'MzY3NzIxMTI=',
-    'domain' => 'localhost/6mart/public',
+    'domain' => '',
     'software_type' => 'product',
   ),
-  'vendor_panel' => 
+  'vendor_panel' =>
   array (
     'active' => '0',
     'username' => '',
@@ -17,7 +17,7 @@
     'domain' => '',
     'software_type' => 'addon',
   ),
-  'user_app' => 
+  'user_app' =>
   array (
     'active' => '0',
     'username' => '',
@@ -26,31 +26,31 @@
     'domain' => '',
     'software_type' => 'addon',
   ),
-  'vendor_app' => 
+  'vendor_app' =>
   array (
-    'active' => 0,
-    'username' => 'siptsgcr',
-    'purchase_key' => '7a7b2216-4acb-4dc6-b243-99edabf3ba66',
+    'active' => '1',
+    'username' => '',
+    'purchase_key' => '',
     'software_id' => 'MzY3NzIxNzM=',
-    'domain' => 'localhost/6mart',
+    'domain' => '',
     'software_type' => 'addon',
   ),
-  'deliveryman_app' => 
+  'deliveryman_app' =>
   array (
-    'active' => 0,
-    'username' => 'siptsgcr',
-    'purchase_key' => '7a7b2216-4acb-4dc6-b243-99edabf3ba66',
+    'active' => '1',
+    'username' => '',
+    'purchase_key' => '',
     'software_id' => 'MzY3NzIxNDg=',
-    'domain' => 'localhost/6mart',
+    'domain' => '',
     'software_type' => 'addon',
   ),
-  'react_web' => 
+  'react_web' =>
   array (
-    'active' => 0,
-    'username' => 'siptsgcr',
-    'purchase_key' => '7a7b2216-4acb-4dc6-b243-99edabf3ba66',
+    'active' => '1',
+    'username' => '',
+    'purchase_key' => '',
     'software_id' => 'NDUzNzAzNTE=',
-    'domain' => 'localhost/6mart',
+    'domain' => '',
     'software_type' => 'addon',
   ),
 );

@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  * @property bool status
  * @property Carbon|null created_at
  * @property Carbon|null updated_at
- * @property string|null target
+ * @property string|null tergat
  * @property int|null zone_id
  */
 class NotificationAddRequest extends FormRequest
@@ -40,7 +40,7 @@ class NotificationAddRequest extends FormRequest
         return [
             'notification_title' => 'required|max:191',
             'description' => 'required|max:1000',
-            'target' => 'required',
+            'tergat' => 'required',
             'zone'=>'required'
         ];
     }

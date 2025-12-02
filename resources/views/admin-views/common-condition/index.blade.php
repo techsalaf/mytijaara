@@ -59,7 +59,7 @@
                     </div>
                     <input type="hidden" name="lang[]" value="default">
                 @endif
-                    <div class="btn--container justify-content-end mt-3">
+                    <div class="btn--container justify-content-end mt-20">
                         <button type="reset" id="reset_btn" class="btn btn--reset">{{translate('messages.reset')}}</button>
                         <button type="submit" class="btn btn--primary">{{isset($condition)?translate('messages.update'):translate('messages.add')}}</button>
                     </div>

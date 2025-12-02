@@ -141,7 +141,7 @@
 @endsection
 
 @push('script_2')
-<script src="https://maps.googleapis.com/maps/api/js?v=3.45.8&key={{\App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value}}&libraries=drawing,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?v=3.45.8&key={{\App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value}}&libraries=drawing,places,marker&v=3.61"></script>
 <script>
     "use strict";
     auto_grow();
@@ -192,10 +192,13 @@
 
     function initialize() {
         let myLatlng = new google.maps.LatLng({{trim(explode(' ',$zone->center)[1], 'POINT()')}}, {{trim(explode(' ',$zone->center)[0], 'POINT()')}});
+        const mapId = "{{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}"
+
         let myOptions = {
             zoom: 13,
             center: myLatlng,
-            mapTypeId: google.maps.MapTypeId.ROADMAP
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapId:mapId
         };
         map = new google.maps.Map(document.getElementById("map-canvas"), myOptions);
 
@@ -291,9 +294,11 @@
                     anchor: new google.maps.Point(17, 34),
                     scaledSize: new google.maps.Size(25, 25),
                 };
+                const { AdvancedMarkerElement } = google.maps.marker;
+
                 // Create a marker for each place.
                 markers.push(
-                    new google.maps.Marker({
+                    new AdvancedMarkerElement({
                     map,
                     icon,
                     title: place.name,

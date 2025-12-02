@@ -2,8 +2,8 @@
     <div class="row justify-content-sm-between justify-content-center align-items-center">
         <div class="col text-md-start">
             <p class="font-size-sm mb-0">
-                &copy; {{\App\Models\BusinessSetting::where(['key'=>'business_name'])->first()->value}}. <span
-                    class="d-none d-sm-inline-block">{{\App\Models\BusinessSetting::where(['key'=>'footer_text'])->first()->value}}</span>
+                &copy; {{\App\CentralLogics\Helpers::get_business_settings('business_name') }}. <span
+                    class="d-none d-sm-inline-block">{{\App\CentralLogics\Helpers::get_business_settings('footer_text')}}</span>
             </p>
         </div>
         <div class="col-auto">

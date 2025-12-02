@@ -8,7 +8,6 @@
 
 @section('content')
     <div class="content container-fluid">
-        <!-- Page Header -->
         <div class="page-header">
             <h1 class="page-header-title">
                 <span class="page-header-icon">
@@ -131,47 +130,7 @@
             </div>
         </div>
 
-        <!-- Debug Section -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5 class="card-title">
-                    <i class="tio-bug"></i> Debug Information
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <button type="button" class="btn btn-info" onclick="checkLogs()">
-                            <i class="tio-eye"></i> Check Recent Logs
-                        </button>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="button" class="btn btn-warning" onclick="clearLogs()">
-                            <i class="tio-delete"></i> Clear Logs
-                        </button>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="button" class="btn btn-success" onclick="analyzeFile()">
-                            <i class="tio-analytics"></i> Analyze Excel File
-                        </button>
-                    </div>
-                </div>
-                <div id="debug-output" class="mt-3" style="display: none;">
-                    <pre id="log-content" style="background: #f8f9fa; padding: 15px; border-radius: 5px; max-height: 300px; overflow-y: auto;"></pre>
-                </div>
-                <div id="analysis-output" class="mt-3" style="display: none;">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6>Excel File Analysis</h6>
-                        </div>
-                        <div class="card-body">
-                            <div id="analysis-content"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- End Debug Section -->
+
 
         <form class="product-form" id="import_form" action="{{route('admin.store.bulk-import')}}" method="POST"
         enctype="multipart/form-data">
@@ -214,7 +173,7 @@
 
                     </div>
                 </div>
-                <div class="btn--container justify-content-end mt-3">
+                <div class="btn--container justify-content-end mt-20">
                     <button id="reset_btn" type="reset" class="btn btn--reset">{{translate('messages.reset')}}</button>
                     <button type="button" class="btn btn--primary update_or_import">{{translate('messages.Upload')}}</button>
                 </div>
@@ -275,100 +234,4 @@ $(".action-upload-section-dot-area").on("change", function () {
         })
     }
         </script>
-    <script>
-        function checkLogs() {
-            fetch('{{ route("admin.store.debug-bulk-import") }}')
-                .then(response => response.json())
-                .then(data => {
-                    const output = document.getElementById('debug-output');
-                    const content = document.getElementById('log-content');
-                    
-                    if (data.recent_logs && data.recent_logs.length > 0) {
-                        content.textContent = data.recent_logs.join('\n');
-                    } else {
-                        content.textContent = 'No recent bulk import logs found.';
-                    }
-                    
-                    output.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error fetching logs:', error);
-                    document.getElementById('log-content').textContent = 'Error fetching logs: ' + error.message;
-                    document.getElementById('debug-output').style.display = 'block';
-                });
-        }
-
-        function clearLogs() {
-            if (confirm('Are you sure you want to clear the logs?')) {
-                fetch('{{ route("admin.store.debug-bulk-import") }}?clear=1')
-                    .then(response => response.json())
-                    .then(data => {
-                        alert('Logs cleared successfully');
-                        document.getElementById('debug-output').style.display = 'none';
-                    })
-                    .catch(error => {
-                        console.error('Error clearing logs:', error);
-                        alert('Error clearing logs: ' + error.message);
-                    });
-            }
-        }
-
-        function analyzeFile() {
-            const fileInput = document.querySelector('input[name="products_file"]');
-            if (!fileInput.files[0]) {
-                alert('Please select a file first');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('products_file', fileInput.files[0]);
-
-            fetch('{{ route("admin.store.analyze-excel-file") }}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const output = document.getElementById('analysis-output');
-                const content = document.getElementById('analysis-content');
-                
-                let html = '<div class="row">';
-                html += '<div class="col-md-6"><strong>Total Rows:</strong> ' + data.total_rows + '</div>';
-                html += '<div class="col-md-6"><strong>Columns Found:</strong> ' + data.columns.join(', ') + '</div>';
-                html += '</div><hr>';
-                
-                if (data.duplicate_emails.length > 0) {
-                    html += '<div class="alert alert-warning"><strong>Duplicate Emails Found:</strong><br>' + data.duplicate_emails.join(', ') + '</div>';
-                }
-                
-                if (data.duplicate_phones.length > 0) {
-                    html += '<div class="alert alert-warning"><strong>Duplicate Phones Found:</strong><br>' + data.duplicate_phones.join(', ') + '</div>';
-                }
-                
-                if (data.empty_emails > 0) {
-                    html += '<div class="alert alert-info"><strong>Empty Emails:</strong> ' + data.empty_emails + ' rows</div>';
-                }
-                
-                if (data.empty_phones > 0) {
-                    html += '<div class="alert alert-info"><strong>Empty Phones:</strong> ' + data.empty_phones + ' rows</div>';
-                }
-                
-                if (data.sample_data && data.sample_data.length > 0) {
-                    html += '<hr><h6>Sample Data (First 3 rows):</h6>';
-                    html += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 3px; font-size: 12px;">' + JSON.stringify(data.sample_data, null, 2) + '</pre>';
-                }
-                
-                content.innerHTML = html;
-                output.style.display = 'block';
-            })
-            .catch(error => {
-                console.error('Error analyzing file:', error);
-                document.getElementById('analysis-content').innerHTML = '<div class="alert alert-danger">Error analyzing file: ' + error.message + '</div>';
-                document.getElementById('analysis-output').style.display = 'block';
-            });
-        }
-    </script>
 @endpush

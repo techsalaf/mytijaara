@@ -71,7 +71,7 @@
                             <div class="form-group">
                                 <label class="input-label">{{translate('service_file_content')}}
                                     <i class="tio-info cursor-pointer" data-toggle="tooltip" data-placement="top"
-                                       title="{{ translate('Select and copy all the service file content and add them here') }}">
+                                       title="{{ translate('select and copy all the service file content and add here') }}">
                                     </i>
                                 </label>
                                 <textarea name="push_notification_service_file_content" class="form-control" rows="15"
@@ -141,43 +141,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <hr>
-                            <div class="form-group">
-                                <label class="toggle-switch d-flex align-items-center mb-3" for="truceptWG_status">
-                                    <input type="checkbox" name="truceptWG_status" class="toggle-switch-input" value="1" id="truceptWG_status" {{$truceptWG ? ($truceptWG['status']==1 ? 'checked' : '') : ''}}>
-                                    <span class="toggle-switch-label">
-                                        <span class="toggle-switch-indicator"></span>
-                                    </span>
-                                    <span class="toggle-switch-content">
-                                        <span class="d-block">trucept WHATSAPP GATEWAY</span>
-                                    </span>
-                                </label>
-                            </div>
-                            <ol>
-                                <h3>How to get trucept Whatsapp Gateway Token:</h3>
-                                <li>Login/Register at <a href="https://wa.trucept.pro" target="_blank">WA.TRUCEPT.PRO</a></li>
-                                <li>Go to menu Whatsapp >> "Add Account" , it will generate a QR Code</li>
-                                <li>Open Whatsapp on your phone, Menu >> Linked devices >> Scan the QRCode</li>
-                                <li>You will see your profile picture if successfully connected</li>
-                                <li>Go to menu Whatsapp >> Profile >> Select your Whatsapp account, you will see your credentials</li>
-                            </ol>
-                            <div class="form-group">
-                                <label class="input-label" for="exampleFormControlInput1" hidden>truceptWG node server:</label>
-                                <input name="truceptWG_nodeurl" class="form-control" value="{{$truceptWG['nodeurl']}}" placeholder="https://wa.trucept.pro/api/send" readonly hidden />
-                            </div>
-                            <div class="form-group">
-                                <label class="input-label" for="exampleFormControlInput1">truceptWG instance ID:</label>
-                                <input name="truceptWG_instanceid" class="form-control" value="{{$truceptWG['instance_id']}}" placeholder="LFizPIAbx3go84qzSQJt" />
-                            </div>   
-                            <div class="form-group">
-                                <label class="input-label" for="exampleFormControlInput1">truceptWG token:</label>
-                                <input name="truceptWG_token" class="form-control" value="{{$truceptWG['access_token']}}" placeholder="LFizPIAbx3go84qzSQJt" />
-                            </div>        
-                            <div class="form-group">
-                                <label class="input-label" for="exampleFormControlInput1">truceptWG OTP template:</label>
-                                <input name="truceptWG_otp_template" class="form-control" value="{{$truceptWG['otp_template']}}" placeholder="OTP code: *#OTP#*" />
-                            </div>
-
 
                             <div class="btn--container justify-content-end">
                                 <button type="reset" class="btn btn--reset">{{translate('messages.reset')}}</button>
@@ -209,7 +172,7 @@
                                     <ul>
                                         <li>
                                             {{translate('Open your web browser and go to the Firebase Console')}}
-                                            <a href="https://console.firebase.google.com/" target="_blank" class="text--underline">
+                                            <a href="#" class="text--underline">
                                                 {{translate('(https://console.firebase.google.com/)')}}
                                             </a>
                                         </li>

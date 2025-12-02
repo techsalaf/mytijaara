@@ -89,7 +89,7 @@
                         <input type="file" name="products_file" class="form-control" id="products_file">
                         <label class="custom-file-label" for="products_file">{{ translate('messages.Choose File') }}</label>
                     </div>
-                    <div class="btn--container justify-content-end mt-3">
+                    <div class="btn--container justify-content-end mt-20">
                         <button id="reset_btn" type="reset" class="btn btn--reset">{{translate('messages.reset')}}</button>
                         <button type="submit" name="button" value="update" class="btn btn--warning submit_btn">{{translate('messages.update')}}</button>
                         <button type="submit" name="button" value="import" class="btn btn--primary submit_btn">{{translate('messages.Import')}}</button>

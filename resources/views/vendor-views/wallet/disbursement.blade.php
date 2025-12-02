@@ -131,7 +131,7 @@
                                 </div>
                             </td>
                             <td>
-                                @php($store_disbursement_waiting_time = \App\Models\BusinessSetting::where('key', 'store_disbursement_waiting_time')->first()?->value ?? 0)
+                                @php($store_disbursement_waiting_time = (int) \App\Models\BusinessSetting::where('key', 'store_disbursement_waiting_time')->first()?->value ?? 0)
                                 <div>
                                     {{ $store->created_at->addDays($store_disbursement_waiting_time)->format('d-M-y')  }}
                                     <small>

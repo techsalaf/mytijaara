@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  * @property bool $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string|null $target
+ * @property string|null $tergat
  * @property int|null $zone_id
  */
 class Notification extends Model
@@ -35,7 +35,7 @@ class Notification extends Model
         'description',
         'image',
         'status',
-        'target',
+        'tergat',
         'zone_id',
     ];
 

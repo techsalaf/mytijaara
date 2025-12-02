@@ -30,7 +30,7 @@
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>
-        <div class="mt-2 d-flex">
+        <!-- <div class="mt-2 d-flex">
             <div class="d-flex flex-wrap justify-content-end align-items-center flex-grow-1 p--10">
                 <div class="blinkings active">
                     <i class="tio-info-outined"></i>
@@ -42,7 +42,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
     </div>
     <!-- End Page Header -->
 
@@ -150,13 +150,6 @@
                                         {{translate($key)}}
                                     </span>
                                 </label>
-                                @elseif($key == 'rental' && addon_published_status('Rental')  )
-                                <label class="form-check form--check">
-                                    <input class="form-check-input" type="radio" name="module_type" value="{{$key}}">
-                                    <span class="form-check-label">
-                                        {{translate($key)}}
-                                    </span>
-                                </label>
                                 @endif
                                 @endforeach
                                 </div>
@@ -164,13 +157,13 @@
                         </div>
                     </div>
                     <div class="col-lg-6">
-                        <h6 class="mb-3">{{translate('Choose related images')}}</h6>
+                        <h6 class="mb-3">{{translate('Chose related images')}}</h6>
                         <div class="card module-logo-card mb-3">
                             <div class="card-body">
                                 <div class="row h-100">
                                     <div class="col-sm-6 mb-4 mb-sm-0">
-                                        <div class="form-group m-0 h-100 d-flex align-items-center flex-column justify-content-center">
-                                            <label class="form-label mb-0">
+                                        <div class="form-group m-0 h-100 d-flex align-items-center flex-column justify-content-center pb-lg-2">
+                                            <label class="form-label mb-3">
                                                 {{translate('messages.icon')}}
                                                 <small class="text-danger">* ( {{translate('messages.ratio')}} 1:1)</small>
                                             </label>
@@ -186,8 +179,8 @@
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
-                                        <div class="form-group m-0 h-100 d-flex flex-column justify-content-center align-items-center">
-                                            <label class="form-label mb-4">
+                                        <div class="form-group m-0 h-100 d-flex flex-column justify-content-center align-items-center pb-lg-2">
+                                            <label class="form-label mb-3">
                                                 {{translate('messages.thumbnail')}}
                                                 <small class="text-danger">* ( {{translate('messages.ratio')}} 1:1)</small>
                                             </label>
