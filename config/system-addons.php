@@ -1,9 +1,9 @@
 <?php return array (
   'admin_panel' => 
   array (
-    'active' => '0',
+    'active' => '1',
     'username' => 'techsalaf',
-    'purchase_key' => '19fJhgTreysh56GFDAjskdiLi1nhsv4Vcv',
+    'purchase_key' => 'NulledMaster',
     'software_id' => 'MzY3NzIxMTI=',
     'domain' => 'localhost/mytijaara',
     'software_type' => 'product',

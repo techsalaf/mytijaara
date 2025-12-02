@@ -8864,4 +8864,5 @@ Smartly or Earn. ',
   'order_is_processing' => 'Order is processing',
   'This text appears as the label or heading above the location search bar. Write it under 50 characters.' => 'This text appears as the label or heading above the location search bar. Write it under 50 characters.',
   'Car Rental' => 'Car Rental',
+  'Restaurant' => 'Restaurant',
 );
