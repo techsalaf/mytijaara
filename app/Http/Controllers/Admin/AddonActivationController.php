@@ -60,9 +60,9 @@ class AddonActivationController extends Controller
         // Also update the business settings for the UI
         $business_key = $this->getBusinessKeyFromAddonName($addon_name);
         if ($business_key) {
-            $current_setting = Helpers::getBusinessSettingsValue($business_key);
+            $current_setting = Helpers::get_business_settings($business_key);
             if ($current_setting) {
-                $setting_data = json_decode($current_setting, true);
+                $setting_data = is_array($current_setting) ? $current_setting : json_decode($current_setting, true);
                 $setting_data['activation_status'] = $status;
                 Helpers::businessUpdateOrInsert(['key' => $business_key], [
                     'value' => json_encode($setting_data)
