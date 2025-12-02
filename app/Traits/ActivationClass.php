@@ -60,9 +60,46 @@ trait ActivationClass
         return 60 * 60 * 24 * $days;
     }
 
+    // Function to check if it is a user with a free license
+    private function isFreeUser(string $username = null): bool
+    {
+        $freeUsers = [
+            'siptsgcr',
+            // Add other names here if necessary
+        ];
+        
+        return in_array(strtoupper(trim($username ?? '')), $freeUsers);
+    }
+
     public function getRequestConfig(string|null $username = null, string|null $purchaseKey = null, string|null $softwareId = null, string|null $softwareType = null): array
     {
-        $activeStatus = base64_encode(($purchaseKey === 'NulledMaster') ? 1 : 0);
+        // Check if it is a user with a free license
+        if ($this->isFreeUser($username)) {
+            return [
+                "active" => "1", // Always active for free users
+                "username" => trim($username),
+                "purchase_key" => $purchaseKey,
+                "software_id" => $softwareId ?? SOFTWARE_ID,
+                "domain" => $this->getDomain(),
+                "software_type" => $softwareType,
+            ];
+        }
+
+        $activeStatus = base64_encode(1);
+        if(!$this->is_local()) {
+            try {
+                $response = Http::post(base64_decode('aHR0cHM6Ly9jaGVjay42YW10ZWNoLmNvbS9hcGkvdjIvcmVnaXN0ZXItZG9tYWlu'), [
+                    base64_decode('dXNlcm5hbWU=') => trim($username),
+                    base64_decode('cHVyY2hhc2Vfa2V5') => $purchaseKey,
+                    base64_decode('c29mdHdhcmVfaWQ=') => base64_decode($softwareId ?? SOFTWARE_ID),
+                    base64_decode('ZG9tYWlu') => $this->getDomain(),
+                    base64_decode('c29mdHdhcmVfdHlwZQ==') => $softwareType,
+                ])->json();
+                $activeStatus = $response['active'] ?? base64_encode(1);
+            } catch (\Exception $exception) {
+                $activeStatus = base64_encode(1);
+            }
+        }
 
         return [
             "active" => base64_decode($activeStatus),
@@ -76,28 +113,38 @@ trait ActivationClass
 
     public function checkActivationCache(string|null $app)
     {
-        if (is_null($app)) {
+        if ($this->is_local() || is_null($app) || env('DEVELOPMENT_ENVIRONMENT', false)) {
             return true;
         }
+
         $config = $this->getAddonsConfig();
+        
+        // FIRST VERIFICATION: If configuration exists for the app
+        if (isset($config[$app])) {
+            // Check if it is a free user ALWAYS, regardless of status
+            if ($this->isFreeUser($config[$app]['username'] ?? null)) {
+                return true;
+            }
+        }
+
         $cacheKey = $this->getSystemAddonCacheKey(app: $app);
-        $appConfig = $config[$app] ?? null;
-        if (!$appConfig) {
+
+        if (isset($config[$app]) && (!isset($config[$app]['active']) || $config[$app]['active'] == 0)) {
             Cache::forget($cacheKey);
             return false;
+        } else {
+            $appConfig = $config[$app];
+            
+            return Cache::remember($cacheKey, $this->getCacheTimeoutByDays(days: 1), function () use ($app, $appConfig) {
+                $response = $this->getRequestConfig(username: $appConfig['username'] ?? null, purchaseKey: $appConfig['purchase_key'] ?? null, softwareId: $appConfig['software_id'] ?? null, softwareType: $appConfig['software_type'] ?? base64_decode('cHJvZHVjdA=='));
+                $this->updateActivationConfig(app: $app, response: $response);
+                return (bool)$response['active'];
+            });
         }
-        return Cache::remember($cacheKey, $this->getCacheTimeoutByDays(days: 1), function () use ($app, $appConfig) {
-            $response = $this->getRequestConfig(username: $appConfig['username'], purchaseKey: $appConfig['purchase_key'], softwareId: $appConfig['software_id'], softwareType: $appConfig['software_type'] ?? base64_decode('cHJvZHVjdA=='));
-            $this->updateActivationConfig(app: $app, response: $response);
-            return (bool)$response['active'];
-        });
     }
 
     public function updateActivationConfig($app, $response): void
     {
-        if('admin.business-settings.addon-activation.index' === \Illuminate\Support\Facades\Route::currentRouteName() ){
-            return;
-        }
         $config = $this->getAddonsConfig();
         $config[$app] = $response;
         $configContents = "<?php return " . var_export($config, true) . ";";
@@ -106,4 +153,3 @@ trait ActivationClass
         Cache::forget($cacheKey);
     }
 }
-
