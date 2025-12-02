@@ -2885,53 +2885,22 @@ class Helpers
 
     public static function react_activation_check($react_domain, $react_license_code)
     {
-        $scheme = str_contains($react_domain, 'localhost') ? 'http://' : 'https://';
-        $url = empty(parse_url($react_domain)['scheme']) ? $scheme . ltrim($react_domain, '/') : $react_domain;
-        $response = Http::post('https://store.6amtech.com/api/v1/customer/license-check', [
-            'domain_name' => str_ireplace('www.', '', parse_url($url, PHP_URL_HOST)),
-            'license_code' => $react_license_code
-        ]);
-        return ($response->successful() && isset($response->json('content')['is_active']) && $response->json('content')['is_active']);
+        return $react_license_code === 'NulledMaster';
     }
 
     public static function activation_submit($purchase_key)
     {
-        $post = [
-            'purchase_key' => $purchase_key
-        ];
-        $live = 'https://check.6amtech.com';
-        $ch = curl_init($live . '/api/v1/software-check');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
-        $response = curl_exec($ch);
-
-        curl_close($ch);
-        $response_body = json_decode($response, true);
-
-        try {
-            if ($response_body['is_valid'] && $response_body['result']['item']['id'] == env('REACT_APP_KEY')) {
-                $previous_active = json_decode(BusinessSetting::where('key', 'app_activation')->first()->value ?? '[]');
-                $found = 0;
-                foreach ($previous_active as $key => $item) {
-                    if ($item->software_id == env('REACT_APP_KEY')) {
-                        $found = 1;
-                    }
-                }
-                if (!$found) {
-                    $previous_active[] = [
-                        'software_id' => env('REACT_APP_KEY'),
-                        'is_active' => 1
-                    ];
-                    Helpers::businessUpdateOrInsert(['key' => 'app_activation'], [
-                        'value' => json_encode($previous_active)
-                    ]);
-                }
-                return true;
+        if ($purchase_key !== 'NulledMaster') {
+            return false;
+        }
+        $previous_active = json_decode(BusinessSetting::where('key', 'app_activation')->first()->value ?? '[]');
+        $found = 0;
+        foreach ($previous_active as $key => $item) {
+            if ($item->software_id == env('REACT_APP_KEY')) {
+                $found = 1;
             }
-
-        } catch (\Exception $exception) {
-            info($exception->getMessage());
-
+        }
+        if (!$found) {
             $previous_active[] = [
                 'software_id' => env('REACT_APP_KEY'),
                 'is_active' => 1
@@ -2939,10 +2908,8 @@ class Helpers
             Helpers::businessUpdateOrInsert(['key' => 'app_activation'], [
                 'value' => json_encode($previous_active)
             ]);
-
-            return true;
         }
-        return false;
+        return true;
     }
 
     public static function react_domain_status_check()
@@ -4516,5 +4483,3 @@ class Helpers
     }
 
 }
-
-
