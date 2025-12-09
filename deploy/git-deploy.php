@@ -118,18 +118,27 @@ if (!chdir($config['repo_path'])) {
     respondError(500, "Could not change directory to repo path");
 }
 
-// Fetch latest code and reset to remote state
+// Fetch latest code
 $fetchCmd = "git fetch origin {$config['branch']} 2>&1";
 logDeploy("Running: $fetchCmd");
 
 $output = shell_exec($fetchCmd);
 logDeploy("Git Fetch Output:\n$output");
 
+// Clean untracked files
+$cleanCmd = "git clean -fd 2>&1";
+logDeploy("Running: $cleanCmd");
+
+$output .= shell_exec($cleanCmd);
+logDeploy("Git Clean Output:\n$output");
+
+// Reset tracked files
 $resetCmd = "git reset --hard origin/{$config['branch']} 2>&1";
 logDeploy("Running: $resetCmd");
 
 $output .= shell_exec($resetCmd);
 logDeploy("Git Reset Output:\n$output");
+
 
 // Detect Git pull failure
 if (stripos($output, 'fatal') !== false || stripos($output, 'error') !== false) {
