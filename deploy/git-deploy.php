@@ -125,14 +125,14 @@ logDeploy("Running: $fetchCmd");
 $output = shell_exec($fetchCmd);
 logDeploy("Git Fetch Output:\n$output");
 
-// Clean untracked files
-$cleanCmd = "git clean -fd 2>&1";
+// Clean untracked files, including ignored
+$cleanCmd = "git clean -fdx 2>&1";
 logDeploy("Running: $cleanCmd");
 
 $output .= shell_exec($cleanCmd);
 logDeploy("Git Clean Output:\n$output");
 
-// Reset tracked files
+// Reset tracked files to remote
 $resetCmd = "git reset --hard origin/{$config['branch']} 2>&1";
 logDeploy("Running: $resetCmd");
 
