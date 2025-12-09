@@ -1,5 +1,5 @@
 <?php
-
+// Namespace declaration
 namespace App\Traits;
 
 use Illuminate\Support\Facades\Session;
