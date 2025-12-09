@@ -106,4 +106,3 @@ trait ActivationClass
         Cache::forget($cacheKey);
     }
 }
-

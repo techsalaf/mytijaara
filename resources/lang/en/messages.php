@@ -8865,4 +8865,5 @@ Smartly or Earn. ',
   'This text appears as the label or heading above the location search bar. Write it under 50 characters.' => 'This text appears as the label or heading above the location search bar. Write it under 50 characters.',
   'Car Rental' => 'Car Rental',
   'Restaurant' => 'Restaurant',
+  'Toggle RTL' => 'Toggle RTL',
 );
