@@ -15,6 +15,9 @@ $config = [
     'allowed_ips' => [], // Recommended: GitHub webhook IPs for extra security
 
     'post_deploy_commands' => [
+        // Regenerate Composer autoload (important for file renames)
+        'composer dump-autoload --optimize',
+
         // Laravel optimization commands
         '{{php}} artisan optimize',
         '{{php}} artisan config:clear',
@@ -124,6 +127,20 @@ logDeploy("Running: $fetchCmd");
 
 $output = shell_exec($fetchCmd);
 logDeploy("Git Fetch Output:\n$output");
+
+// Fix case-sensitive filename issues (Linux is case-sensitive, Windows is not)
+// Remove potentially misnamed files before reset
+$caseFixFiles = [
+    'app/CentralLogics/helpers.php',
+    'app/CentralLogics/sms_module.php',
+];
+foreach ($caseFixFiles as $file) {
+    $fullPath = $config['repo_path'] . '/' . $file;
+    if (file_exists($fullPath)) {
+        unlink($fullPath);
+        logDeploy("Removed case-mismatched file: $file");
+    }
+}
 
 // Clean untracked files, including ignored
 $cleanCmd = "git clean -fdx 2>&1";
