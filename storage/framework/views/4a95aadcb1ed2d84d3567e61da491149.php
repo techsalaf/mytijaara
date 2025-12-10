@@ -201,16 +201,20 @@ active
                                 <div class="d-flex flex-column align-items-center gap-3 flex-shrink-0">
                                     <p class="title-color mb-0"><?php echo e(translate('Profile Image')); ?> <span class="text-danger">(<?php echo e(translate('Ratio - 1:1')); ?>)</span></p>
 
-                                    <div class="upload-file">
-                                        <input type="file" class="cover_attachment js-upload-input"
+                                    <div class="upload-file upload-zone" data-preview="profile-prev-image" data-input="profileImageInput" data-max-size="2">
+                                        <input type="file" class="cover_attachment js-upload-input" id="profileImageInput"
                                             data-target="profile-prev-image" name="profile_image"
                                             accept=".webp, .png,.jpg,.jpeg,.gif, |image/*">
                                         <div class="upload-file__img">
-                                            <img src="<?php echo e(asset('public/assets/admin/img/media/upload-file.png')); ?>" alt="" >
+                                            <img id="profile-prev-image" src="<?php echo e(asset('public/assets/admin/img/media/upload-file.png')); ?>" alt="" >
                                         </div>
                                         <button class="remove-file-button" type="button">
                                             <i class="tio-clear"></i>
                                         </button>
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p><?php echo e(translate('Drop_image_here')); ?></p>
+                                        </div>
                                     </div>
 
                                     <p class="opacity-75 max-w220 mx-auto text-center fs-12">
@@ -223,16 +227,20 @@ active
                                 </div>
                                 <div class="d-flex flex-column align-items-center gap-3">
                                     <p class="title-color mb-0"><?php echo e(translate('Upload Cover')); ?> <span class="text-danger">(<?php echo e(translate('Ratio - 2:1')); ?>)</span></p>
-                                    <div class="upload-file">
-                                        <input type="file" class="cover_attachment js-upload-input"
+                                    <div class="upload-file upload-zone" data-preview="cover-prev-image" data-input="coverImageInput" data-max-size="2">
+                                        <input type="file" class="cover_attachment js-upload-input" id="coverImageInput"
                                             data-target="main-image" name="cover_image"
                                             accept=".webp, .png,.jpg,.jpeg,.gif, |image/*">
                                         <div class="upload-file__img upload-file__img_banner aspect-2-1">
-                                            <img src="<?php echo e(asset('public/assets/admin/img/media/banner-upload-file.png')); ?>" alt="" >
+                                            <img id="cover-prev-image" src="<?php echo e(asset('public/assets/admin/img/media/banner-upload-file.png')); ?>" alt="" >
                                         </div>
                                         <button class="remove-file-button" type="button">
                                             <i class="tio-clear"></i>
                                         </button>
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p><?php echo e(translate('Drop_image_here')); ?></p>
+                                        </div>
                                     </div>
 
                                     <p class="opacity-75 max-w220 mx-auto text-center fs-12">

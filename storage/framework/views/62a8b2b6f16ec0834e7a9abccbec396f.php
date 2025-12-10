@@ -171,20 +171,27 @@
                                     <small
                                         class="color-656566 d-block"> <?php echo e(translate('messages.Upload image')); ?></small>
                                 </label>
-                                <label class="text-center my-auto position-relative d-inline-block">
-                                    <img class="img--176 border--dashed rounded viewer_img" id=""
-                                         src="<?php echo e($category['image_full_url']); ?>"
-                                         data-onerror-image="<?php echo e(asset('public/assets/admin/img/upload-img.png')); ?>"
-                                         alt=""/>
-                                    <div class="icon-file-group">
-                                        <div class="icon-file">
-                                            <input type="file" name="image" id=""
-                                                   class="custom-file-input custom__FileEg read-url"
-                                                   accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                            <i class="tio-edit"></i>
+                                <div class="upload-zone" data-preview="categoryEditViewer<?php echo e($category->id); ?>" data-input="categoryEditInput<?php echo e($category->id); ?>" data-max-size="2">
+                                    <label class="text-center my-auto position-relative d-inline-block" for="categoryEditInput<?php echo e($category->id); ?>">
+                                        <img class="img--176 border--dashed rounded viewer_img" id="categoryEditViewer<?php echo e($category->id); ?>"
+                                             src="<?php echo e($category['image_full_url']); ?>"
+                                             data-onerror-image="<?php echo e(asset('public/assets/admin/img/upload-img.png')); ?>"
+                                             alt=""/>
+                                        <div class="icon-file-group">
+                                            <div class="icon-file">
+                                                <input type="file" name="image" id="categoryEditInput<?php echo e($category->id); ?>"
+                                                       class="custom-file-input custom__FileEg read-url"
+                                                       accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
+                                                <i class="tio-edit"></i>
+                                            </div>
                                         </div>
+                                    </label>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p><?php echo e(translate('Drop_image_here')); ?></p>
                                     </div>
-                                </label>
+                                </div>
+                                <p class="text-center fs-12 text-muted mt-2"><i class="tio-upload"></i> <?php echo e(translate('Drag_and_drop_or_click')); ?></p>
                             </div>
 
                         </div>

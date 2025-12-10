@@ -115,21 +115,28 @@
                             <div class="h-100 d-flex align-items-center flex-column">
                                 <label class="mb-3 text-center"><?php echo e(translate('messages.image')); ?> <small
                                         class="text-danger">* ( <?php echo e(translate('messages.ratio')); ?> 1:1)</small></label>
-                                <label class="text-center my-auto position-relative d-inline-block">
-                                    <img class="img--176 border" id="viewer"
-                                        <?php if(isset($category)): ?> src="<?php echo e(asset('storage/app/public/category')); ?>/<?php echo e($category['image']); ?>"
-                                        <?php else: ?>
-                                        src="<?php echo e(asset('public/assets/admin/img/upload-img.png')); ?>" <?php endif; ?>
-                                        alt="image" />
-                                    <div class="icon-file-group">
-                                        <div class="icon-file">
-                                            <input type="file" name="image" id="customFileEg1"
-                                                class="custom-file-input this-url  read-url"
-                                                accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                            <i class="tio-edit"></i>
+                                <div class="upload-zone" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
+                                    <label class="text-center my-auto position-relative d-inline-block" for="customFileEg1">
+                                        <img class="img--176 border" id="viewer"
+                                            <?php if(isset($category)): ?> src="<?php echo e(asset('storage/app/public/category')); ?>/<?php echo e($category['image']); ?>"
+                                            <?php else: ?>
+                                            src="<?php echo e(asset('public/assets/admin/img/upload-img.png')); ?>" <?php endif; ?>
+                                            alt="image" />
+                                        <div class="icon-file-group">
+                                            <div class="icon-file">
+                                                <input type="file" name="image" id="customFileEg1"
+                                                    class="custom-file-input this-url  read-url"
+                                                    accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
+                                                <i class="tio-edit"></i>
+                                            </div>
                                         </div>
+                                    </label>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p><?php echo e(translate('Drop_image_here')); ?></p>
                                     </div>
-                                </label>
+                                </div>
+                                <p class="text-center fs-12 text-muted mt-2"><i class="tio-upload"></i> <?php echo e(translate('Drag_and_drop_or_click')); ?></p>
                             </div>
                         </div>
                     </div>
