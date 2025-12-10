@@ -26,7 +26,9 @@ class DragDropUpload {
         this.previewId = element.dataset.preview;
         this.inputId = element.dataset.input;
         this.maxSize = parseFloat(element.dataset.maxSize) || 2; // Default 2MB
-        this.allowedTypes = (element.dataset.allowedTypes || 'image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,image/tiff').split(',');
+        this.allowedTypes = (element.dataset.allowedTypes || 'image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff').split(',');
+        // Also allow validation by file extension (some browsers report empty or incorrect MIME types)
+        this.allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff'];
         
         this.imagePreview = document.getElementById(this.previewId);
         this.fileInput = document.getElementById(this.inputId);
@@ -89,11 +91,27 @@ class DragDropUpload {
         }
     }
 
+    isValidFileType(file) {
+        // Check by MIME type first
+        if (file.type && this.allowedTypes.includes(file.type)) {
+            return true;
+        }
+        
+        // Fallback: Check by file extension (some browsers report empty or incorrect MIME types)
+        const fileName = file.name.toLowerCase();
+        const extension = fileName.split('.').pop();
+        if (this.allowedExtensions.includes(extension)) {
+            return true;
+        }
+        
+        return false;
+    }
+
     handleFiles(files) {
         const file = files[0];
 
-        // Validate file type
-        if (!this.allowedTypes.includes(file.type)) {
+        // Validate file type using both MIME type and extension
+        if (!this.isValidFileType(file)) {
             if (typeof toastr !== 'undefined') {
                 toastr.error('Please upload a valid image file (JPG, PNG, GIF, WebP)');
             } else {

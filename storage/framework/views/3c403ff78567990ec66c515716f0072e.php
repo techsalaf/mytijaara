@@ -132,9 +132,13 @@
                                     <small class="text-danger">* ( <?php echo e(translate('messages.ratio')); ?> 1:1 )</small>
                                 </label>
     
-                                <div id="image-viewer-section" class="text-center py-3 my-auto">
+                                <div id="image-viewer-section" class="text-center py-3 my-auto position-relative upload-zone" data-preview="viewer" data-input="customFileEg1">
                                     <img class="img--120" id="viewer"
                                             src="<?php echo e(asset('public/assets/admin/img/100x100/2.png')); ?>" alt="banner image"/>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p><?php echo e(translate('messages.Drop_image_here')); ?></p>
+                                    </div>
                                 </div>
                                 <div class="custom-file">
                                     <input type="file" name="image" id="customFileEg1" class="custom-file-input"
