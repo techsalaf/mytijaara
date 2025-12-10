@@ -70,23 +70,30 @@
                                         {{ translate('messages.item_image') }}
                                         <small>( {{ translate('messages.ratio') }} 1:1 )</small>
                                     </label>
-                                    <div class="d-flex __gap-12px __new-coba overflow-x-auto pb-2" id="coba">
+                                    <div class="d-flex __gap-12px __new-coba overflow-x-auto pb-2 multi-upload-zone" 
+                                         id="coba"
+                                         data-max-count="5"
+                                         data-max-size="2"
+                                         data-field-name="item_images[]"
+                                         data-placeholder="{{ asset('public/assets/admin/img/upload-img.png') }}">
 
                                         <input type="hidden" id="removedImageKeysInput" name="removedImageKeys"
                                             value="">
                                         @foreach ($product->images as $key => $photo)
                                             @php($photo = is_array($photo) ? $photo : ['img' => $photo, 'storage' => 'public'])
                                             <div id="product_images_{{ $key }}"
-                                                class="spartan_item_wrapper min-w-176px max-w-176px">
-                                                <img class="img--square onerror-image"
-                                                    src="{{ \App\CentralLogics\Helpers::get_full_url('product', $photo['img'] ?? '', $photo['storage']) }}"
-                                                    data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                                    alt="Product image">
-                                                <a href="#" data-key={{ $key }}
+                                                class="multi-upload-item has-image existing-image spartan_item_wrapper min-w-176px max-w-176px"
+                                                data-key="{{ $key }}">
+                                                <label class="multi-upload-label">
+                                                    <img class="img--square onerror-image"
+                                                        src="{{ \App\CentralLogics\Helpers::get_full_url('product', $photo['img'] ?? '', $photo['storage']) }}"
+                                                        data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                        alt="Product image">
+                                                </label>
+                                                <a href="#" data-key="{{ $key }}"
                                                     data-photo="{{ $photo['img'] }}"
                                                     class="spartan_remove_row function_remove_img"><i
                                                         class="tio-add-to-trash"></i></a>
-
                                             </div>
                                         @endforeach
                                     </div>
@@ -1061,49 +1068,6 @@
             $('input[name="current_stock"]').val(total_qty);
         });
 
-        function initImagePicker() {
-            $("#coba").spartanMultiImagePicker({
-                fieldName: 'item_images[]',
-                maxCount: 5,
-                rowHeight: '176px !important',
-                groupClassName: 'spartan_item_wrapper min-w-176px max-w-176px',
-                maxFileSize: 1024 * 1024 * 2,
-                placeholderImage: {
-                    image: "{{ asset('public/assets/admin/img/upload-img.png') }}",
-                    width: '176px'
-                },
-                dropFileLabel: "Drop Here",
-                onAddRow: function(index, file) {
-                    setTimeout(function() {
-                        let $newInput = $("#coba .spartan_item_wrapper").last();
-                        if ($newInput.length) {
-                            $newInput[0].scrollIntoView({
-                                behavior: "smooth",
-                                inline: "end",
-                                block: "nearest"
-                            });
-                        }
-                    }, 50);
-                },
-                onExtensionErr: function(index, file) {
-                    toastr.error("{{ translate('messages.please_only_input_png_or_jpg_type_file') }}", {
-                        CloseButton: true,
-                        ProgressBar: true
-                    });
-                },
-                onSizeErr: function(index, file) {
-                    toastr.error("{{ translate('messages.file_size_too_big') }}", {
-                        CloseButton: true,
-                        ProgressBar: true
-                    });
-                }
-            });
-        }
-
-        $(function() {
-            initImagePicker();
-        });
-
         $('#reset_btn').click(function() {
             $('#module_id').val(null).trigger('change');
             $('#store_id').val(null).trigger('change');
@@ -1117,8 +1081,10 @@
             $('#customer_choice_options').empty().trigger('change');
             $('#variant_combination').empty().trigger('change');
             $('#viewer').attr('src', "{{ asset('public/assets/admin/img/upload.png') }}");
-            $("#coba").empty();
-            initImagePicker();
+            // Reset multi-image upload zone
+            if (typeof reinitMultiImageUpload === 'function') {
+                reinitMultiImageUpload('#coba');
+            }
         })
     </script>
 @endpush

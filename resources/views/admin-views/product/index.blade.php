@@ -67,7 +67,13 @@
                                         {{ translate('messages.item_image') }}
                                         <small class="">( {{ translate('messages.ratio') }} 1:1 )</small>
                                     </label>
-                                    <div class="d-flex __gap-12px __new-coba overflow-x-auto pb-2" id="coba"></div>
+                                    <div class="d-flex __gap-12px __new-coba overflow-x-auto pb-2 multi-upload-zone" 
+                                         id="coba"
+                                         data-max-count="5"
+                                         data-max-size="2"
+                                         data-field-name="item_images[]"
+                                         data-placeholder="{{ asset('public/assets/admin/img/upload-img.png') }}">
+                                    </div>
                                 </div>
 
                                 <div class="flex-grow-1 mx-auto pb-2 flex-shrink-0">
@@ -709,49 +715,6 @@
             });
         });
 
-        function initImagePicker() {
-            $("#coba").spartanMultiImagePicker({
-                fieldName: 'item_images[]',
-                maxCount: 5,
-                rowHeight: '176px !important',
-                groupClassName: 'spartan_item_wrapper min-w-176px max-w-176px',
-                maxFileSize: 1024 * 1024 * 2,
-                placeholderImage: {
-                    image: "{{ asset('public/assets/admin/img/upload-img.png') }}",
-                    width: '176px'
-                },
-                dropFileLabel: "Drop Here",
-                onAddRow: function(index, file) {
-                    setTimeout(function() {
-                        let $newInput = $("#coba .spartan_item_wrapper").last();
-                        if ($newInput.length) {
-                            $newInput[0].scrollIntoView({
-                                behavior: "smooth",
-                                inline: "end",
-                                block: "nearest"
-                            });
-                        }
-                    }, 50);
-                },
-                onExtensionErr: function(index, file) {
-                    toastr.error("{{ translate('messages.please_only_input_png_or_jpg_type_file') }}", {
-                        CloseButton: true,
-                        ProgressBar: true
-                    });
-                },
-                onSizeErr: function(index, file) {
-                    toastr.error("{{ translate('messages.file_size_too_big') }}", {
-                        CloseButton: true,
-                        ProgressBar: true
-                    });
-                }
-            });
-        }
-
-        $(function() {
-            initImagePicker();
-        });
-
         $('#reset_btn').click(function() {
             $('#module_id').val(null).trigger('change');
             $('#store_id').val(null).trigger('change');
@@ -766,8 +729,10 @@
             $('#variant_combination').empty().trigger('change');
             $('#viewer').attr('src', "{{ asset('public/assets/admin/img/upload.png') }}");
             $('#customFileEg1').val(null).trigger('change');
-            $("#coba").empty();
-            initImagePicker();
+            // Reset multi-image upload zone
+            if (typeof reinitMultiImageUpload === 'function') {
+                reinitMultiImageUpload('#coba');
+            }
         })
     </script>
 @endpush
