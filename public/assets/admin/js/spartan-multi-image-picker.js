@@ -105,10 +105,10 @@
                 var file_select = input.files[0],
                     allowedExt = settings.allowedExt,
                     maxFileSize = settings.maxFileSize;
-                var file_select_type = file_select.type,
-                    regex = new RegExp(`(.*?)\.(${allowedExt})$`);
+                var file_select_name = file_select.name,
+                    regex = new RegExp(`(.*?)\.(${allowedExt})$`, 'i');
 
-                if (regex.test(file_select_type) || allowedExt == "") {
+                if (regex.test(file_select_name) || allowedExt == "") {
                     if (
                         maxFileSize == "" ||
                         (maxFileSize != "" && file_select.size <= maxFileSize)
