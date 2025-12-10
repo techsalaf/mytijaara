@@ -180,12 +180,16 @@
                                                 {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                             </div>
                                         </label>
-                                        <label class="upload-img-3 m-0 d-block">
+                                        <label class="upload-img-3 m-0 d-block upload-zone" data-preview="testimonial_reviewer_image" data-input="testimonial_reviewer_input">
                                             <div class="img">
-                                                <img src="{{asset("/public/assets/admin/img/aspect-1.png")}}"
+                                                <img id="testimonial_reviewer_image" src="{{asset("/public/assets/admin/img/aspect-1.png")}}"
                                                 data-onerror-image="{{asset("/public/assets/admin/img/aspect-1.png")}}" class="img__aspect-1 min-w-187px max-w-187px onerror-image" alt="">
                                             </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file"  name="reviewer_image" hidden="">
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="reviewer_image" id="testimonial_reviewer_input" hidden="">
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{translate('messages.Drop_image_here')}}</p>
+                                            </div>
                                         </label>
                                     </div>
                                     <div class="d-flex flex-column">
@@ -199,11 +203,15 @@
                                                 {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                             </div>
                                         </label>
-                                        <label class="upload-img-4 m-0 d-block my-auto">
+                                        <label class="upload-img-4 m-0 d-block my-auto upload-zone" data-preview="testimonial_company_image" data-input="testimonial_company_input">
                                             <div class="img">
-                                                <img src="{{asset("/public/assets/admin/img/aspect-3-1.png")}}" data-onerror-image="{{asset("/public/assets/admin/img/aspect-3-1.png")}}" class="vertical-img max-w-187px onerror-image" alt="">
+                                                <img id="testimonial_company_image" src="{{asset("/public/assets/admin/img/aspect-3-1.png")}}" data-onerror-image="{{asset("/public/assets/admin/img/aspect-3-1.png")}}" class="vertical-img max-w-187px onerror-image" alt="">
                                             </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" id="image-upload-2" name="company_image" hidden="">
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" id="testimonial_company_input" name="company_image" hidden="">
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{translate('messages.Drop_image_here')}}</p>
+                                            </div>
                                         </label>
                                     </div>
                                 </div>

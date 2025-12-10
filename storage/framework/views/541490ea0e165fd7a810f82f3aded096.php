@@ -31,6 +31,7 @@ $countryCode= strtolower($country?$country:'auto');
 
     <link rel="stylesheet" href="<?php echo e(asset('public/assets/admin/intltelinput/css/intlTelInput.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset('public/assets/admin/css/upload-single-image.css')); ?>">
+    <link rel="stylesheet" href="<?php echo e(asset('public/assets/admin/css/drag-drop-upload.css')); ?>">
 
 
     <?php echo $__env->yieldPushContent('css_or_js'); ?>
@@ -339,6 +340,7 @@ if(in_array(config('module.current_module_type'),config('module.module_type') ))
 </script>
 
 <script src="<?php echo e(asset('public/assets/admin/js/view-pages/common.js')); ?>"></script>
+<script src="<?php echo e(asset('public/assets/admin/js/drag-drop-upload.js')); ?>"></script>
 <script src="<?php echo e(asset('public/assets/admin/js/keyword-highlighted.js')); ?>"></script>
 <audio id="myAudio">
     <source src="<?php echo e(asset('public/assets/admin/sound/notification.mp3')); ?>" type="audio/mpeg">

@@ -44,14 +44,18 @@
                                 <h3 class="form-label d-block mb-5">
                                     {{translate('Upload_Banner')}}
                                 </h3>
-                                <label class="__upload-img aspect-5-1 m-auto d-block position-relative">
+                                <label class="__upload-img aspect-5-1 m-auto d-block position-relative upload-zone" data-preview="pharmacy_bottom_img" data-input="pharmacy_bottom_input">
                                     <div class="img">
-                                        <img class="onerror-image" src="{{ $bottom_section_banner?->value_full_url }}"
+                                        <img id="pharmacy_bottom_img" class="onerror-image" src="{{ $bottom_section_banner?->value_full_url }}"
                                             data-onerror-image="{{asset('/public/assets/admin/img/upload-placeholder.png')}}"
                                             alt="">
                                     </div>
                                     <div class="">
-                                        <input type="file" name="image" hidden>
+                                        <input type="file" name="image" id="pharmacy_bottom_input" hidden>
+                                    </div>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p>{{translate('messages.Drop_image_here')}}</p>
                                     </div>
                                     @if (isset($bottom_section_banner?->value))
                                         <span id="bottom_section_banner" class="remove_image_button dynamic-checkbox"
@@ -122,14 +126,18 @@
                                 <h3 class="form-label d-block mb-5 text-center">
                                     {{translate('Upload_Banner')}}
                                 </h3>
-                                <label class="__upload-img aspect-235-375 m-auto d-block position-relative">
+                                <label class="__upload-img aspect-235-375 m-auto d-block position-relative upload-zone" data-preview="pharmacy_nearby_img" data-input="pharmacy_nearby_input">
                                     <div class="img">
-                                        <img class="onerror-image" src="{{ $basic_section_nearby?->value_full_url }}"
+                                        <img id="pharmacy_nearby_img" class="onerror-image" src="{{ $basic_section_nearby?->value_full_url }}"
                                             data-onerror-image="{{asset('/public/assets/admin/img/upload-placeholder.png')}}"
                                             alt="">
                                     </div>
                                     <div class="">
-                                        <input type="file" name="image" hidden>
+                                        <input type="file" name="image" id="pharmacy_nearby_input" hidden>
+                                    </div>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p>{{translate('messages.Drop_image_here')}}</p>
                                     </div>
                                     @if (isset($basic_section_nearby?->value))
                                         <span id="basic_section_nearby" class="remove_image_button dynamic-checkbox"

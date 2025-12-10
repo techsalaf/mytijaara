@@ -159,14 +159,18 @@
                                 <label class="form-label d-block mb-2">
                                     {{ translate('messages.Banner') }}  <span class="text--primary">{{translate('(size: 2:1)')}}</span>
                                 </label>
-                                <label class="upload-img-3 m-0">
+                                <label class="upload-img-3 m-0 upload-zone" data-preview="flutter_download_image" data-input="flutter_download_input">
                                     <div class="position-relative">
                                     <div class="img">
-                                        <img
+                                        <img id="flutter_download_image"
 
                                         src="{{\App\CentralLogics\Helpers::get_full_url('download_user_app_image', $download_user_app_image?->value?? '', $download_user_app_image?->storage[0]?->value ?? 'public','upload_image_4')}}" data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" alt="" class="vertical-img mw-100 vertical onerror-image">
                                     </div>
-                                      <input type="file"  name="image" hidden>
+                                      <input type="file" name="image" id="flutter_download_input" hidden>
+                                      <div class="drag-overlay">
+                                          <i class="tio-file-add-outlined"></i>
+                                          <p>{{translate('messages.Drop_image_here')}}</p>
+                                      </div>
                                       @if (isset($download_user_app_image['value']))
                                             <span id="download_user_app_image" class="remove_image_button remove-image"
                                                   data-id="download_user_app_image"

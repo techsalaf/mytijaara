@@ -57,15 +57,19 @@
                                 <h3 class="form-label d-block mb-5 text-center">
                                     {{translate('Upload_Banner')}}
                                 </h3>
-                                <label class="__upload-img aspect-235-375 m-auto d-block position-relative">
+                                <label class="__upload-img aspect-235-375 m-auto d-block position-relative upload-zone" data-preview="food_best_reviewed_img" data-input="food_best_reviewed_input">
                                     <div class="img">
-                                        <img class="onerror-image"
+                                        <img id="food_best_reviewed_img" class="onerror-image"
                                             src="{{\App\CentralLogics\Helpers::get_full_url('promotional_banner', $best_reviewed_section_banner?->value ?? '', $best_reviewed_section_banner?->storage[0]?->value ?? 'public', 'upload_placeholder')}}"
                                             data-onerror-image="{{asset('/public/assets/admin/img/upload-placeholder.png')}}"
                                             alt="">
                                     </div>
                                     <div class="">
-                                        <input type="file" name="image" hidden>
+                                        <input type="file" name="image" id="food_best_reviewed_input" hidden>
+                                    </div>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p>{{translate('messages.Drop_image_here')}}</p>
                                     </div>
                                     @if (isset($best_reviewed_section_banner?->value))
                                         <span id="best_reviewed_section_banner" class="remove_image_button dynamic-checkbox"

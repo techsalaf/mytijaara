@@ -106,11 +106,15 @@
 
                                             <label class="form-label">{{translate('image (1:1)')}}</label>
                                         </div>
-                                        <label class="upload-img-3 m-0">
+                                        <label class="upload-img-3 m-0 upload-zone" data-preview="parcel_why_choose_image" data-input="parcel_why_choose_input">
                                             <div class="img">
-                                                <img src="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px">
+                                                <img id="parcel_why_choose_image" src="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px">
                                             </div>
-                                              <input type="file"  name="image" hidden>
+                                              <input type="file" name="image" id="parcel_why_choose_input" hidden>
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{translate('messages.Drop_image_here')}}</p>
+                                            </div>
                                         </label>
                                     </div>
                                 </div>

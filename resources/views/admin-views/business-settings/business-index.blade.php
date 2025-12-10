@@ -392,20 +392,26 @@
                                             {{ translate('logo') }} <span class="text--primary">( {{ translate('3:1') }}
                                                 )</span>
                                         </label>
-                                        <label class="text-center position-relative">
-                                            <img class="img--vertical onerror-image image--border" id="viewer"
-                                                data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                                src="{{\App\CentralLogics\Helpers::get_full_url('business', $logo?->value ?? '', $logo?->storage[0]?->value ?? 'public', 'upload_image')}}"
-                                                alt="logo image" />
-                                            <div class="icon-file-group">
-                                                <div class="icon-file">
-                                                    <input type="file" name="logo" id="customFileEg1"
-                                                        class="custom-file-input"
-                                                        accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                                    <i class="tio-edit"></i>
+                                        <div class="upload-zone" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
+                                            <label class="text-center position-relative" for="customFileEg1">
+                                                <img class="img--vertical onerror-image image--border" id="viewer"
+                                                    data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                    src="{{\App\CentralLogics\Helpers::get_full_url('business', $logo?->value ?? '', $logo?->storage[0]?->value ?? 'public', 'upload_image')}}"
+                                                    alt="logo image" />
+                                                <div class="icon-file-group">
+                                                    <div class="icon-file">
+                                                        <input type="file" name="logo" id="customFileEg1"
+                                                            class="custom-file-input"
+                                                            accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
+                                                        <i class="tio-edit"></i>
+                                                    </div>
                                                 </div>
+                                            </label>
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{ translate('Drop_image_here') }}</p>
                                             </div>
-                                        </label>
+                                        </div>
                                     </div>
 
                                     <div class="__custom-upload-img">
@@ -414,21 +420,27 @@
                                             {{ translate('Favicon') }} <span class="text--primary">(
                                                 {{ translate('1:1') }} )</span>
                                         </label>
-                                        <label class="text-center position-relative">
-                                            <img class="img--133 onerror-image image--border" id="iconViewer"
-                                                data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                                src="{{\App\CentralLogics\Helpers::get_full_url('business', $icon?->value ?? '', $icon?->storage[0]?->value ?? 'public', 'upload_image')}}"
-                                                alt="Fav icon" />
-                                            <div class="icon-file-group">
-                                                <div class="icon-file">
-                                                    <input type="file" name="icon" id="favIconUpload"
-                                                        class="custom-file-input"
-                                                        accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                                    <i class="tio-edit"></i>
-                                                </div>
+                                        <div class="upload-zone" data-preview="iconViewer" data-input="favIconUpload" data-max-size="2">
+                                            <label class="text-center position-relative" for="favIconUpload">
+                                                <img class="img--133 onerror-image image--border" id="iconViewer"
+                                                    data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                    src="{{\App\CentralLogics\Helpers::get_full_url('business', $icon?->value ?? '', $icon?->storage[0]?->value ?? 'public', 'upload_image')}}"
+                                                    alt="Fav icon" />
+                                                <div class="icon-file-group">
+                                                    <div class="icon-file">
+                                                        <input type="file" name="icon" id="favIconUpload"
+                                                            class="custom-file-input"
+                                                            accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
+                                                        <i class="tio-edit"></i>
+                                                    </div>
 
+                                                </div>
+                                            </label>
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{ translate('Drop_image_here') }}</p>
                                             </div>
-                                        </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

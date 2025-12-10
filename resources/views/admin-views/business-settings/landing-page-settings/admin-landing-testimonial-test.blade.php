@@ -86,14 +86,18 @@
                                                 {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                             </div>
                                         </label>
-                                        <label class="upload-img-3 m-0 d-block">
+                                        <label class="upload-img-3 m-0 d-block upload-zone" data-preview="testimonial_test_reviewer_image" data-input="testimonial_test_reviewer_input">
                                             <div class="position-relative">
                                             <div class="img">
-                                                <img
+                                                <img id="testimonial_test_reviewer_image"
 
                                                 src="{{ $review?->reviewer_image_full_url ?? asset('/public/assets/admin/img/aspect-1.png') }}" data-onerror-image="{{asset("/public/assets/admin/img/aspect-1.png")}}" class="img__aspect-1 mw-100 min-w-187px max-w-187px onerror-image" alt="">
                                             </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file"  name="reviewer_image" hidden="">
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="reviewer_image" id="testimonial_test_reviewer_input" hidden="">
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{translate('messages.Drop_image_here')}}</p>
+                                            </div>
                                              @if (isset($review->reviewer_image))
                                                     <span style="right: 53px;top: 2px;!important;"  id="reviewer_image" class="remove_image_button remove-image dynamic-checkbox"
                                                           data-id="reviewer_image"
@@ -116,13 +120,17 @@
                                                 {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                             </div>
                                         </label>
-                                        <label class="upload-img-4 m-0 d-block my-auto">
+                                        <label class="upload-img-4 m-0 d-block my-auto upload-zone" data-preview="testimonial_test_company_image" data-input="testimonial_test_company_input">
                                             <div class="position-relative">
                                             <div class="img">
-                                                <img
+                                                <img id="testimonial_test_company_image"
                                                 src="{{ $review?->company_image_full_url ?? asset('/public/assets/admin/img/aspect-3-1.png') }}" data-onerror-image="{{asset("/public/assets/admin/img/aspect-3-1.png")}}" class="vertical-img max-w-187px onerror-image" alt="">
                                             </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" id="image-upload-2" name="company_image" hidden="">
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" id="testimonial_test_company_input" name="company_image" hidden="">
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{translate('messages.Drop_image_here')}}</p>
+                                            </div>
                                             @if (isset($review->company_image))
                                                     <span style="right: 53px;top: 2px;!important;" id="company_image" class="remove_image_button remove-image dynamic-checkbox"
                                                           data-id="company_image"

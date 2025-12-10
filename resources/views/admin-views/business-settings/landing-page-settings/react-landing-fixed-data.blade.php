@@ -65,15 +65,19 @@
                                 <label class="form-label d-block mb-2">
                                     {{translate('Banner')}}  <span class="text--primary">{{translate('(size: 2:1)')}}</span>
                                 </label>
-                                <label class="upload-img-3 m-2 d-block">
+                                <label class="upload-img-3 m-2 d-block upload-zone" data-preview="react_fixed_promo_image" data-input="react_fixed_promo_input">
                                     <div class="position-relative">
                                     <div class="img">
-                                        <img
+                                        <img id="react_fixed_promo_image"
                                         src="{{\App\CentralLogics\Helpers::get_full_url('promotional_banner', $fixed_promotional_banner?->value?? '', $fixed_promotional_banner?->storage[0]?->value ?? 'public','upload_image_4')}}"
 
                                         data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
                                     </div>
-                                        <input type="file" name="fixed_promotional_banner"  hidden>
+                                        <input type="file" name="fixed_promotional_banner" id="react_fixed_promo_input" hidden>
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{translate('messages.Drop_image_here')}}</p>
+                                        </div>
                                            @if (isset($fixed_promotional_banner['value']))
 
                                             <span id="promotional_banner" class="remove_image_button remove-image"

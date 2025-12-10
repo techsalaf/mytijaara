@@ -1,0 +1,85 @@
+/**
+ * Drag and Drop Upload Styles
+ * Include this CSS for the drag-drop-upload.js component
+ */
+
+.upload-zone {
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-zone.drag-over {
+    transform: scale(1.02);
+}
+
+.upload-zone.drag-over img {
+    border: 2px dashed var(--primary-color, #0d6efd) !important;
+    opacity: 0.7;
+}
+
+.upload-zone .drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(13, 110, 253, 0.1);
+    border: 2px dashed var(--primary-color, #0d6efd);
+    border-radius: 10px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color, #0d6efd);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.upload-zone.drag-over .drag-overlay {
+    display: flex;
+}
+
+.upload-zone .drag-overlay i {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.upload-zone .drag-overlay p {
+    margin: 0;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Upload hint text styling */
+.upload-hint {
+    text-align: center;
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 8px;
+}
+
+.upload-hint i {
+    margin-right: 5px;
+}
+
+/* Multiple image upload zone */
+.upload-zone.multi-upload {
+    min-height: 150px;
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.upload-zone.multi-upload:hover {
+    border-color: var(--primary-color, #0d6efd);
+    background-color: rgba(13, 110, 253, 0.02);
+}
+
+.upload-zone.multi-upload.drag-over {
+    border-color: var(--primary-color, #0d6efd);
+    background-color: rgba(13, 110, 253, 0.05);
+}

@@ -120,12 +120,18 @@
                                     </div>
                                 </label>
 
-                                <label class="upload-img-3 m-0 d-block">
-                                    <div class="img">
-                                        <img src="{{asset('/public/assets/admin/img/upload-4.png')}}" data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
+                                <div class="upload-zone" data-preview="promoSectionImage" data-input="promoSectionInput" data-max-size="2">
+                                    <label class="upload-img-3 m-0 d-block" for="promoSectionInput">
+                                        <div class="img">
+                                            <img id="promoSectionImage" src="{{asset('/public/assets/admin/img/upload-4.png')}}" data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
+                                        </div>
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" id="promoSectionInput" type="file" name="image" hidden>
+                                    </label>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p>{{ translate('Drop_image_here') }}</p>
                                     </div>
-                                        <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input"  type="file" name="image" hidden>
-                                </label>
+                                </div>
                             </div>
                         </div>
                         <div class="btn--container justify-content-end mt-20">

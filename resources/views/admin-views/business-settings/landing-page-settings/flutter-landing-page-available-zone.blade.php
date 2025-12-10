@@ -192,7 +192,7 @@
                                     <small class="text-danger">* {{ translate('( Ratio 1:1 )') }}</small>
                                 </label>
                             </div>
-                            <div class="d-flex justify-content-center">
+                            <div class="d-flex justify-content-center upload-zone" data-preview="viewer" data-input="customFileEg1">
                                 <label class="text-center position-relative">
                                     <img class="img--110 min-height-170px min-width-170px onerror-image image--border" id="viewer"
                                          data-onerror-image="{{ asset('public/assets/admin/img/upload.png') }}"
@@ -206,6 +206,10 @@
                                         </div>
                                     </div>
                                 </label>
+                                <div class="drag-overlay">
+                                    <i class="tio-file-add-outlined"></i>
+                                    <p>{{translate('messages.Drop_image_here')}}</p>
+                                </div>
                             </div>
                         </div>
                     </div>

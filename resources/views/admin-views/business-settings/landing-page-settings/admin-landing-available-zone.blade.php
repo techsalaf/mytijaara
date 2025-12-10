@@ -198,7 +198,7 @@
                             </label>
 
                         </div>
-                        <div class="text-center">
+                        <div class="text-center upload-zone" data-preview="viewer" data-input="customFileEg1">
                             <label class="position-relative d-inline-block">
                                 <img class="img--110 min-height-170px min-width-170px onerror-image image--border"
                                      id="viewer"
@@ -219,6 +219,10 @@
                                        accept="{{ IMAGE_EXTENSION }}"
                                        hidden>
                             </label>
+                            <div class="drag-overlay">
+                                <i class="tio-file-add-outlined"></i>
+                                <p>{{translate('messages.Drop_image_here')}}</p>
+                            </div>
                         </div>
 
                     </div>

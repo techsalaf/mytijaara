@@ -71,15 +71,20 @@
                                             {{translate('messages.image')}}
                                             <small class="text-danger">* ( {{translate('messages.ratio')}} 900x300 )</small>
                                         </label>
-                                        <div class="text-center py-3 my-auto">
+                                        <div class="upload-zone text-center py-3 my-auto" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
                                             <img class="img--vertical" id="viewer"
                                                 src="{{asset('public/assets/admin/img/900x400/img1.jpg')}}" alt="image"/>
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{ translate('Drop_image_here') }}</p>
+                                            </div>
                                         </div>
                                         <div class="custom-file">
                                             <input type="file" name="image" id="customFileEg1" class="custom-file-input"
                                                 accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
                                             <label class="custom-file-label" for="customFileEg1">{{translate('messages.choose_file')}}</label>
                                         </div>
+                                        <p class="text-center fs-12 text-muted mt-2"><i class="tio-upload"></i> {{ translate('Drag_and_drop_or_click') }}</p>
                                     </div>
                                 </div>
                                 <div class="col-12">

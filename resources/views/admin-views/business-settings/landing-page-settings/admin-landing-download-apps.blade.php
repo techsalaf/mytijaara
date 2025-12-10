@@ -234,15 +234,19 @@
                                             {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                         </div>
                                     </label>
-                                    <label class="upload-img-3 m-0">
+                                    <label class="upload-img-3 m-0 upload-zone" data-preview="download_apps_image" data-input="download_apps_input">
                                         <div class="position-relative">
                                             <div class="img">
-                                                <img
+                                                <img id="download_apps_image"
                                                     src="{{\App\CentralLogics\Helpers::get_full_url('download_user_app_image', $download_user_app_image?->value?? '', $download_user_app_image?->storage[0]?->value ?? 'public','aspect_1')}}"
 
                                                     data-onerror-image="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
                                             </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file"  name="image" hidden>
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="image" id="download_apps_input" hidden>
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{translate('messages.Drop_image_here')}}</p>
+                                            </div>
                                             @if (isset($download_user_app_image['value']))
                                                 <span id="download_user_app_image" class="remove_image_button remove-image dynamic-checkbox"
                                                       data-id="download_user_app_image"

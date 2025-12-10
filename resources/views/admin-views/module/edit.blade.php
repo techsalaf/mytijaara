@@ -150,7 +150,7 @@
                                                     {{translate('messages.icon')}}
                                                     <small class="text-danger">* ( {{translate('messages.ratio')}} 1:1)</small>
                                                 </label>
-                                                <label class="text-center my-auto position-relative">
+                                                <label class="text-center my-auto position-relative upload-zone" data-preview="viewer" data-input="customFileEg1">
                                                     <img class="img--176 h-unset aspect-ratio-1 image--border" id="viewer" data-onerror-image="{{asset('public/assets/admin/img/upload-img.png')}}" src="{{ $module['icon_full_url'] }}"
                                                     alt="image" />
                                                     <div class="icon-file-group">
@@ -158,6 +158,10 @@
                                                             <input type="file" name="icon" id="customFileEg1" class="custom-file-input" accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
                                                             <i class="tio-edit"></i>
                                                         </div>
+                                                    </div>
+                                                    <div class="drag-overlay">
+                                                        <i class="tio-file-add-outlined"></i>
+                                                        <p>{{translate('messages.Drop_image_here')}}</p>
                                                     </div>
                                                 </label>
                                             </div>
@@ -168,7 +172,7 @@
                                                     {{translate('messages.thumbnail')}}
                                                     <small class="text-danger">* ( {{translate('messages.ratio')}} 1:1)</small>
                                                 </label>
-                                                <label class="text-center my-auto position-relative">
+                                                <label class="text-center my-auto position-relative upload-zone" data-preview="viewer2" data-input="customFileEg2">
                                                     <img class="img--176 h-unset aspect-ratio-1 image--border" id="viewer2" data-onerror-image="{{asset('public/assets/admin/img/upload-img.png')}}" src="{{ $module['thumbnail_full_url'] }}"
                                                     alt="image" />
                                                     <div class="icon-file-group">
@@ -176,6 +180,10 @@
                                                             <input type="file" name="thumbnail" id="customFileEg2" class="custom-file-input" accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
                                                             <i class="tio-edit"></i>
                                                         </div>
+                                                    </div>
+                                                    <div class="drag-overlay">
+                                                        <i class="tio-file-add-outlined"></i>
+                                                        <p>{{translate('messages.Drop_image_here')}}</p>
                                                     </div>
                                                 </label>
                                             </div>

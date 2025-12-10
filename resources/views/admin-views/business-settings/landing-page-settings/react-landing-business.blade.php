@@ -143,13 +143,17 @@
                                 <label class="form-label d-block mb-2">
                                     {{ translate('messages.Banner') }}  <span class="text--primary">{{ translate('(size: 1:1)') }}</span>
                                 </label>
-                                <label class="upload-img-3 m-0">
+                                <label class="upload-img-3 m-0 upload-zone" data-preview="react_business_image" data-input="react_business_input">
                                     <div class="position-relative">
                                     <div class="img">
-                                        <img
+                                        <img id="react_business_image"
                                         src="{{\App\CentralLogics\Helpers::get_full_url('business_image', $business_image?->value?? '', $business_image?->storage[0]?->value ?? 'public','aspect_1')}}" data-onerror-image="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
                                     </div>
-                                      <input type="file"  name="image" hidden>
+                                      <input type="file" name="image" id="react_business_input" hidden>
+                                      <div class="drag-overlay">
+                                          <i class="tio-file-add-outlined"></i>
+                                          <p>{{translate('messages.Drop_image_here')}}</p>
+                                      </div>
                                          @if (isset($business_image['value']))
                                             <span id="business_image" class="remove_image_button remove-image"
                                                   data-id="business_image"

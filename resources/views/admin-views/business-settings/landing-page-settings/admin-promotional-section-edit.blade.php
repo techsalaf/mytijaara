@@ -133,15 +133,19 @@
                                         {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                     </div>
                                 </label>
-                                <div class="position-relative">
+                                <div class="position-relative upload-zone" data-preview="promo_edit_image" data-input="promo_edit_input">
                                     <label class="upload-img-3 m-0 d-block">
                                         <div class="img">
-                                            <img
+                                            <img id="promo_edit_image"
                                             src="{{ $banner['image_full_url'] ?? asset('/public/assets/admin/img/upload-4.png') }}"
                                             data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
                                         </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="image"  hidden>
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="image" id="promo_edit_input" hidden>
                                     </label>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p>{{translate('messages.Drop_image_here')}}</p>
+                                    </div>
                                     @if (isset($banner['image'] ))
                                         <span id="banner_image" class="remove_image_button remove-image dynamic-checkbox"
                                               data-id="banner_image"

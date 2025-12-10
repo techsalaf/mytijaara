@@ -96,20 +96,26 @@
                                         {{ translate('messages.item_thumbnail') }}
                                         <small class="text-danger">* ( {{ translate('messages.ratio') }} 1:1 )</small>
                                     </label>
-                                    <label class="d-inline-block m-0 position-relative error-wrapper">
-                                        <img class="img--176 border onerror-image" id="viewer"
-                                            src="{{ $product['image_full_url'] ?? asset('public/assets/admin/img/upload-img.png') }}"
-                                            data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                            alt="thumbnail" />
-                                        <div class="icon-file-group">
-                                            <div class="icon-file">
-                                                <input type="file" name="image" id="customFileEg1"
-                                                    class="custom-file-input read-url"
-                                                    accept=".webp, .jpg, .png, .jpeg, .webp, .gif, .bmp, .tif, .tiff|image/*">
-                                                <i class="tio-edit"></i>
+                                    <div class="upload-zone" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
+                                        <label class="d-inline-block m-0 position-relative error-wrapper" for="customFileEg1">
+                                            <img class="img--176 border onerror-image" id="viewer"
+                                                src="{{ $product['image_full_url'] ?? asset('public/assets/admin/img/upload-img.png') }}"
+                                                data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                alt="thumbnail" />
+                                            <div class="icon-file-group">
+                                                <div class="icon-file">
+                                                    <input type="file" name="image" id="customFileEg1"
+                                                        class="custom-file-input read-url"
+                                                        accept=".webp, .jpg, .png, .jpeg, .webp, .gif, .bmp, .tif, .tiff|image/*">
+                                                    <i class="tio-edit"></i>
+                                                </div>
                                             </div>
+                                        </label>
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{ translate('Drop_image_here') }}</p>
                                         </div>
-                                    </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>

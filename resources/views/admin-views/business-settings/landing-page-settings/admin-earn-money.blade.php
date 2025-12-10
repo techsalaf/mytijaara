@@ -193,16 +193,20 @@
                                     </div>
                                 </label>
                                 <label class="upload-img-3 m-0 d-block">
-                                    <div class="position-relative">
+                                    <div class="position-relative upload-zone" data-preview="earning_seller_img_preview" data-input="earning_seller_input">
                                     <div class="img">
-                                        <img  src="{{\App\CentralLogics\Helpers::get_full_url('earning', $earning_seller_image?->value?? '', $earning_seller_image?->storage[0]?->value ?? 'public','upload_image_4')}}"
+                                        <img id="earning_seller_img_preview" src="{{\App\CentralLogics\Helpers::get_full_url('earning', $earning_seller_image?->value?? '', $earning_seller_image?->storage[0]?->value ?? 'public','upload_image_4')}}"
 
 
                                         data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}"
                                         class="vertical-img mw-100 vertical onerror-image" alt="">
 
                                     </div>
-                                    <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="earning_seller_image"  hidden>
+                                    <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="earning_seller_image" id="earning_seller_input" hidden>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p>{{translate('messages.Drop_image_here')}}</p>
+                                    </div>
                                     @if (isset($earning_seller_image['value']))
                                             <span id="earning_seller_img" class="remove_image_button remove-image dynamic-checkbox"
                                             data-id="earning_seller_img" data-image-off="{{ asset('/public/assets/admin/img/delete-confirmation.png') }}"
@@ -324,14 +328,18 @@
                                     </div>
                                 </label>
                                 <label class="upload-img-3 m-0 d-block">
-                                    <div class="position-relative">
+                                    <div class="position-relative upload-zone" data-preview="earning_delivery_img_preview" data-input="earning_delivery_input">
                                     <div class="img">
 
-                                        <img src="{{\App\CentralLogics\Helpers::get_full_url('earning', $earning_delivery_image?->value?? '', $earning_delivery_image?->storage[0]?->value ?? 'public','upload_image_4')}}"
+                                        <img id="earning_delivery_img_preview" src="{{\App\CentralLogics\Helpers::get_full_url('earning', $earning_delivery_image?->value?? '', $earning_delivery_image?->storage[0]?->value ?? 'public','upload_image_4')}}"
 
                                         data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
                                     </div>
-                                        <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="earning_delivery_image"  hidden>
+                                        <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="earning_delivery_image" id="earning_delivery_input" hidden>
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{translate('messages.Drop_image_here')}}</p>
+                                        </div>
                                             @if (isset($earning_delivery_image['value']))
                                             <span id="earning_delivery_img" class="remove_image_button  remove-image dynamic-checkbox"
                                                   data-id="earning_delivery_img"

@@ -130,21 +130,27 @@
                                                     data-original-title="{{ translate('messages.Required.') }}"> *
                                                 </span></span>
                                         </label>
-                                        <label class="text-center position-relative">
-                                            <img class="img--110 min-height-170px min-width-170px onerror-image image--border"
-                                                id="viewer"
-                                                data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                                src="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                                alt="logo image" />
-                                            <div class="icon-file-group">
-                                                <div class="icon-file">
-                                                    <i class="tio-edit"></i>
-                                                    <input type="file" name="logo" id="customFileEg1"
-                                                        class="custom-file-input" required
-                                                         accept="{{ IMAGE_EXTENSION }}">
+                                        <div class="upload-zone" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
+                                            <label class="text-center position-relative" for="customFileEg1">
+                                                <img class="img--110 min-height-170px min-width-170px onerror-image image--border"
+                                                    id="viewer"
+                                                    data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                    src="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                    alt="logo image" />
+                                                <div class="icon-file-group">
+                                                    <div class="icon-file">
+                                                        <i class="tio-edit"></i>
+                                                        <input type="file" name="logo" id="customFileEg1"
+                                                            class="custom-file-input" required
+                                                             accept="{{ IMAGE_EXTENSION }}">
+                                                    </div>
                                                 </div>
+                                            </label>
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{ translate('Drop_image_here') }}</p>
                                             </div>
-                                        </label>
+                                        </div>
 
                                     </div>
                                 </div>
@@ -156,22 +162,28 @@
                                             {{ translate('Store Cover') }} <span
                                                 class="text--primary">({{ translate('2:1') }}) </span>
                                         </label>
-                                        <label class="text-center position-relative">
-                                            <img class="img--vertical min-height-170px min-width-170px onerror-image image--border"
-                                                id="coverImageViewer"
-                                                data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                                src="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                                alt="Fav icon" />
-                                            <div class="icon-file-group">
-                                                <div class="icon-file">
-                                                    <i class="tio-edit"></i>
-                                                    <input type="file" name="cover_photo" id="coverImageUpload"
-                                                        class="custom-file-input"
-                                                        accept="{{ IMAGE_EXTENSION }}"
-                                                        data-max-size="2mb">
+                                        <div class="upload-zone" data-preview="coverImageViewer" data-input="coverImageUpload" data-max-size="2">
+                                            <label class="text-center position-relative" for="coverImageUpload">
+                                                <img class="img--vertical min-height-170px min-width-170px onerror-image image--border"
+                                                    id="coverImageViewer"
+                                                    data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                    src="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                    alt="Fav icon" />
+                                                <div class="icon-file-group">
+                                                    <div class="icon-file">
+                                                        <i class="tio-edit"></i>
+                                                        <input type="file" name="cover_photo" id="coverImageUpload"
+                                                            class="custom-file-input"
+                                                            accept="{{ IMAGE_EXTENSION }}"
+                                                            data-max-size="2mb">
+                                                    </div>
                                                 </div>
+                                            </label>
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{ translate('Drop_image_here') }}</p>
                                             </div>
-                                        </label>
+                                        </div>
                                     </div>
                                 </div>
 

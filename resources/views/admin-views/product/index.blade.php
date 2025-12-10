@@ -79,17 +79,23 @@
                                             <small class="text-danger">* ( {{ translate('messages.ratio') }} 1:1 )</small>
                                         @endif
                                     </label>
-                                    <label class="d-inline-block m-0 position-relative error-wrapper">
-                                        <img class="img--176 border" id="viewer"
-                                            src="{{ asset('public/assets/admin/img/upload-img.png') }}" alt="thumbnail" />
-                                        <div class="icon-file-group">
-                                            <div class="icon-file"><input type="file" name="image" id="customFileEg1"
-                                                    class="custom-file-input d-none"
-                                                    accept=".webp, .jpg, .png, .webp, .jpeg, .gif, .bmp, .tif, .tiff|image/*" required>
-                                                <i class="tio-edit"></i>
+                                    <div class="upload-zone" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
+                                        <label class="d-inline-block m-0 position-relative error-wrapper" for="customFileEg1">
+                                            <img class="img--176 border" id="viewer"
+                                                src="{{ asset('public/assets/admin/img/upload-img.png') }}" alt="thumbnail" />
+                                            <div class="icon-file-group">
+                                                <div class="icon-file"><input type="file" name="image" id="customFileEg1"
+                                                        class="custom-file-input d-none"
+                                                        accept=".webp, .jpg, .png, .webp, .jpeg, .gif, .bmp, .tif, .tiff|image/*" required>
+                                                    <i class="tio-edit"></i>
+                                                </div>
                                             </div>
+                                        </label>
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{ translate('Drop_image_here') }}</p>
                                         </div>
-                                    </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>

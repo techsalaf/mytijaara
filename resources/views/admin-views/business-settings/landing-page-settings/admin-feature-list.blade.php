@@ -290,14 +290,20 @@
                                             {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                         </div>
                                     </label>
-                                    <label class="upload-img-3 m-0">
-                                        <div class="img">
-                                            <img src="{{ asset('/public/assets/admin/img/aspect-1.png') }}"
-                                            data-onerror-image="{{ asset('/public/assets/admin/img/aspect-1.png') }}"
-                                                alt="image" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
+                                    <div class="upload-zone" data-preview="featureImage" data-input="featureImageInput" data-max-size="2">
+                                        <label class="upload-img-3 m-0" for="featureImageInput">
+                                            <div class="img">
+                                                <img id="featureImage" src="{{ asset('/public/assets/admin/img/aspect-1.png') }}"
+                                                data-onerror-image="{{ asset('/public/assets/admin/img/aspect-1.png') }}"
+                                                    alt="image" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
+                                            </div>
+                                            <input class="upload-file__input single_file_input" id="featureImageInput" accept="{{IMAGE_EXTENSION}}" type="file" name="image" hidden>
+                                        </label>
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{ translate('Drop_image_here') }}</p>
                                         </div>
-                                        <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="image" hidden>
-                                    </label>
+                                    </div>
                                 </div>
                             </div>
                             <div class="btn--container justify-content-end mt-20">

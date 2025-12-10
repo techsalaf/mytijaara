@@ -32,6 +32,43 @@ function initFileUpload() {
                 resetFileUpload($(this));
             });
     });
+
+    // Add drag-drop support for upload-file_custom elements
+    initDragDropForCustomUpload();
+}
+
+function initDragDropForCustomUpload() {
+    $(document).on("dragover", ".upload-file_custom", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).addClass("drag-over");
+    });
+
+    $(document).on("dragleave", ".upload-file_custom", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).removeClass("drag-over");
+    });
+
+    $(document).on("drop", ".upload-file_custom", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).removeClass("drag-over");
+
+        let files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+            let file = files[0];
+            // Validate file type
+            if (file.type.match(/image.*/)) {
+                let $input = $(this).find(".single_file_input");
+                // Create a new DataTransfer to set the file
+                let dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                $input[0].files = dataTransfer.files;
+                handleFileChange($input, file);
+            }
+        }
+    });
 }
 
 function checkPreExistingImages() {

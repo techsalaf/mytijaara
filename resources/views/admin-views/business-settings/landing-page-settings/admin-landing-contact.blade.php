@@ -179,15 +179,19 @@
                                             {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                         </div>
                                     </label>
-                                    <label class="upload-img-3 m-0 d-block">
+                                    <label class="upload-img-3 m-0 d-block upload-zone" data-preview="contact_banner_image" data-input="contact_banner_input">
                                         <div class="position-relative">
                                         <div class="img">
-                                            <img
+                                            <img id="contact_banner_image"
                                             src="{{\App\CentralLogics\Helpers::get_full_url('contact_us_image', $contact_us_image?->value?? '', $contact_us_image?->storage[0]?->value ?? 'public','upload_image_4')}}"
 
                                           class="vertical-img mw-100 onerror-image" alt="contact_us_image" data-onerror-image="{{asset("public/assets/admin/img/upload-4.png")}}">
                                         </div>
-                                          <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file"  name="image" hidden="">
+                                          <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="image" id="contact_banner_input" hidden="">
+                                          <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{translate('messages.Drop_image_here')}}</p>
+                                          </div>
                                           @if (isset($contact_us_image['value']))
                                             <span id="contact_image" class="remove_image_button remove-image dynamic-checkbox"
                                                   data-id="contact_image"

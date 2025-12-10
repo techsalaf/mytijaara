@@ -148,16 +148,20 @@
                             </div>
                             <div class="col-4 {{ $banner_type ? ($banner_type->value == 'image' ? '' : 'd-none') : '' }}"
                                 id="image">
-                                <label class="__upload-img aspect-615-350 d-block position-relative">
+                                <label class="__upload-img aspect-615-350 d-block position-relative upload-zone" data-preview="parcel_video_banner_img" data-input="parcel_video_banner_input">
                                     <div class="img">
-                                        <img class="onerror-image"
+                                        <img id="parcel_video_banner_img" class="onerror-image"
                                             src="{{\App\CentralLogics\Helpers::get_full_url('promotional_banner', $banner_image?->value ?? '', $banner_image?->storage[0]?->value ?? 'public', 'upload_placeholder')}}"
                                             data-onerror-image="{{ asset('/public/assets/admin/img/upload-placeholder.png') }}"
                                             alt="">
                                     </div>
 
                                     <div class="">
-                                        <input type="file" name="banner_image" hidden>
+                                        <input type="file" name="banner_image" id="parcel_video_banner_input" hidden>
+                                    </div>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p>{{translate('messages.Drop_image_here')}}</p>
                                     </div>
                                     @if (isset($banner_image?->value))
                                         <span id="banner_image" class="remove_image_button dynamic-checkbox"

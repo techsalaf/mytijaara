@@ -91,6 +91,15 @@
   pointer-events: none;
   opacity: 0;
 }
+
+/* Drag-over state for drag-and-drop */
+.upload-file_custom.drag-over .upload-file__wrapper {
+  border-color: var(--theameColor, #EF7822);
+  border-style: solid;
+  background-color: rgba(239, 120, 34, 0.1);
+  transform: scale(1.02);
+}
+
 .h-20{
     height: 20px;
 }

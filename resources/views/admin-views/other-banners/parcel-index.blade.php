@@ -38,15 +38,19 @@
                                             </span>
                                         </div>
                                         <div class="col-12">
-                                            <label class="__upload-img aspect-4-1 m-auto d-block">
+                                            <label class="__upload-img aspect-4-1 m-auto d-block upload-zone" data-preview="parcel_promo_image" data-input="parcel_promo_input">
                                                 <div class="img">
-                                                    <img class="onerror-image"    src="{{asset('/public/assets/admin/img/upload-placeholder.png')}}" data-onerror-image="{{asset('/public/assets/admin/img/upload-placeholder.png')}}" alt="">
+                                                    <img id="parcel_promo_image" class="onerror-image"    src="{{asset('/public/assets/admin/img/upload-placeholder.png')}}" data-onerror-image="{{asset('/public/assets/admin/img/upload-placeholder.png')}}" alt="">
 
 
 
 
                                                 </div>
-                                                    <input type="file" name="image"  hidden>
+                                                    <input type="file" name="image" id="parcel_promo_input" hidden>
+                                                <div class="drag-overlay">
+                                                    <i class="tio-file-add-outlined"></i>
+                                                    <p>{{translate('messages.Drop_image_here')}}</p>
+                                                </div>
                                             </label>
                                             <div class="text-center mt-5">
                                                 <h3 class="form-label d-block mt-2">
