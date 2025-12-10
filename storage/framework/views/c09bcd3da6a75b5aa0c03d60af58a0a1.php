@@ -126,15 +126,20 @@
                                     <div class="error-wrapper">
                                         <div class="h-100 d-flex flex-column">
                                             <label class="mt-auto mb-0 d-block text-center"><?php echo e(translate('messages.banner_image')); ?> <small class="text-danger">* ( <?php echo e(translate('messages.ratio')); ?> 3:1 )</small></label>
-                                            <div class="text-center py-3 my-auto">
+                                            <div class="upload-zone text-center py-3 my-auto" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
                                                 <img class="img--vertical" id="viewer"
                                                     src="<?php echo e(asset('public/assets/admin/img/900x400/img1.jpg')); ?>" alt="banner image"/>
+                                                <div class="drag-overlay">
+                                                    <i class="tio-file-add-outlined"></i>
+                                                    <p><?php echo e(translate('Drop_image_here')); ?></p>
+                                                </div>
                                             </div>
                                             <div class="custom-file">
                                                 <input type="file" name="image" id="customFileEg1" class="custom-file-input"
                                                     accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*" required>
                                                 <label class="custom-file-label" for="customFileEg1"><?php echo e(translate('messages.choose_file')); ?></label>
                                             </div>
+                                            <p class="text-center fs-12 text-muted mt-2"><i class="tio-upload"></i> <?php echo e(translate('Drag_and_drop_or_click')); ?></p>
                                         </div>
                                     </div>
                                 </div>
