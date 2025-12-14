@@ -92,6 +92,7 @@ Homestead.yaml
 .phpactor.json
 *.sublime-workspace
 *.sublime-project
+*.code-workspace
 
 # -----------------------------------------------------------------------------
 # OS files & misc

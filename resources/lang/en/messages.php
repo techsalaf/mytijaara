@@ -8876,4 +8876,5 @@ Smartly or Earn. ',
   'Drop_image_here' => 'Drop image here',
   'Update_Brand' => 'Update Brand',
   'Drag_and_drop_or_click' => 'Drag and drop or click',
+  'click_on_business_in_the_top_bar_and_select_business_details_from_the_dropdown_menu.' => 'Click on business in the top bar and select business details from the dropdown menu.',
 );

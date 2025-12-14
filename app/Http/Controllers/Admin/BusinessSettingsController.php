@@ -4786,7 +4786,6 @@ class BusinessSettingsController extends Controller
             $this->getAddLandingPageData($request, 'react_landing_page', 'popular_client_sub_title', true);
 
             if ($request->hasFile('image')) {
-
                 foreach ($request->file('image') as $index => $file) {
                     $key = 'popular_client_image';
                     $type = 'react_landing_page';

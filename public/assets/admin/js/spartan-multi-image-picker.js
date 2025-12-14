@@ -353,7 +353,18 @@
             var file_p = $(parent).find(
                 '.spartan_image_input[data-spartanindexinput="' + index + '"]'
             );
-            file_p.files = evt.originalEvent.dataTransfer.files;
+            
+            // Fix: Set files on the actual DOM element, not the jQuery object
+            var fileInput = file_p[0];
+            if (fileInput) {
+                // Create a DataTransfer object to set files on the input
+                var dataTransfer = new DataTransfer();
+                var droppedFiles = evt.originalEvent.dataTransfer.files;
+                for (var i = 0; i < droppedFiles.length; i++) {
+                    dataTransfer.items.add(droppedFiles[i]);
+                }
+                fileInput.files = dataTransfer.files;
+            }
 
             // clear on hover style
             $(input)
@@ -366,7 +377,7 @@
                 .find('img[data-spartanindexi="' + index + '"]')
                 .show();
 
-            loadImage(settings, file_p, parent);
+            loadImage(settings, file_p[0], parent);
         }
 
         return this.each(function () {
