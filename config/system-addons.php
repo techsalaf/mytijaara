@@ -46,11 +46,11 @@
   ),
   'react_web' => 
   array (
-    'active' => '1',
+    'active' => '0',
     'username' => '',
     'purchase_key' => '',
     'software_id' => 'NDUzNzAzNTE=',
-    'domain' => '',
+    'domain' => 'localhost/mytijaara',
     'software_type' => 'addon',
   ),
 );

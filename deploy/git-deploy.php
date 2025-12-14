@@ -7,7 +7,7 @@
 // CONFIGURATION
 $config = [
     'secret' => '2025myTijaaraSuperSecretToken',
-    'repo_path' => '/home/iqacibco/kari',
+    'repo_path' => '/home/iqacibco/mytijaara',
     'branch' => 'main',
     'php_path' => '/usr/local/bin/php',
     'log_file' => __DIR__ . '/deploy-log.txt',
