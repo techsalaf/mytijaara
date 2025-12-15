@@ -8881,4 +8881,5 @@ Smartly or Earn. ',
   'Reviewer image is required' => 'Reviewer image is required',
   'Default_question_is_required' => 'Default question is required',
   'User_type_required' => 'User type required',
+  'why_choose_section_updated' => 'Why choose section updated',
 );

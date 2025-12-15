@@ -1,7 +1,7 @@
 <?php
 // =============================================================
-//   MUZAKSFOOD — Laravel Auto Deployment Script
-//   Path: /home/iqacibco/kari/deploy/git-deploy.php
+//   MYTIJAARA — Laravel Auto Deployment Script
+//   Path: /home/iqacibco/mytijaara/deploy/git-deploy.php
 // =============================================================
 
 // CONFIGURATION
@@ -158,8 +158,28 @@ logDeploy("Git Reset Output:\n$output");
 
 
 // Detect Git pull failure
-if (stripos($output, 'fatal') !== false || stripos($output, 'error') !== false) {
-    respondError(500, "Git pull failed");
+$git = '/usr/local/cpanel/3rdparty/lib/path-bin/git';
+
+$commands = [
+    "$git fetch origin {$config['branch']}",
+    "$git clean -fdx",
+    "$git reset --hard origin/{$config['branch']}",
+];
+
+foreach ($commands as $cmd) {
+    logDeploy("Running: $cmd");
+
+    $out = [];
+    $code = 0;
+
+    exec($cmd . " 2>&1", $out, $code);
+
+    logDeploy("Exit code: $code");
+    logDeploy("Output:\n" . implode("\n", $out));
+
+    if ($code !== 0) {
+        respondError(500, "Git command failed: $cmd");
+    }
 }
 
 
