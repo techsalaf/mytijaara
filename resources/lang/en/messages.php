@@ -8882,4 +8882,5 @@ Smartly or Earn. ',
   'Default_question_is_required' => 'Default question is required',
   'User_type_required' => 'User type required',
   'why_choose_section_updated' => 'Why choose section updated',
+  'terms_and_condition_updated' => 'Terms and condition updated',
 );
