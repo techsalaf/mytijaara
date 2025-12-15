@@ -83,4 +83,19 @@
 
 @push('script_2')
     <script src="{{asset('public/assets/admin/ckeditor/ckeditor.js')}}"></script>
+    <script>
+        // Initialize CKEditor for all textareas with ckeditor class
+        document.querySelectorAll('textarea.ckeditor').forEach(function(textarea) {
+            CKEDITOR.replace(textarea, {
+                allowedContent: true,
+                pasteFromWordRemoveFontStyles: false,
+                pasteFromWordRemoveStyles: false,
+                pasteFromWord_inlineImages: true,
+                forcePasteAsPlainText: false,
+                pasteFilter: null,
+                height: 300,
+                extraPlugins: 'pastefromword,pastetext,clipboard'
+            });
+        });
+    </script>
 @endpush

@@ -230,6 +230,21 @@
 @push('script_2')
     <script src="{{asset('public/assets/admin/ckeditor/ckeditor.js')}}"></script>
     <script>
+        // Initialize CKEditor for all textareas with ckeditor class
+        document.querySelectorAll('textarea.ckeditor').forEach(function(textarea) {
+            CKEDITOR.replace(textarea, {
+                allowedContent: true,
+                pasteFromWordRemoveFontStyles: false,
+                pasteFromWordRemoveStyles: false,
+                pasteFromWord_inlineImages: true,
+                forcePasteAsPlainText: false,
+                pasteFilter: null,
+                height: 300,
+                extraPlugins: 'pastefromword,pastetext,clipboard'
+            });
+        });
+    </script>
+    <script>
         "use strict";
     $('.module-change').on('click', function (){
         let id = $(this).val();
@@ -295,7 +310,7 @@
     });
 
     $(document).ready(function () {
-        $('.ckeditor').ckeditor();
+        // CKEditor already initialized above with paste from Word support
     });
 
         $('#reset_btn').click(function(){

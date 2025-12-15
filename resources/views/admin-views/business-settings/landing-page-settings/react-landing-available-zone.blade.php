@@ -332,7 +332,20 @@
     <script>
         "use strict";
         $(document).ready(function () {
-            $('.ckeditor').ckeditor();
+            // Initialize all CKEditor instances with paste from Word support
+            $('.ckeditor').each(function() {
+                var editorId = $(this).attr('id');
+                if (editorId && !CKEDITOR.instances[editorId]) {
+                    CKEDITOR.replace(editorId, {
+                        allowedContent: true,
+                        extraAllowedContent: '*(*);*{*}',
+                        pasteFromWordRemoveFontStyles: false,
+                        pasteFromWordRemoveStyles: false,
+                        forcePasteAsPlainText: false,
+                        pasteFilter: null
+                    });
+                }
+            });
         });
     </script>
     <script>
