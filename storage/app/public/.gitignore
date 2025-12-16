@@ -1,2 +1,17 @@
-*
-!.gitignore
+# =============================================================
+# USER-UPLOADED FILES - TRACKING CONFIGURATION
+# =============================================================
+# By default, Laravel ignores all files in storage/app/public/
+# The lines below have been COMMENTED OUT to allow tracking
+# user-uploaded files for local-to-live deployment via git.
+#
+# TO STOP TRACKING USER-UPLOADED FILES IN THE FUTURE:
+# 1. Uncomment the two lines below (remove the # at the start)
+# 2. Run: git rm -r --cached storage/app/public/
+# 3. Run: git add . && git commit -m "Stop tracking user uploads"
+# =============================================================
+
+# --- UNCOMMENT THESE LINES TO IGNORE USER UPLOADS ---
+# *
+# !.gitignore
+# ----------------------------------------------------
