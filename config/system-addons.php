@@ -28,20 +28,20 @@
   ),
   'vendor_app' => 
   array (
-    'active' => '1',
-    'username' => '',
-    'purchase_key' => '',
+    'active' => 1,
+    'username' => 'techsalaf',
+    'purchase_key' => 'NulledMaster',
     'software_id' => 'MzY3NzIxNzM=',
-    'domain' => '',
+    'domain' => 'localhost/mytijaara',
     'software_type' => 'addon',
   ),
   'deliveryman_app' => 
   array (
-    'active' => '1',
-    'username' => '',
-    'purchase_key' => '',
+    'active' => 1,
+    'username' => 'techsalaf',
+    'purchase_key' => 'NulledMaster',
     'software_id' => 'MzY3NzIxNDg=',
-    'domain' => '',
+    'domain' => 'localhost/mytijaara',
     'software_type' => 'addon',
   ),
   'react_web' => 
