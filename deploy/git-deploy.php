@@ -142,8 +142,9 @@ logDeploy("Git Fetch Output:\n$output");
 //     }
 // }
 
-// Clean untracked files, including ignored
-$cleanCmd = "git clean -fdx 2>&1";
+// Clean untracked files BUT EXCLUDE ignored files (like .env, system-addons.php)
+// Using -fd instead of -fdx to preserve .gitignore'd files
+$cleanCmd = "git clean -fd 2>&1";
 logDeploy("Running: $cleanCmd");
 
 $output .= shell_exec($cleanCmd);
@@ -162,7 +163,7 @@ $git = '/usr/local/cpanel/3rdparty/lib/path-bin/git';
 
 $commands = [
     "$git fetch origin {$config['branch']}",
-    "$git clean -fdx",
+    "$git clean -fd",  // Changed from -fdx to -fd to preserve ignored files
     "$git reset --hard origin/{$config['branch']}",
 ];
 
