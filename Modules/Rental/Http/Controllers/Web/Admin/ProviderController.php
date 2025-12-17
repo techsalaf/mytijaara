@@ -682,22 +682,22 @@ class ProviderController extends Controller
             Toastr::error(translate('messages.you_have_uploaded_a_wrong_format_file'));
             return back();
         }
-        $duplicate_phones = $collections->duplicates('phone');
-        $duplicate_emails = $collections->duplicates('email');
+        $duplicate_phones = $collections->duplicates('Phone');
+        $duplicate_emails = $collections->duplicates('Email');
 
 
         if ($duplicate_emails->isNotEmpty()) {
-            Toastr::error(translate('messages.duplicate_data_on_column', ['field' => translate('messages.email')]));
+            Toastr::error(translate('messages.duplicate_data_on_column', ['field' => translate('messages.email')]) . ' - ' . $duplicate_emails->implode(', '));
             return back();
         }
 
         if ($duplicate_phones->isNotEmpty()) {
-            Toastr::error(translate('messages.duplicate_data_on_column', ['field' => translate('messages.phone')]));
+            Toastr::error(translate('messages.duplicate_data_on_column', ['field' => translate('messages.phone')]) . ' - ' . $duplicate_phones->implode(', '));
             return back();
         }
 
-        $email= $collections->pluck('email')->toArray();
-        $phone= $collections->pluck('phone')->toArray();
+        $email= $collections->pluck('Email')->toArray();
+        $phone= $collections->pluck('Phone')->toArray();
 
         if($request->button == 'import'){
 

@@ -8897,4 +8897,6 @@ Smartly or Earn. ',
   'Drop your file here' => 'Drop your file here',
   'target' => 'Target',
   'select_target' => 'Select target',
+  'reload_page' => 'Reload page',
+  'provider_imported_successfully' => 'Provider imported successfully',
 );
