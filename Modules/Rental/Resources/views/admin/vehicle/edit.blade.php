@@ -132,24 +132,24 @@
                                                 {{ translate('JPG, JPEG, PNG Less Than 1MB') }} <strong class="font-semibold">({{ translate('Ratio 2:1') }})</strong>
                                             </p>
                                         </div>
-                                        <div class="upload-file image-general d-inline-block w-auto">
-                                            <a href="javascript:void(0);" class="remove-btn opacity-0 z-index-99">
-                                                <i class="tio-clear"></i>
-                                            </a>
-                                            <input type="file" name="thumbnail" class="upload-file__input single_file_input"
-                                                   accept=".webp, .jpg, .jpeg, .png"  value="{{ $vehicle['thumbnail_full_url'] ?? '' }}">
-                                            <label
-                                                class="upload-file-wrapper height-150px max-w-300px aspect-2-1">
-                                                <div class="upload-file-textbox text-center w-100">
-                                                    <img width="34" height="34" src="{{ asset('public/assets/admin/img/document-upload.svg') }}" alt="">
-                                                    <h6 class="mt-2 font-semibold text-center">
-                                                        <span>{{ translate('Click to upload') }}</span>
-                                                        <br>
-                                                        {{ translate('or drag and drop') }}
-                                                    </h6>
+                                        <div class="upload-zone" data-preview="vehicleThumbnailViewer" data-input="vehicleThumbnailInput" data-max-size="1">
+                                            <label class="text-center my-auto position-relative d-inline-block" for="vehicleThumbnailInput">
+                                                <img class="img--vertical-2 border rounded" id="vehicleThumbnailViewer" style="max-width: 300px; height: 150px; object-fit: cover;"
+                                                    src="{{ $vehicle['thumbnail_full_url'] ?? asset('public/assets/admin/img/upload-img.png') }}"
+                                                    data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                    alt="vehicle thumbnail"/>
+                                                <div class="icon-file-group">
+                                                    <div class="icon-file">
+                                                        <input type="file" name="thumbnail" id="vehicleThumbnailInput" class="custom-file-input read-url"
+                                                            accept=".webp, .jpg, .jpeg, .png">
+                                                        <i class="tio-edit"></i>
+                                                    </div>
                                                 </div>
-                                                <img class="upload-file-img ratio-2 display-none" data-src="{{ $vehicle['thumbnail_full_url'] ?? '' }}"  width="300" height="150" loading="lazy"  src="{{ $vehicle['thumbnail_full_url'] ?? '' }}" alt="">
                                             </label>
+                                            <div class="drag-overlay">
+                                                <i class="tio-file-add-outlined"></i>
+                                                <p>{{ translate('Drop_image_here') }}</p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -174,13 +174,9 @@
                         <div class="card-body py-1">
                             <div class="d-flex pt-20 pb-2 overflow-x-auto">
                                 <div class="d-flex gap-3 flex-shrink-0" id="image_container">
-                                     <div class="upload-file text-wrapper h--100px w--200px flex-shrink-0"
-                                         id="image_upload_wrapper">
-                                        <input type="file" name="images[]" class="upload-file__input multiple_image_input" accept=".webp, .jpg,.jpeg,.png" multiple>
-                                        <input type="hidden" name="removed_images" id="removed_images" value="">
-                                        <div
-                                            class="upload-file__img d-flex gap-0 justify-content-center align-items-center h-100 max-w-300px p-0">
-                                            <div class="upload-file__textbox">
+                                     <div class="upload-zone h--100px w--200px flex-shrink-0" data-preview="vehicleImagesPreview" data-input="vehicleImagesInput" data-max-size="1" id="image_upload_wrapper">
+                                        <label class="d-flex justify-content-center align-items-center h-100 m-0 cursor-pointer" for="vehicleImagesInput">
+                                            <div class="text-center">
                                                 <img width="34" height="34"
                                                      src="{{ asset('public/assets/admin/img/document-upload.png') }}"
                                                      alt="" class="svg">
@@ -189,6 +185,12 @@
                                                     {{ translate('or drag and drop') }}
                                                 </h6>
                                             </div>
+                                        </label>
+                                        <input type="file" name="images[]" id="vehicleImagesInput" class="upload-file__input multiple_image_input d-none" accept=".webp, .jpg,.jpeg,.png" multiple>
+                                        <input type="hidden" name="removed_images" id="removed_images" value="">
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{ translate('Drop_image_here') }}</p>
                                         </div>
                                     </div>
                                      @foreach($vehicle['images_full_url'] as $img)
@@ -571,14 +573,9 @@
                         <div class="card-body">
                             <div class="d-flex py-3 overflow-x-auto">
                                 <div class="d-flex gap-3 flex-shrink-0" id="pdf-container">
-                                    <div class="upload-file text-wrapper document-wrapper" id="upload-wrapper">
-                                        <input type="file" name="documents[]"
-                                               class="upload-file__input multiple_document_input" accept="*"
-                                               multiple>
-                                        <input type="hidden" name="removed_documents" id="removed_documents" value="">
-                                        <div
-                                            class="upload-file__img d-flex justify-content-center align-items-center h-100 max-w-300px p-0">
-                                            <div class="upload-file__textbox pdf">
+                                    <div class="upload-zone document-wrapper" data-preview="vehicleDocsPreview" data-input="vehicleDocsInput" data-max-size="5" id="upload-wrapper">
+                                        <label class="d-flex justify-content-center align-items-center h-100 m-0 cursor-pointer p-4" for="vehicleDocsInput">
+                                            <div class="text-center">
                                                 <img width="34" height="34"
                                                      src="{{ asset('public/assets/admin/img/document-upload.png') }}"
                                                      alt="" class="svg">
@@ -587,6 +584,14 @@
                                                     {{ translate('or drag and drop') }}
                                                 </h6>
                                             </div>
+                                        </label>
+                                        <input type="file" name="documents[]" id="vehicleDocsInput"
+                                               class="upload-file__input multiple_document_input d-none" accept="*"
+                                               multiple>
+                                        <input type="hidden" name="removed_documents" id="removed_documents" value="">
+                                        <div class="drag-overlay">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{ translate('Drop_files_here') }}</p>
                                         </div>
                                     </div>
                                     @foreach($vehicle['documents_full_url'] as $doc)

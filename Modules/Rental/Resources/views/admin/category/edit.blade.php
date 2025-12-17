@@ -87,19 +87,26 @@
                                 <label class="mb-4">{{translate('messages.image')}}
                                     <small class="text-danger">* ( {{translate('messages.ratio')}} 1:1 )</small>
                                 </label>
-                                <label class="text-center my-auto position-relative d-inline-block">
-                                    <img class="img--176 border" id="viewer"
-                                    src="{{ $category['image_full_url'] }}"
-                                        data-onerror-image="{{asset('public/assets/admin/img/upload-img.png')}}"
-                                        alt=""/>
-                                    <div class="icon-file-group">
-                                        <div class="icon-file">
-                                            <input type="file" name="image" id="customFileEg1" class="custom-file-input read-url"
-                                                accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                                <i class="tio-edit"></i>
+                                <div class="upload-zone" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
+                                    <label class="text-center my-auto position-relative d-inline-block" for="customFileEg1">
+                                        <img class="img--176 border" id="viewer"
+                                        src="{{ $category['image_full_url'] }}"
+                                            data-onerror-image="{{asset('public/assets/admin/img/upload-img.png')}}"
+                                            alt=""/>
+                                        <div class="icon-file-group">
+                                            <div class="icon-file">
+                                                <input type="file" name="image" id="customFileEg1" class="custom-file-input read-url"
+                                                    accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
+                                                    <i class="tio-edit"></i>
+                                            </div>
                                         </div>
+                                    </label>
+                                    <div class="drag-overlay">
+                                        <i class="tio-file-add-outlined"></i>
+                                        <p>{{translate('Drop_image_here')}}</p>
                                     </div>
-                                </label>
+                                </div>
+                                <p class="text-center fs-12 text-muted mt-2"><i class="tio-upload"></i> {{translate('Drag_and_drop_or_click')}}</p>
                             </div>
                             @endif
                         </div>
@@ -118,4 +125,5 @@
 
 @push('script_2')
     <script src="{{asset('public/assets/admin')}}/js/view-pages/category-index.js"></script>
+    <script src="{{asset('public/assets/admin')}}/js/drag-drop-upload.js"></script>
 @endpush

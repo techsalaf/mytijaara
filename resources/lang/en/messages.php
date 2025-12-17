@@ -8894,4 +8894,7 @@ Smartly or Earn. ',
   'Delivery Instruction Added Successfully' => 'Delivery Instruction Added Successfully',
   'default_instruction_is_required' => 'Default instruction is required',
   'default_reason_is_required' => 'Default reason is required',
+  'Drop your file here' => 'Drop your file here',
+  'target' => 'Target',
+  'select_target' => 'Select target',
 );

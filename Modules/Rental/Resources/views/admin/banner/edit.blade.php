@@ -132,22 +132,24 @@
                                             <p class="mb-20">{{ translate('JPG, JPEG, PNG Less Than 2MB') }} <span
                                                     class="font-weight-bold">({{ translate('Ratio 3:1') }})</span>
                                             </p>
-                                            <div class="upload-file image-general">
-                                                <a href="javascript:void(0);" class="remove-btn opacity-0 z-index-99">
-                                                    <i class="tio-clear"></i>
-                                                </a>
-                                                <input type="file" name="image" class="upload-file__input single_file_input" value="{{ $banner['image_full_url'] }}" accept=".webp, .jpg, .jpeg, .png" title="" />
-                                                <label class="upload-file-wrapper fullwidth">
-                                                    <div class="upload-file-textbox text-center">
-                                                        <img width="34" height="34" src="{{ asset('public/assets/admin/img/document-upload.svg') }}" alt="">
-                                                        <h6 class="mt-2 font-semibold text-center">
-                                                            <span>{{ translate('Click to upload') }}</span>
-                                                            <br>
-                                                            {{ translate('or drag and drop') }}
-                                                        </h6>
+                                            <div class="upload-zone" data-preview="bannerViewer" data-input="bannerImageInput" data-max-size="2">
+                                                <label class="text-center my-auto position-relative d-inline-block w-100" for="bannerImageInput">
+                                                    <img class="img--vertical border rounded" id="bannerViewer"
+                                                        src="{{ $banner['image_full_url'] }}"
+                                                        data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                                        alt="banner image"/>
+                                                    <div class="icon-file-group">
+                                                        <div class="icon-file">
+                                                            <input type="file" name="image" id="bannerImageInput" class="custom-file-input read-url"
+                                                                accept=".webp, .jpg, .jpeg, .png">
+                                                            <i class="tio-edit"></i>
+                                                        </div>
                                                     </div>
-                                                    <img class="upload-file-img" loading="lazy"  src="{{ $banner['image_full_url'] }}" alt="">
                                                 </label>
+                                                <div class="drag-overlay">
+                                                    <i class="tio-file-add-outlined"></i>
+                                                    <p>{{ translate('Drop_image_here') }}</p>
+                                                </div>
                                             </div>
 
                                         </div>

@@ -68,15 +68,23 @@
                                     {{translate('messages.image')}}
                                     <small class="text-danger">* ( {{translate('messages.ratio')}} 900x300 )</small>
                                 </label>
-                                <div class="text-center py-3 my-auto">
-                                    <img class="img--vertical onerror-image" id="viewer"
-                                    src="{{ $notification['image_full_url'] }}" data-src="{{ $notification['image_full_url'] }}"
-                                    data-onerror-image="{{asset('public/assets/admin/img/900x400/img1.jpg')}}" alt="image"/>
-                                </div>
-                                <div class="custom-file">
-                                    <input type="file" name="image" id="customFileEg1" class="custom-file-input"
-                                        accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                    <label class="custom-file-label" for="customFileEg1">{{translate('messages.choose_file')}}</label>
+                                <div class="upload-zone" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
+                                    <div class="text-center py-3 my-auto">
+                                        <img class="img--vertical onerror-image" id="viewer"
+                                        src="{{ $notification['image_full_url'] }}" data-src="{{ $notification['image_full_url'] }}"
+                                        data-onerror-image="{{asset('public/assets/admin/img/900x400/img1.jpg')}}" alt="image"/>
+                                    </div>
+                                    <div class="custom-file">
+                                        <input type="file" name="image" id="customFileEg1" class="custom-file-input"
+                                            accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
+                                        <label class="custom-file-label" for="customFileEg1">{{translate('messages.choose_file')}}</label>
+                                    </div>
+                                    <div class="drag-overlay">
+                                        <div class="drag-content">
+                                            <i class="tio-file-add-outlined"></i>
+                                            <p>{{ translate('Drop your file here') }}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
