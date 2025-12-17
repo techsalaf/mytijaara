@@ -9,6 +9,9 @@
 .env.backup
 !.env.example
 
+# System addons config (environment-specific activation)
+/config/system-addons.php
+
 # Local database dumps / exports (added per request)
 *.sql
 *.sql.gz
