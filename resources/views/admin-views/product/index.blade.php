@@ -49,7 +49,7 @@
             </div>
         </div>
         <!-- End Page Header -->
-        <form id="item_form" enctype="multipart/form-data" class="custom-validation" data-ajax="true">
+        <form id="item_form" enctype="multipart/form-data" class="validate-form" data-ajax="true">
 
             <div class="row g-2">
 
@@ -118,6 +118,9 @@
                 @endif
 
                 @includeif('admin-views.product.partials._ai_sidebar')
+                @if (Config::get('module.current_module_type') == 'ecommerce')
+                    @includeIf('admin-views.business-settings.landing-page-settings.partial._meta_data')
+                @endif
 
                 <div class="col-md-12">
                     <div class="btn--container justify-content-end">
@@ -129,6 +132,8 @@
                 </div>
             </div>
         </form>
+
+        
     </div>
 
     <div class="modal" id="food-modal">
@@ -654,6 +659,9 @@
         $('#item_form').on('submit', function(e) {
             $('#submitButton').attr('disabled', true);
             e.preventDefault();
+            if(typeof FormValidation != 'undefined' && !FormValidation.validateForm(this)) {
+                return false;
+            }
 
             let $form = $(this);
             if (!$form.valid()) {
@@ -715,6 +723,50 @@
             });
         });
 
+        function initImagePicker() {
+            $("#coba").spartanMultiImagePicker({
+                fieldName: 'item_images[]',
+                maxCount: 5,
+                rowHeight: '176px !important',
+                groupClassName: 'spartan_item_wrapper min-w-176px max-w-176px',
+                maxFileSize: 1024 * 1024 * 2,
+                placeholderImage: {
+                    image: "{{ asset('public/assets/admin/img/upload-img.png') }}",
+                    width: '176px'
+                },
+                dropFileLabel: "Drop Here",
+                onAddRow: function(index, file) {
+                    setTimeout(function() {
+                        let $newInput = $("#coba .spartan_item_wrapper").last();
+                        if ($newInput.length) {
+                            $newInput[0].scrollIntoView({
+                                behavior: "smooth",
+                                inline: "end",
+                                block: "nearest"
+                            });
+                        }
+                    }, 50);
+                },
+                onExtensionErr: function(index, file) {
+                    toastr.error("{{ translate('messages.please_only_input_png_or_jpg_type_file') }}", {
+                        CloseButton: true,
+                        ProgressBar: true
+                    });
+                },
+                onSizeErr: function(index, file) {
+                    toastr.error("{{ translate('messages.file_size_too_big') }}", {
+                        CloseButton: true,
+                        ProgressBar: true
+                    });
+                }
+            });
+        }
+        
+
+        $(function() {
+            initImagePicker();
+        });
+
         $('#reset_btn').click(function() {
             $('#module_id').val(null).trigger('change');
             $('#store_id').val(null).trigger('change');
@@ -729,10 +781,8 @@
             $('#variant_combination').empty().trigger('change');
             $('#viewer').attr('src', "{{ asset('public/assets/admin/img/upload.png') }}");
             $('#customFileEg1').val(null).trigger('change');
-            // Reset multi-image upload zone
-            if (typeof reinitMultiImageUpload === 'function') {
-                reinitMultiImageUpload('#coba');
-            }
+            $("#coba").empty();
+            initImagePicker();
         })
     </script>
 @endpush

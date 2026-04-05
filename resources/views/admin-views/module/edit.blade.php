@@ -209,12 +209,6 @@
 @push('script_2')
     <script src="{{asset('public/assets/admin/ckeditor/ckeditor.js')}}"></script>
     <script>
-        // Initialize CKEditor for all textareas with ckeditor class
-        document.querySelectorAll('textarea.ckeditor').forEach(function(textarea) {
-            CKEDITOR.replace(textarea);
-        });
-    </script>
-    <script>
         "use strict";
 
 
@@ -244,7 +238,7 @@
             @if ($module->module_type=='parcel')
                 $('#module_des_card').hide();
             @endif
-            // CKEditor already initialized above with paste from Word support
+            $('.ckeditor').ckeditor();
         });
 
         $('#reset_btn').click(function(){

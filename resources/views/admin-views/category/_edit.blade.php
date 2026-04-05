@@ -101,22 +101,6 @@
 
                     </div>
                 </div>
-                    @if($category->position != 0)
-                        <div class="form-group mb-3">
-                            <label class="input-label"
-                                   for="exampleFormControlSelect1">{{translate('messages.main_category')}}
-                                <span class="input-label-secondary">*</span></label>
-                            <select id="exampleFormControlSelect1" name="parent_id" class="custom-select"
-                                    required>
-                                <option value="" selected disabled>{{translate('Select Main Category')}}</option>
-                                @foreach($mainCategories as $mainCategory)
-                                    <option value="{{$mainCategory['id']}}" {{$category->parent_id == $mainCategory['id'] ? 'selected' : ''}}>{{$mainCategory['name']}}
-                                        ({{Str::limit($mainCategory->module->module_name, 15, '...')}})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
 
                 <div class="form-group mb-3">
                     <label class="input-label" for="">
@@ -160,27 +144,20 @@
                                     <small
                                         class="color-656566 d-block"> {{ translate('messages.Upload image') }}</small>
                                 </label>
-                                <div class="upload-zone" data-preview="categoryEditViewer{{ $category->id }}" data-input="categoryEditInput{{ $category->id }}" data-max-size="2">
-                                    <label class="text-center my-auto position-relative d-inline-block" for="categoryEditInput{{ $category->id }}">
-                                        <img class="img--176 border--dashed rounded viewer_img" id="categoryEditViewer{{ $category->id }}"
-                                             src="{{ $category['image_full_url'] }}"
-                                             data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
-                                             alt=""/>
-                                        <div class="icon-file-group">
-                                            <div class="icon-file">
-                                                <input type="file" name="image" id="categoryEditInput{{ $category->id }}"
-                                                       class="custom-file-input custom__FileEg read-url"
-                                                       accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                                <i class="tio-edit"></i>
-                                            </div>
+                                <label class="text-center my-auto position-relative d-inline-block">
+                                    <img class="img--176 border--dashed rounded viewer_img" id=""
+                                         src="{{ $category['image_full_url'] }}"
+                                         data-onerror-image="{{ asset('public/assets/admin/img/upload-img.png') }}"
+                                         alt=""/>
+                                    <div class="icon-file-group">
+                                        <div class="icon-file">
+                                            <input type="file" name="image" id=""
+                                                   class="custom-file-input custom__FileEg read-url"
+                                                   accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
+                                            <i class="tio-edit"></i>
                                         </div>
-                                    </label>
-                                    <div class="drag-overlay">
-                                        <i class="tio-file-add-outlined"></i>
-                                        <p>{{ translate('Drop_image_here') }}</p>
                                     </div>
-                                </div>
-                                <p class="text-center fs-12 text-muted mt-2"><i class="tio-upload"></i> {{ translate('Drag_and_drop_or_click') }}</p>
+                                </label>
                             </div>
 
                         </div>

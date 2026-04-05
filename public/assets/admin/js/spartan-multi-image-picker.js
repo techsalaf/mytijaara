@@ -24,7 +24,7 @@
             },
             maxCount: "",
             maxFileSize: "",
-            allowedExt: "png|jpg|jpeg|gif",
+            allowedExt: "png|jpg|jpeg|gif|webp",
             onAddRow: function () {},
             onRenderedPreview: function () {},
             onRemoveRow: function () {},
@@ -105,10 +105,10 @@
                 var file_select = input.files[0],
                     allowedExt = settings.allowedExt,
                     maxFileSize = settings.maxFileSize;
-                var file_select_name = file_select.name,
-                    regex = new RegExp(`(.*?)\.(${allowedExt})$`, 'i');
+                var file_select_type = file_select.type,
+                    regex = new RegExp(`(.*?)\.(${allowedExt})$`);
 
-                if (regex.test(file_select_name) || allowedExt == "") {
+                if (regex.test(file_select_type) || allowedExt == "") {
                     if (
                         maxFileSize == "" ||
                         (maxFileSize != "" && file_select.size <= maxFileSize)
@@ -353,18 +353,7 @@
             var file_p = $(parent).find(
                 '.spartan_image_input[data-spartanindexinput="' + index + '"]'
             );
-            
-            // Fix: Set files on the actual DOM element, not the jQuery object
-            var fileInput = file_p[0];
-            if (fileInput) {
-                // Create a DataTransfer object to set files on the input
-                var dataTransfer = new DataTransfer();
-                var droppedFiles = evt.originalEvent.dataTransfer.files;
-                for (var i = 0; i < droppedFiles.length; i++) {
-                    dataTransfer.items.add(droppedFiles[i]);
-                }
-                fileInput.files = dataTransfer.files;
-            }
+            file_p.files = evt.originalEvent.dataTransfer.files;
 
             // clear on hover style
             $(input)
@@ -377,7 +366,7 @@
                 .find('img[data-spartanindexi="' + index + '"]')
                 .show();
 
-            loadImage(settings, file_p[0], parent);
+            loadImage(settings, file_p, parent);
         }
 
         return this.each(function () {

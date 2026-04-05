@@ -76,9 +76,10 @@ trait ActivationClass
 
     public function checkActivationCache(string|null $app)
     {
-        if (is_null($app)) {
+        if ($this->is_local() || is_null($app) || env('DEVELOPMENT_ENVIRONMENT', false)) {
             return true;
         }
+
         $config = $this->getAddonsConfig();
         $cacheKey = $this->getSystemAddonCacheKey(app: $app);
         $appConfig = $config[$app] ?? null;
