@@ -19,19 +19,125 @@ use App\CentralLogics\Helpers;
 use App\Models\OrderReference;
 use Illuminate\Support\Carbon;
 use App\Models\CustomerAddress;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\BusinessSetting;
+use App\Models\UserFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Modules\Gateways\Traits\SmsGateway;
 use MatanYadaev\EloquentSpatial\Objects\Point;
+use Modules\RideShare\Entities\ReviewModule\RideReview;
 
 class CustomerController extends Controller
 {
+    public function save_prescription_files(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'saved_images' => 'required|array|min:1',
+            'saved_images.*' => 'required|file|mimes:' . IMAGE_FORMAT_FOR_VALIDATION . '|max:'.MAX_FILE_SIZE * 1024,
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'errors' => [
+                    ['code' => 'unauthorized', 'message' => translate('messages.unauthorized')]
+                ]
+            ], 401);
+        }
+
+        if (!$request->hasFile('saved_images')) {
+            return response()->json([
+                'errors' => [
+                    ['code' => 'saved_images', 'message' => translate('messages.file_required')]
+                ]
+            ], 403);
+        }
+
+        $incomingFiles = array_values(array_filter(Arr::wrap($request->file('saved_images'))));
+        $existingPrescriptionFiles = UserFile::where('type', 'prescription')
+            ->where('user_id', $user->id)
+            ->count();
+
+        if (($existingPrescriptionFiles + count($incomingFiles)) > 20) {
+            return response()->json([
+                'errors' => [
+                    ['code' => 'saved_images', 'message' => translate('You can save maximum 20 prescription files')]
+                ]
+            ], 403);
+        }
+
+        $savedFiles = [];
+        try {
+            foreach ($incomingFiles as $file) {
+                $fileName = Helpers::upload('order/saved_files/', 'png', $file);
+
+                $savedFile = UserFile::create([
+                    'user_id' => $user->id,
+                    'file_name' => $fileName,
+                    'storage' => Helpers::getDisk(),
+                    'mime_type' => $file->getMimeType(),
+                    'type' => 'prescription',
+                ]);
+
+                $savedFiles[] = [
+                    'id' => $savedFile->id,
+                    'file_name' => $savedFile->file_name,
+                    'image_full_url' => $savedFile->image_full_url,
+                ];
+            }
+
+            return response()->json([
+                'message' => translate('messages.successfully_added'),
+                'files' => $savedFiles,
+            ], 200);
+        } catch (\Throwable $e) {
+            info('CustomerController@save_prescription_files', [
+                $e->getFile(),
+                $e->getLine(),
+                $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'errors' => [
+                    ['code' => 'file_upload_failed', 'message' => translate('messages.something_went_wrong')]
+                ]
+            ], 500);
+        }
+    }
+
+    public function delete_all_prescription_files(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'errors' => [
+                    ['code' => 'unauthorized', 'message' => translate('messages.unauthorized')]
+                ]
+            ], 401);
+        }
+
+        $files = UserFile::where('type', 'prescription')->where('user_id', $user->id)->get();
+        foreach ($files as $file) {
+            Helpers::check_and_delete('order/saved_files/', $file->file_name);
+        }
+
+        UserFile::where('type', 'prescription')->where('user_id', $user->id)->delete();
+
+        return response()->json([
+            'message' => translate('messages.deleted_successfully'),
+        ], 200);
+    }
+
     public function address_list(Request $request)
     {
         $limit = $request['limit'] ?? 10;
@@ -201,8 +307,45 @@ class CustomerController extends Controller
         $data['discount_amount_type'] = data_get($discount_data, 'discount_amount_type');
         $data['validity'] = (string)data_get($discount_data, 'validity');
 
+        if(addon_published_status('RideShare')) {
+            $reviews = RideReview::where('review_for', CUSTOMER)
+                ->where('received_by', $user->id)
+                ->select(DB::raw('AVG(rating) as average_rating'), DB::raw('COUNT(id) as total_review'))
+                ->first();
+            $data['average_rating'] = $reviews->average_rating ? round($reviews->average_rating, 2) : 0;
+            $data['total_review'] = $reviews->total_review ?? 0;
+        } else {
+            $data['average_rating'] = 0;
+            $data['total_review'] = 0;
+        }
+
         unset($data['orders']);
         return response()->json($data, 200);
+    }
+
+    public function saved_files(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'errors' => [
+                    ['code' => 'unauthorized', 'message' => translate('messages.unauthorized')]
+                ]
+            ], 401);
+        }
+
+        $data = UserFile::where('user_id', $user->id)
+            ->latest()
+            ->get(['file_name', 'storage'])
+            ->map(fn ($file) => [
+                'file_name' => $file->file_name,
+                'image_full_url' => $file->image_full_url,
+            ])
+            ->values();
+
+        return response()->json([
+            'saved_files' => $data,
+        ], 200);
     }
 
     public function orderPaymentFailed(Request $request)
@@ -535,7 +678,7 @@ class CustomerController extends Controller
         }
 
         $otp = rand(100000, 999999);
-        if(env('APP_MODE') == 'test'){
+        if(getEnvMode() == 'test'){
             $otp = '123456';
         }
         DB::table('phone_verifications')->updateOrInsert(
@@ -559,7 +702,7 @@ class CustomerController extends Controller
         } else {
             $response = SMS_module::send($phone, $otp);
         }
-        if (env('APP_MODE') != 'test' && $response !== 'success') {
+        if (getEnvMode() != 'test' && $response !== 'success') {
             return ['is_success' => false,  'message' => translate('failed_to_send_otp'), 'code' => 403];
         }
         return  ['is_success' => true,  'message' => translate('OTP_successfully_send'), 'code' => 200];
@@ -567,7 +710,7 @@ class CustomerController extends Controller
     private function verification_check_email($data)
     {
         $otp = rand(100000, 999999);
-        if(env('APP_MODE') == 'test'){
+        if(getEnvMode() == 'test'){
             $otp = '123456';
         }
         DB::table('email_verifications')->updateOrInsert(
@@ -591,7 +734,7 @@ class CustomerController extends Controller
             info($ex->getMessage());
             $mailResponse = null;
         }
-        if (env('APP_MODE') != 'test' && $mailResponse !== 'success') {
+        if (getEnvMode() != 'test' && $mailResponse !== 'success') {
             return  ['is_success' => false,  'message' => translate('failed_to_send_mail'), 'code' => 403];
         }
         return  ['is_success' => true,  'message' => translate('OTP_successfully_send_to_mail'), 'code' => 200];

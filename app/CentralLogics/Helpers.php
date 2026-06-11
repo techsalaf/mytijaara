@@ -34,6 +34,7 @@ use App\Models\ReactPromotionalBanner;
 use App\Models\Review;
 use App\Models\Store;
 use App\Models\StoreNotificationSetting;
+use App\Models\StoreConfig;
 use App\Models\StoreSubscription;
 use App\Models\StoreWallet;
 use App\Models\SubscriptionBillingAndRefundHistory;
@@ -49,6 +50,7 @@ use App\Traits\NotificationDataSetUpTrait;
 use App\Traits\Payment;
 use App\Traits\PaymentGatewayTrait;
 use DateTime;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
@@ -71,8 +73,9 @@ use App\Exceptions\InvalidUploadException;
 use App\Exceptions\ZoneModuleException;
 use App\Models\ParcelCancellation;
 use App\Models\ParcelReturnFees;
+use App\Models\VisitorLog;
 use Illuminate\Http\UploadedFile;
-
+use Modules\RideShare\Entities\ReviewModule\RideReview;
 
 class Helpers
 {
@@ -85,6 +88,47 @@ class Helpers
             array_push($err_keeper, ['code' => $index, 'message' => translate($error[0])]);
         }
         return $err_keeper;
+    }
+
+    protected static function decodeJsonToArray($value, $default = [])
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_object($value)) {
+            return json_decode(json_encode($value), true) ?? $default;
+        }
+
+        if (!is_string($value) || $value === '') {
+            return $default;
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : $default;
+    }
+
+    protected static function formatCategoryIds($categoryIds, $withName = false)
+    {
+        $categories = [];
+
+        foreach (self::decodeJsonToArray($categoryIds) as $value) {
+            $categoryId = (string) data_get($value, 'id');
+            $category = [
+                'id' => $categoryId,
+                'position' => data_get($value, 'position'),
+            ];
+
+            if ($withName) {
+                $categoryName = Category::where('id', $categoryId)->pluck('name');
+                $category['name'] = data_get($categoryName, '0', 'NA');
+            }
+
+            $categories[] = $category;
+        }
+
+        return $categories;
     }
 
     public static function schedule_order()
@@ -249,6 +293,7 @@ class Helpers
         $data['is_basic'] = (int) $data->pharmacy_item_details?->is_basic ?? 0;
         $data['is_prescription_required'] = (int) $data->pharmacy_item_details?->is_prescription_required ?? 0;
         $data['halal_tag_status'] = (int) $data->store->storeConfig?->halal_tag_status ?? 0;
+        $data['verified_seller'] = self::get_verified_seller_status($data->store, $data->store?->storeConfig);
 
         $data['nutritions_name'] = $data?->nutritions ? Nutrition::whereIn('id', $data?->nutritions->pluck('id'))->pluck('nutrition') : null;
         $data['allergies_name'] = $data?->allergies ? Allergy::whereIn('id', $data?->allergies->pluck('id'))->pluck('allergy') : null;
@@ -301,8 +346,8 @@ class Helpers
                 'store_name' => $item->store?->name,
                 'store_id' => $item->store?->id,
                 'module_type' => $module_type,
-                'halal_tag_status' => (int) ($item->store->storeConfig->halal_tag_status ?? 0),
                 'free_delivery' => $item->store?->free_delivery,
+                'verified_seller' => self::get_verified_seller_status($item->store, $item->store?->storeConfig),
             ];
         })->toArray();
     }
@@ -335,16 +380,11 @@ class Helpers
                     unset($item['end_date']);
                 }
                 $item['recommended'] = (int) $item->recommended;
-                $categories = [];
-                foreach (json_decode($item['category_ids']) as $value) {
-                    $category_name = Category::where('id', $value->id)->pluck('name');
-                    $categories[] = ['id' => (string) $value->id, 'position' => $value->position, 'name' => data_get($category_name, '0', 'NA')];
-                }
-                $item['category_ids'] = $categories;
-                $item['attributes'] = json_decode($item['attributes']);
-                $item['choice_options'] = json_decode($item['choice_options']);
-                $item['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', json_decode($item['add_ons'], true))->active()->get(), true, $trans, $local);
-                foreach (json_decode($item['variations'], true) ?? [] as $var) {
+                $item['category_ids'] = self::formatCategoryIds($item['category_ids'], true);
+                $item['attributes'] = self::decodeJsonToArray($item['attributes']);
+                $item['choice_options'] = self::decodeJsonToArray($item['choice_options']);
+                $item['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', self::decodeJsonToArray($item['add_ons']))->active()->get(), true, $trans, $local);
+                foreach (self::decodeJsonToArray($item['variations']) as $var) {
                     array_push($variations, [
                         'type' => $var['type'],
                         'price' => (float) $var['price'],
@@ -352,7 +392,7 @@ class Helpers
                     ]);
                 }
                 $item['variations'] = $variations;
-                $item['food_variations'] = $item['food_variations'] ? json_decode($item['food_variations'], true) : '';
+                $item['food_variations'] = $item['food_variations'] ? self::decodeJsonToArray($item['food_variations']) : '';
                 $item['module_type'] = $item->module->module_type;
                 $item['store_name'] = $item->store?->name;
                 $item['is_campaign'] = $item->store?->campaigns_count > 0 ? 1 : 0;
@@ -374,8 +414,18 @@ class Helpers
                 $item['free_delivery'] = $item->store?->free_delivery;
                 $item['tax'] = 0;
                 $item['unit'] = $item->unit;
-                $item['rating_count'] = (int) ($item->rating ? array_sum(json_decode($item->rating, true)) : 0);
-                $item['avg_rating'] = (float) ($item->avg_rating ? $item->avg_rating : 0);
+
+
+                try {
+                    $reviewsInfo = $item->rating()->where('status', 1)->first();
+                } catch (\Exception $e) {
+                    $reviewsInfo = null;
+                }
+                $item['rating_count'] =  (int) $reviewsInfo?->rating_count ?? 0;
+                $item['avg_rating'] = (float) $reviewsInfo?->average ?? 0;
+
+
+
                 $item['recommended'] = (int) $item->recommended;
                 $item['min_delivery_time'] = (int) explode('-', $item?->store?->delivery_time)[0] ?? 0;
                 $item['max_delivery_time'] = (int) explode('-', $item?->store?->delivery_time)[1] ?? 0;
@@ -384,6 +434,8 @@ class Helpers
                 $item['is_basic'] = (int) $item->pharmacy_item_details?->is_basic ?? 0;
                 $item['is_prescription_required'] = (int) $item->pharmacy_item_details?->is_prescription_required ?? 0;
                 $item['halal_tag_status'] = (int) $item->store->storeConfig?->halal_tag_status ?? 0;
+                $item['verified_seller'] = self::get_verified_seller_status($item->store, $item->store?->storeConfig);
+
 
                 $item->store['self_delivery_system'] = (int) $item->store->sub_self_delivery;
 
@@ -401,6 +453,9 @@ class Helpers
                     $item['meta_image'] = $item?->seoData?->imageFullUrl;
                     $item['meta_data'] = $item?->seoData?->meta_data;
                 }
+                foreach (self::product_video_data_formatting($item) as $videoKey => $videoValue) {
+                    $item[$videoKey] = $videoValue;
+                }
 
                 unset($item['taxVats']);
 
@@ -416,17 +471,12 @@ class Helpers
             $data = $storage;
         } else {
             $variations = [];
-            $categories = [];
-            foreach (json_decode($data['category_ids']) as $value) {
-                $category_name = Category::where('id', $value->id)->pluck('name');
-                $categories[] = ['id' => (string) $value->id, 'position' => $value->position, 'name' => data_get($category_name, '0', 'NA')];
-            }
-            $data['category_ids'] = $categories;
+            $data['category_ids'] = self::formatCategoryIds($data['category_ids'], true);
 
-            $data['attributes'] = json_decode($data['attributes']);
-            $data['choice_options'] = json_decode($data['choice_options']);
-            $data['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', json_decode($data['add_ons']))->active()->get(), true, $trans, $local);
-            foreach (json_decode($data['variations'], true) as $var) {
+            $data['attributes'] = self::decodeJsonToArray($data['attributes']);
+            $data['choice_options'] = self::decodeJsonToArray($data['choice_options']);
+            $data['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', self::decodeJsonToArray($data['add_ons']))->active()->get(), true, $trans, $local);
+            foreach (self::decodeJsonToArray($data['variations']) as $var) {
                 array_push($variations, [
                     'type' => $var['type'],
                     'price' => (float) $var['price'],
@@ -454,7 +504,7 @@ class Helpers
                 unset($data['end_date']);
             }
             $data['variations'] = $variations;
-            $data['food_variations'] = $data['food_variations'] ? json_decode($data['food_variations'], true) : '';
+            $data['food_variations'] = $data['food_variations'] ? self::decodeJsonToArray($data['food_variations']) : '';
             $data['store_name'] = $data->store->name;
             $data['is_campaign'] = $data->store?->campaigns_count > 0 ? 1 : 0;
             $data['module_type'] = $data->module->module_type;
@@ -476,8 +526,17 @@ class Helpers
 
             $data['store_discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? 0 : (self::get_store_discount($data->store) ? $data->store?->discount->discount : 0);
             $data['schedule_order'] = $data->store->schedule_order;
-            $data['rating_count'] = (int) ($data->rating ? array_sum(json_decode($data->rating, true)) : 0);
-            $data['avg_rating'] = (float) ($data->avg_rating ? $data->avg_rating : 0);
+
+            try {
+                $reviewsInfo = $data->rating()->where('status', 1)->first();
+            } catch (\Exception $e) {
+                $reviewsInfo = null;
+            }
+            $data['rating_count'] = (int) $reviewsInfo?->rating_count ?? 0;
+            $data['review_count'] = (int) $reviewsInfo?->review_count ?? 0;
+            $data['avg_rating'] = (float) $reviewsInfo?->average ?? 0;
+
+
             $data['min_delivery_time'] = (int) explode('-', $data->store->delivery_time)[0] ?? 0;
             $data['max_delivery_time'] = (int) explode('-', $data->store->delivery_time)[1] ?? 0;
             $data['common_condition_id'] = (int) $data->pharmacy_item_details?->common_condition_id ?? 0;
@@ -485,6 +544,7 @@ class Helpers
             $data['is_basic'] = (int) $data->pharmacy_item_details?->is_basic ?? 0;
             $data['is_prescription_required'] = (int) $data->pharmacy_item_details?->is_prescription_required ?? 0;
             $data['halal_tag_status'] = (int) $data->store->storeConfig?->halal_tag_status ?? 0;
+            $data['verified_seller'] = self::get_verified_seller_status($data->store, $data->store?->storeConfig);
 
             $data['nutritions_name'] = $data?->nutritions ? Nutrition::whereIn('id', $data?->nutritions->pluck('id'))->pluck('nutrition') : null;
             $data['allergies_name'] = $data?->allergies ? Allergy::whereIn('id', $data?->allergies->pluck('id'))->pluck('allergy') : null;
@@ -507,6 +567,9 @@ class Helpers
                     $data['meta_image'] = $data?->seoData?->imageFullUrl;
                     $data['meta_data'] = $data?->seoData?->meta_data;
                 }
+            foreach (self::product_video_data_formatting($data) as $videoKey => $videoValue) {
+                $data[$videoKey] = $videoValue;
+            }
             unset($data['taxVats']);
 
 
@@ -550,15 +613,11 @@ class Helpers
                     unset($item['end_date']);
                 }
                 $item['recommended'] = (int) $item->recommended;
-                $categories = [];
-                foreach (json_decode($item['category_ids']) as $value) {
-                    $categories[] = ['id' => (string) $value->id, 'position' => $value->position];
-                }
-                $item['category_ids'] = $categories;
-                $item['attributes'] = json_decode($item['attributes']);
-                $item['choice_options'] = json_decode($item['choice_options']);
-                $item['add_ons'] = self::addon_data_formatting(AddOn::withoutGlobalScope('translate')->whereIn('id', json_decode($item['add_ons'], true))->active()->get(), true, $trans, $local);
-                foreach (json_decode($item['variations'], true) as $var) {
+                $item['category_ids'] = self::formatCategoryIds($item['category_ids']);
+                $item['attributes'] = self::decodeJsonToArray($item['attributes']);
+                $item['choice_options'] = self::decodeJsonToArray($item['choice_options']);
+                $item['add_ons'] = self::addon_data_formatting(AddOn::withoutGlobalScope('translate')->whereIn('id', self::decodeJsonToArray($item['add_ons']))->active()->get(), true, $trans, $local);
+                foreach (self::decodeJsonToArray($item['variations']) as $var) {
                     array_push($variations, [
                         'type' => $var['type'],
                         'price' => (float) $var['price'],
@@ -566,7 +625,7 @@ class Helpers
                     ]);
                 }
                 $item['variations'] = $variations;
-                $item['food_variations'] = $item['food_variations'] ? json_decode($item['food_variations'], true) : '';
+                $item['food_variations'] = $item['food_variations'] ? self::decodeJsonToArray($item['food_variations']) : '';
                 $item['module_type'] = $item->module->module_type;
                 $item['store_name'] = $item->store->name;
                 $item['zone_id'] = $item->store->zone_id;
@@ -590,6 +649,8 @@ class Helpers
                 $item['is_basic'] = (int) $item->pharmacy_item_details?->is_basic ?? 0;
                 $item['is_prescription_required'] = (int) $item->pharmacy_item_details?->is_prescription_required ?? 0;
                 $item['halal_tag_status'] = (int) $item->store->storeConfig?->halal_tag_status ?? 0;
+                $item['verified_seller'] = self::get_verified_seller_status($item->store, $item->store?->storeConfig);
+
 
                 if ($trans) {
                     $item['translations'][] = [
@@ -641,6 +702,9 @@ class Helpers
                     $item['meta_image'] = $item?->seoData?->imageFullUrl;
                     $item['meta_data'] = $item?->seoData?->meta_data;
                 }
+                foreach (self::product_video_data_formatting($item) as $videoKey => $videoValue) {
+                    $item[$videoKey] = $videoValue;
+                }
                 unset($item['taxVats']);
                 unset($item['nutritions']);
                 unset($item['allergies']);
@@ -654,16 +718,12 @@ class Helpers
             $data = $storage;
         } else {
             $variations = [];
-            $categories = [];
-            foreach (json_decode($data['category_ids']) as $value) {
-                $categories[] = ['id' => (string) $value->id, 'position' => $value->position];
-            }
-            $data['category_ids'] = $categories;
+            $data['category_ids'] = self::formatCategoryIds($data['category_ids']);
 
-            $data['attributes'] = json_decode($data['attributes']);
-            $data['choice_options'] = json_decode($data['choice_options']);
-            $data['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', json_decode($data['add_ons']))->active()->get(), true, $trans, $local);
-            foreach (json_decode($data['variations'], true) as $var) {
+            $data['attributes'] = self::decodeJsonToArray($data['attributes']);
+            $data['choice_options'] = self::decodeJsonToArray($data['choice_options']);
+            $data['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', self::decodeJsonToArray($data['add_ons']))->active()->get(), true, $trans, $local);
+            foreach (self::decodeJsonToArray($data['variations']) as $var) {
                 array_push($variations, [
                     'type' => $var['type'],
                     'price' => (float) $var['price'],
@@ -691,7 +751,7 @@ class Helpers
                 unset($data['end_date']);
             }
             $data['variations'] = $variations;
-            $data['food_variations'] = $data['food_variations'] ? json_decode($data['food_variations'], true) : '';
+            $data['food_variations'] = $data['food_variations'] ? self::decodeJsonToArray($data['food_variations']) : '';
             $data['store_name'] = $data->store->name;
             $data['module_type'] = $data->module->module_type;
             $data['zone_id'] = $data->store->zone_id;
@@ -713,6 +773,8 @@ class Helpers
             $data['is_basic'] = (int) $data->pharmacy_item_details?->is_basic ?? 0;
             $data['is_prescription_required'] = (int) $data->pharmacy_item_details?->is_prescription_required ?? 0;
             $data['halal_tag_status'] = (int) $data->store->storeConfig?->halal_tag_status ?? 0;
+            $data['verified_seller'] = self::get_verified_seller_status($data->store, $data->store?->storeConfig);
+
 
             if ($trans) {
                 $data['translations'][] = [
@@ -762,6 +824,9 @@ class Helpers
                 $data['meta_image'] = $data?->seoData?->imageFullUrl;
                 $data['meta_data'] = $data?->seoData?->meta_data;
             }
+            foreach (self::product_video_data_formatting($data) as $videoKey => $videoValue) {
+                $data[$videoKey] = $videoValue;
+            }
 
             unset($data['taxVats']);
 
@@ -778,6 +843,30 @@ class Helpers
         }
 
         return $data;
+    }
+
+    public static function product_video_data_formatting($item): array
+    {
+        $videoSourceType = 'none';
+
+        if ($item?->video_full_url) {
+            $videoSourceType = 'upload';
+        } elseif ($item?->video_link) {
+            $videoSourceType = 'link';
+        }
+
+        return [
+            'video' => $item?->video,
+            'video_full_url' => $item?->video_full_url,
+            'video_link' => $item?->video_link,
+            'video_source_type' => $videoSourceType,
+            'video_preview_type' => $item?->video_preview_type,
+            'video_preview_url' => $item?->video_preview_url,
+            'video_thumbnail_url' => $item?->video_thumbnail_url,
+            'video_embed_url' => $item?->video_embed_url,
+            'video_preview_available' => (bool)($item?->video_preview_available),
+            'video_unavailable_reason' => $item?->video_unavailable_reason,
+        ];
     }
 
     public static function addon_data_formatting($data, $multi_data = false, $trans = false, $local = 'en')
@@ -883,6 +972,33 @@ class Helpers
         return $data;
     }
 
+    public static function get_verified_seller_status(?Store $store = null, mixed $storeConfig = null): int
+    {
+        $storeConfig ??= $store?->storeConfig;
+
+        return (int) (self::get_business_settings('verified_seller_badge') && $storeConfig?->verified_seller);
+    }
+
+    public static function vehicle_data_formatting($data, $multi_data = false)
+    {
+        if ($multi_data == true) {
+            $vehicles = $data instanceof EloquentCollection ? $data : new EloquentCollection($data);
+            $vehicles->loadMissing('provider.storeConfig');
+
+            return $vehicles->map(function ($vehicle) {
+                $vehicle['verified_seller'] = self::get_verified_seller_status($vehicle->provider, $vehicle->provider?->storeConfig);
+                return $vehicle;
+            })->toArray();
+        }
+
+        if ($data) {
+            $data->loadMissing('provider.storeConfig');
+            $data['verified_seller'] = self::get_verified_seller_status($data->provider, $data->provider?->storeConfig);
+        }
+
+        return $data;
+    }
+
     public static function store_data_formatting($data, $multi_data = false)
     {
         $storage = [];
@@ -894,7 +1010,13 @@ class Helpers
                 $item['ratings'] = $item?->rating ?? [];
                 unset($item['rating']);
                 $item['avg_rating'] = $ratings['rating'];
-                $item['rating_count'] = $ratings['total'];
+
+                $reviewsInfo = $item->reviews()->where('reviews.status', 1)
+                    ->selectRaw('avg(reviews.rating) as average_rating, count(reviews.id) as total_reviews, items.store_id')
+                    ->groupBy('items.store_id')
+                    ->first();
+
+                $item['rating_count'] = (int) $reviewsInfo?->total_reviews ?? 0;
                 $item['positive_rating'] = $ratings['positive_rating'];
                 $item['total_items'] = $item['items_count']??$item?->items()->approved()->count();
                 $item['total_campaigns'] = $item['campaigns_count'];
@@ -902,6 +1024,7 @@ class Helpers
                 $item['max'] = (float) $item->items()->active()->max('price');
                 $item['is_recommended'] = false;
                 $item['halal_tag_status'] = (bool) $item?->storeConfig?->halal_tag_status;
+                $item['verified_seller'] = self::get_verified_seller_status($item, $item?->storeConfig);
                 $extra_packaging_data = self::get_business_settings('extra_packaging_data');
 
                 $item['extra_packaging_status'] = (bool) (!empty($extra_packaging_data) && data_get($extra_packaging_data, $item->module->module_type) == '1') ? $item?->storeConfig?->extra_packaging_status : false;
@@ -911,6 +1034,8 @@ class Helpers
                 }
                 $item['self_delivery_system'] = (int) $item->sub_self_delivery;
                 $item['current_opening_time'] = self::getNextOpeningTime($item['schedules']) ?? 'closed';
+                $item['show_low_stock_count'] = (int) $item?->storeConfig?->show_low_stock_count;
+                $item['minimum_stock_for_warning'] = (int) $item?->storeConfig?->minimum_stock_for_warning ?? 0;
                 unset($item['items_count']);
                 unset($item['campaigns_count']);
                 unset($item['storeConfig']);
@@ -922,6 +1047,7 @@ class Helpers
         } else {
             $data->load('storeConfig');
             $data['is_recommended'] = false;
+            $data['show_low_stock_count'] = (int) $data?->storeConfig?->show_low_stock_count;
             $data['minimum_stock_for_warning'] = (int) $data?->storeConfig?->minimum_stock_for_warning ?? 0;
             $data['halal_tag_status'] = (bool) $data?->storeConfig?->halal_tag_status;
             $extra_packaging_data = self::get_business_settings('extra_packaging_data');
@@ -930,13 +1056,22 @@ class Helpers
             $data['extra_packaging_amount'] = (float) (!empty($extra_packaging_data) && (data_get($extra_packaging_data, $data?->module?->module_type)) && ($data?->storeConfig?->extra_packaging_status == '1')) ? $data?->storeConfig?->extra_packaging_amount : 0;
             if ($data->storeConfig && $data->storeConfig->is_recommended_deleted == 0) {
                 $data['is_recommended'] = $data->storeConfig->is_recommended;
-            }
+                }
+            $data['verified_seller'] = self::get_verified_seller_status($data, $data?->storeConfig);
+            // $data['has_seen_verified_badge_popup'] = (bool) ($data?->storeConfig?->verified_seller && !($data?->storeConfig?->has_seen_verified_badge_popup));
             $data['self_delivery_system'] = (int) $data->sub_self_delivery;
             $ratings = StoreLogic::calculate_store_rating($data['rating']);
             $data['ratings'] = $data?->rating ?? [];
             unset($data['rating']);
             $data['avg_rating'] = $ratings['rating'];
-            $data['rating_count'] = $ratings['total'];
+
+            $reviewsInfo = $data->reviews()->where('reviews.status', 1)
+                ->selectRaw('avg(reviews.rating) as average_rating, count(reviews.id) as total_reviews, items.store_id')
+                ->groupBy('items.store_id')
+                ->first();
+
+            $data['rating_count'] = (int) $reviewsInfo?->total_reviews ?? 0;
+
             $data['positive_rating'] = $ratings['positive_rating'];
             $data['total_items'] = $data['items_count']??$data?->items()->approved()->count();
             $data['total_campaigns'] = $data['campaigns_count'];
@@ -1240,6 +1375,232 @@ class Helpers
         return self::get_business_settings($name);
     }
 
+    public static function toggle_verified_seller(Store $store, ?int $status = null): int
+    {
+        $storeConfig = StoreConfig::firstOrNew(['store_id' => $store->id]);
+        $storeConfig->verified_seller = is_null($status) ? (int) !($storeConfig->verified_seller ?? 0) : (int) $status;
+        if ((int) $storeConfig->verified_seller === 1) {
+            $storeConfig->has_seen_verified_badge_popup = 0;
+        }
+        $storeConfig->save();
+
+        Helpers::deleteCacheData('verified_seller_eligible_providers_');
+        Helpers::deleteCacheData('verified_seller_eligible_stores_');
+
+        try {
+                $vendor = $store->vendor;
+                if (isset($vendor->firebase_token) &&  $vendor->firebase_token != '@') {
+                    if ($storeConfig->verified_seller == 1)
+                    {
+                        $data = [
+                            'title' => translate('Verified'),
+                            'description' => translate('Congratulations! Your seller account is now verified.'),
+                            'order_id' => '',
+                            'image' => '',
+                            'type' => 'verified_badge',
+                        ];
+                        Helpers::send_push_notif_to_device($vendor->firebase_token, $data);
+                        DB::table('user_notifications')->insert([
+                            'data' => json_encode($data),
+                            'vendor_id' => $vendor->id,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    } else {
+                        $data = [
+                            'title' => translate('Removed'),
+                            'description' => translate('Your seller account is no longer verified.'),
+                            'order_id' => '',
+                            'image' => '',
+                            'type' => 'verified_badge',
+                        ];
+                        Helpers::send_push_notif_to_device($vendor->firebase_token, $data);
+                        DB::table('user_notifications')->insert([
+                            'data' => json_encode($data),
+                            'vendor_id' => $vendor->id,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+
+                }
+            } catch (\Throwable $th) {
+
+            }
+        return (int) $storeConfig->verified_seller;
+    }
+
+    public static function mark_verified_badge_popup_seen(Store $store): int
+    {
+        $storeConfig = StoreConfig::firstOrNew(['store_id' => $store->id]);
+        $storeConfig->has_seen_verified_badge_popup = 1;
+        $storeConfig->save();
+
+        return (int) $storeConfig->has_seen_verified_badge_popup;
+    }
+
+    public static function get_verified_seller_eligible_stores(bool $countOnly = false, ?string $moduleId = null): mixed
+    {
+        $config = config('verified_seller.stores', []);
+        $minimumOrders = (int) ($config['minimum_total_orders'] ?? 10);
+        $minimumRating = (float) ($config['minimum_avg_rating'] ?? 2);
+        $minimumSuccessRate = (float) ($config['minimum_success_rate'] ?? 40);
+        $minimumAccountAgeMonths = (int) ($config['minimum_account_age_months'] ?? 3);
+        $cacheKey = 'verified_seller_eligible_stores_' . md5(json_encode([
+            $countOnly,
+            $moduleId ?? 'all',
+            $minimumOrders,
+            $minimumRating,
+            $minimumSuccessRate,
+            $minimumAccountAgeMonths,
+        ]));
+
+        return Cache::remember($cacheKey, 3600, function () use ($countOnly, $moduleId) {
+            $config = config('verified_seller.stores', []);
+            $minimumOrders = (int) ($config['minimum_total_orders'] ?? 10);
+            $minimumRating = (float) ($config['minimum_avg_rating'] ?? 2);
+            $minimumSuccessRate = (float) ($config['minimum_success_rate'] ?? 40);
+            $minimumAccountAgeMonths = (int) ($config['minimum_account_age_months'] ?? 3);
+
+            $orderStats = DB::table('orders')
+                ->selectRaw('store_id, COUNT(*) as total_orders, SUM(CASE WHEN order_status = "delivered" THEN 1 ELSE 0 END) as delivered_orders, SUM(CASE WHEN order_status = "canceled" THEN 1 ELSE 0 END) as canceled_orders')
+                ->groupBy('store_id');
+
+            $reviewStats = DB::table('reviews')
+                ->join('items', 'items.id', '=', 'reviews.item_id')
+                ->where('reviews.status', 1)
+                ->selectRaw('items.store_id, COALESCE(AVG(reviews.rating), 0) as avg_rating')
+                ->groupBy('items.store_id');
+
+            $stores = Store::withoutGlobalScopes()
+                ->select('stores.id', 'stores.name', 'stores.logo', 'stores.created_at')
+                ->when(! $countOnly, function ($query) {
+                    $query->with(['storage' => function ($storageQuery) {
+                        $storageQuery->where('key', 'logo')->select('id', 'data_type', 'data_id', 'key', 'value');
+                    }]);
+                })
+                ->addSelect(DB::raw('COALESCE(order_stats.total_orders, 0) as total_orders'))
+                ->addSelect(DB::raw('COALESCE(review_stats.avg_rating, 0) as avg_rating'))
+                ->leftJoin('store_configs', 'store_configs.store_id', '=', 'stores.id')
+                ->leftJoin('modules', 'modules.id', '=', 'stores.module_id')
+                ->joinSub($orderStats, 'order_stats', function ($join) {
+                    $join->on('order_stats.store_id', '=', 'stores.id');
+                })
+                ->joinSub($reviewStats, 'review_stats', function ($join) {
+                    $join->on('review_stats.store_id', '=', 'stores.id');
+                })
+                ->when($moduleId, function ($query) use ($moduleId) {
+                    $query->where('modules.id', $moduleId);
+                })
+                ->where(function ($query) {
+                    $query->whereNull('store_configs.id')
+                        ->orWhere('store_configs.verified_seller', '!=', 1);
+                })
+                ->where('stores.created_at', '<=', now()->subMonths($minimumAccountAgeMonths))
+                ->whereRaw('COALESCE(order_stats.total_orders, 0) >= ?', [$minimumOrders])
+                ->whereRaw('COALESCE(review_stats.avg_rating, 0) >= ?', [$minimumRating])
+                ->whereRaw('COALESCE((order_stats.delivered_orders / NULLIF(order_stats.delivered_orders + order_stats.canceled_orders, 0)) * 100, 0) >= ?', [$minimumSuccessRate]);
+
+            if ($countOnly) {
+                return $stores->count('stores.id');
+            }
+
+            return $stores->get()->map(function ($store) {
+                return [
+                    'id' => $store->id,
+                    'name' => $store->name,
+                    'logo_full_url' => self::get_full_url('store', $store->logo, $store->storage->pluck('value')->first() ?? 'public'),
+                    'total_orders' => (int) $store->total_orders,
+                    'avg_rating' => (float) $store->avg_rating,
+                ];
+            });
+        });
+    }
+
+    public static function get_verified_seller_eligible_providers(bool $countOnly = false, ?string $moduleId = null): mixed
+    {
+        $config = config('verified_seller.providers', []);
+        $minimumTrips = (int) ($config['minimum_total_trips'] ?? 10);
+        $minimumRating = (float) ($config['minimum_avg_rating'] ?? 2);
+        $minimumSuccessRate = (float) ($config['minimum_success_rate'] ?? 40);
+        $minimumAccountAgeMonths = (int) ($config['minimum_account_age_months'] ?? 3);
+        $cacheKey = 'verified_seller_eligible_providers_' . md5(json_encode([
+            $countOnly,
+            $moduleId ?? 'all',
+            $minimumTrips,
+            $minimumRating,
+            $minimumSuccessRate,
+            $minimumAccountAgeMonths,
+        ]));
+
+        return Cache::remember($cacheKey, 3600, function () use ($countOnly, $moduleId) {
+            $config = config('verified_seller.providers', []);
+            $minimumTrips = (int) ($config['minimum_total_trips'] ?? 10);
+            $minimumRating = (float) ($config['minimum_avg_rating'] ?? 2);
+            $minimumSuccessRate = (float) ($config['minimum_success_rate'] ?? 40);
+            $minimumAccountAgeMonths = (int) ($config['minimum_account_age_months'] ?? 3);
+
+            $tripStats = DB::table('trips')
+                ->selectRaw('provider_id, COUNT(*) as total_trips, SUM(CASE WHEN trip_status = "completed" THEN 1 ELSE 0 END) as completed_trips, SUM(CASE WHEN trip_status = "canceled" THEN 1 ELSE 0 END) as canceled_trips')
+                ->when($moduleId, function ($query) use ($moduleId) {
+                    $query->where('module_id', $moduleId);
+                })
+                ->groupBy('provider_id');
+
+            $reviewStats = DB::table('vehicle_reviews')
+                ->where('status', 1)
+                ->selectRaw('provider_id, COALESCE(AVG(rating), 0) as avg_rating')
+                ->when($moduleId, function ($query) use ($moduleId) {
+                    $query->where('module_id', $moduleId);
+                })
+                ->groupBy('provider_id');
+
+            $stores = Store::withoutGlobalScopes()
+                ->where('stores.status', 1)
+                ->select('stores.id', 'stores.name', 'stores.logo', 'stores.created_at')
+                ->when(! $countOnly, function ($query) {
+                    $query->with(['storage' => function ($storageQuery) {
+                        $storageQuery->where('key', 'logo')->select('id', 'data_type', 'data_id', 'key', 'value');
+                    }]);
+                })
+                ->addSelect(DB::raw('COALESCE(trip_stats.total_trips, 0) as total_trips'))
+                ->addSelect(DB::raw('COALESCE(review_stats.avg_rating, 0) as avg_rating'))
+                ->leftJoin('store_configs', 'store_configs.store_id', '=', 'stores.id')
+                ->leftJoin('modules', 'modules.id', '=', 'stores.module_id')
+                ->joinSub($tripStats, 'trip_stats', function ($join) {
+                    $join->on('trip_stats.provider_id', '=', 'stores.id');
+                })
+                ->joinSub($reviewStats, 'review_stats', function ($join) {
+                    $join->on('review_stats.provider_id', '=', 'stores.id');
+                })
+                ->when($moduleId, function ($query) use ($moduleId) {
+                    $query->where('modules.id', $moduleId);
+                })
+                ->where(function ($query) {
+                    $query->whereNull('store_configs.id')
+                        ->orWhere('store_configs.verified_seller', '!=', 1);
+                })
+                ->where('stores.created_at', '<=', now()->subMonths($minimumAccountAgeMonths))
+                ->whereRaw('COALESCE(trip_stats.total_trips, 0) >= ?', [$minimumTrips])
+                ->whereRaw('COALESCE(review_stats.avg_rating, 0) >= ?', [$minimumRating])
+                ->whereRaw('COALESCE((trip_stats.completed_trips / NULLIF(trip_stats.completed_trips + trip_stats.canceled_trips, 0)) * 100, 0) >= ?', [$minimumSuccessRate]);
+
+            if ($countOnly) {
+                return $stores->count('stores.id');
+            }
+
+            return $stores->get()->map(function ($store) {
+                return [
+                    'id' => $store->id,
+                    'name' => $store->name,
+                    'logo_full_url' => self::get_full_url('store', $store->logo, $store->storage->pluck('value')->first() ?? 'public'),
+                    'total_trips' => (int) $store->total_trips,
+                    'avg_rating' => (float) $store->avg_rating,
+                ];
+            });
+        });
+    }
+
     public static function get_external_data($name)
     {
         $config = null;
@@ -1277,6 +1638,11 @@ class Helpers
         return $currency_symbol;
     }
 
+    public static function highlight($text)
+    {
+        if (!$text) return '';
+        return preg_replace('/\$(.+?)\$/', '<span class="hl">$1</span>', e($text));
+    }
 
     public static function format_currency($value)
     {
@@ -1492,6 +1858,11 @@ class Helpers
     public static function dm_rating_count($deliveryman_id, $rating)
     {
         return DMReview::where(['delivery_man_id' => $deliveryman_id, 'rating' => $rating])->count();
+    }
+
+    public static function rider_rating_count($rider_id, $rating)
+    {
+        return RideReview::where(['received_by' => $rider_id, 'review_for' => 'driver', 'rating' => $rating])->count();
     }
 
     public static function tax_calculate($item, $price)
@@ -1995,7 +2366,7 @@ class Helpers
                 }
             }
 
-            if (in_array($order->order_status, ['processing', 'handover']) && $order->delivery_man && self::getNotificationStatusData('deliveryman', 'deliveryman_order_notification', 'push_notification_status')) {
+            if (in_array($order->order_status, ['processing', 'handover']) && $order->delivery_man && $order->delivery_man->status == 1 && self::getNotificationStatusData('deliveryman', 'deliveryman_order_notification', 'push_notification_status')) {
                 $data = [
                     'title' => translate('Order_Notification'),
                     'description' => $order->order_status == 'processing' ? translate('order_is_processing') : translate('messages.ready_for_delivery'),
@@ -2133,9 +2504,9 @@ class Helpers
     public static function get_store_data()
     {
         if (auth('vendor_employee')->check()) {
-            return auth('vendor_employee')->user()->store;
+            return auth('vendor_employee')->user()?->store;
         }
-        return auth('vendor')->user()->stores[0];
+        return auth('vendor')->user()?->stores[0];
     }
 
     public static function getDisk()
@@ -2145,12 +2516,12 @@ class Helpers
         return isset($config) ? ($config == 0 ? 's3' : 'public') : 'public';
     }
 
-    public static function upload(string $dir, string $format, $image = null)
+    public static function upload(string $dir, string $format, $image = null, ?int $maxSizeMb = null, ?string $allowedExtensions = null)
     {
         $validExtForWebp = ['jpg', 'jpeg', 'png'];
         try {
             if ($image != null) {
-                self::validateFile($image);
+                self::validateFile($image, $maxSizeMb, $allowedExtensions);
 
                 $format = $image->getClientOriginalExtension();
                 if (in_array($format, $validExtForWebp)) {
@@ -2185,7 +2556,7 @@ class Helpers
         return $imageName;
     }
 
-    public static function update(string $dir, $old_image, string $format, $image = null)
+    public static function update(string $dir, $old_image, string $format, $image = null, ?int $maxSizeMb = null, ?string $allowedExtensions = null)
     {
         if ($image == null) {
             return $old_image;
@@ -2196,7 +2567,7 @@ class Helpers
             }
         } catch (\Exception $e) {
         }
-        $imageName = Helpers::upload($dir, $format, $image);
+        $imageName = Helpers::upload($dir, $format, $image, $maxSizeMb, $allowedExtensions);
         return $imageName;
     }
 
@@ -2502,7 +2873,12 @@ class Helpers
             $data[$key->key] = (bool) $key->value;
         }
         $data['MAX_FILE_SIZE'] = self::maxUploadSizeMb();
+        $data['PRODUCT_VIDEO_MAX_FILE_SIZE'] = self::productVideoMaxUploadSizeMb();
         return $data;
+    }
+
+    public static function get_data_settings($type, $key) {
+        return DataSetting::where('type', $type)->where('key', $key)->first();
     }
 
 
@@ -2616,7 +2992,7 @@ class Helpers
         return $output;
     }
 
-    public static function expenseCreate($amount, $type, $datetime, $created_by, $order_id = null, $store_id = null, $description = '', $delivery_man_id = null, $user_id = null)
+    public static function expenseCreate($amount, $type, $datetime, $created_by, $order_id = null, $store_id = null, $description = '', $delivery_man_id = null, $user_id = null, $ride_id = null)
     {
         $expense = new Expense();
         $expense->amount = $amount;
@@ -2627,6 +3003,7 @@ class Helpers
         $expense->delivery_man_id = $delivery_man_id;
         $expense->user_id = $user_id;
         $expense->description = $description;
+        $expense->ride_id = $ride_id;
         $expense->created_at = now();
         $expense->updated_at = now();
         return $expense->save();
@@ -2718,10 +3095,25 @@ class Helpers
 
     public static function auto_translator($q, $sl, $tl)
     {
-        $res = file_get_contents("https://translate.googleapis.com/translate_a/single?client=gtx&ie=UTF-8&oe=UTF-8&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at&sl=" . $sl . "&tl=" . $tl . "&hl=hl&q=" . urlencode($q), $_SERVER['DOCUMENT_ROOT'] . "/transes.html");
-        $res = json_decode($res);
-        return str_replace('_', ' ', $res[0][0][0]);
+        $response = Http::timeout(5)->get('https://translate.googleapis.com/translate_a/single', [
+            'client' => 'gtx',
+            'ie' => 'UTF-8',
+            'oe' => 'UTF-8',
+            'dt' => 't',
+            'sl' => $sl,
+            'tl' => $tl,
+            'q' => $q,
+        ]);
+
+        if (!$response->successful()) {
+            return $q;
+        }
+
+        $data = $response->json();
+
+        return $data[0][0][0] ?? $q;
     }
+
 
     public static function getLanguageCode(string $country_code): string
     {
@@ -2962,6 +3354,7 @@ class Helpers
 
             if ($delivery_man_name) {
                 $data = str_replace("{deliveryManName}", $delivery_man_name, $data);
+                $data =  str_replace("{riderName}", $delivery_man_name, $data);
             }
 
             if ($transaction_id) {
@@ -2971,6 +3364,7 @@ class Helpers
             if ($order_id) {
                 $data = str_replace("{orderId}", $order_id, $data);
                 $data = str_replace("{tripId}", $order_id, $data);
+                $data = str_replace("{rideId}", $order_id, $data);
             }
             if ($add_id) {
                 $data = str_replace("{advertisementId}", $add_id, $data);
@@ -2978,6 +3372,73 @@ class Helpers
         }
 
         return $data;
+    }
+
+    public static function isRideShareMailLabelEnabled(): bool
+    {
+        return function_exists('addon_published_status') && addon_published_status('RideShare') == 1;
+    }
+
+    public static function formatDeliverymanText(?string $value, $deliveryMan = null, bool $includeRiderOption = false): ?string
+    {
+        if (!$value) {
+            return $value;
+        }
+
+        if ($includeRiderOption && self::isRideShareMailLabelEnabled()) {
+            return self::replaceDeliverymanTextByContext($value, 'combined');
+        }
+
+        if (
+            $deliveryMan
+            && self::isRideShareMailLabelEnabled()
+            && (int) data_get($deliveryMan, 'is_ride', 0) === 1
+            && (int) data_get($deliveryMan, 'is_delivery', 0) !== 1
+        ) {
+            return self::replaceDeliverymanTextByContext($value, 'rider');
+        }
+
+        return $value;
+    }
+
+    private static function replaceDeliverymanTextByContext(string $value, string $mode): string
+    {
+        $replacements = match ($mode) {
+            'combined' => [
+                '/\bdelivery men\b/u' => 'delivery men / riders',
+                '/\bDelivery Men\b/u' => 'Delivery Men / Riders',
+                '/\bDELIVERY MEN\b/u' => 'DELIVERY MEN / RIDERS',
+                '/\bdeliveryman\b/u' => 'deliveryman / rider',
+                '/\bDeliveryman\b/u' => 'Deliveryman / Rider',
+                '/\bDELIVERYMAN\b/u' => 'DELIVERYMAN / RIDER',
+                '/\bdelivery man\b/u' => 'delivery man / rider',
+                '/\bDelivery Man\b/u' => 'Delivery Man / Rider',
+                '/\bDELIVERY MAN\b/u' => 'DELIVERY MAN / RIDER',
+                '/\bdeliverymen\b/u' => 'deliverymen / riders',
+                '/\bDeliverymen\b/u' => 'Deliverymen / Riders',
+                '/\bDELIVERYMEN\b/u' => 'DELIVERYMEN / RIDERS',
+            ],
+            default => [
+                '/\bdelivery men\b/u' => 'riders',
+                '/\bDelivery Men\b/u' => 'Riders',
+                '/\bDELIVERY MEN\b/u' => 'RIDERS',
+                '/\bdeliveryman\b/u' => 'rider',
+                '/\bDeliveryman\b/u' => 'Rider',
+                '/\bDELIVERYMAN\b/u' => 'RIDER',
+                '/\bdelivery man\b/u' => 'rider',
+                '/\bDelivery Man\b/u' => 'Rider',
+                '/\bDELIVERY MAN\b/u' => 'RIDER',
+                '/\bdeliverymen\b/u' => 'riders',
+                '/\bDeliverymen\b/u' => 'Riders',
+                '/\bDELIVERYMEN\b/u' => 'RIDERS',
+            ],
+        };
+
+        foreach ($replacements as $pattern => $replacement) {
+            $value = preg_replace($pattern, $replacement, $value);
+        }
+
+        return $value;
     }
 
     public static function get_login_url($type)
@@ -2994,42 +3455,64 @@ class Helpers
 
     public static function react_activation_check($react_domain, $react_license_code)
     {
-        return $react_license_code === 'NulledMaster';
+        $scheme = str_contains($react_domain, 'localhost') ? 'http://' : 'https://';
+        $url = empty(parse_url($react_domain)['scheme']) ? $scheme . ltrim($react_domain, '/') : $react_domain;
+        $response = Http::post('https://store.6amtech.com/api/v1/customer/license-check', [
+            'domain_name' => str_ireplace('www.', '', parse_url($url, PHP_URL_HOST)),
+            'license_code' => $react_license_code
+        ]);
+        return ($response->successful() && isset($response->json('content')['is_active']) && $response->json('content')['is_active']);
     }
 
     public static function activation_submit($purchase_key)
     {
-        if ($purchase_key !== 'NulledMaster') {
-            return false;
-        }
+        $post = [
+            'purchase_key' => $purchase_key
+        ];
+        $live = 'https://check.6amtech.com';
+        $ch = curl_init($live . '/api/v1/software-check');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+        $response_body = json_decode($response, true);
 
         try {
-            $previous_active = json_decode(BusinessSetting::where('key', 'app_activation')->first()->value ?? '[]');
-            $previous_active = is_array($previous_active) ? $previous_active : [];
-            $found = 0;
-
-            foreach ($previous_active as $key => $item) {
-                if (data_get($item, 'software_id') == env('REACT_APP_KEY')) {
-                    $found = 1;
-                    break;
+            if ($response_body['is_valid'] && $response_body['result']['item']['id'] == env('REACT_APP_KEY')) {
+                $previous_active = json_decode(BusinessSetting::where('key', 'app_activation')->first()->value ?? '[]');
+                $found = 0;
+                foreach ($previous_active as $key => $item) {
+                    if ($item->software_id == env('REACT_APP_KEY')) {
+                        $found = 1;
+                    }
                 }
+                if (!$found) {
+                    $previous_active[] = [
+                        'software_id' => env('REACT_APP_KEY'),
+                        'is_active' => 1
+                    ];
+                    Helpers::businessUpdateOrInsert(['key' => 'app_activation'], [
+                        'value' => json_encode($previous_active)
+                    ]);
+                }
+                return true;
             }
 
-            if (!$found) {
-                $previous_active[] = [
-                    'software_id' => env('REACT_APP_KEY'),
-                    'is_active' => 1
-                ];
-                Helpers::businessUpdateOrInsert(['key' => 'app_activation'], [
-                    'value' => json_encode($previous_active)
-                ]);
-            }
         } catch (\Exception $exception) {
             info($exception->getMessage());
-            return false;
-        }
 
-        return true;
+            $previous_active[] = [
+                'software_id' => env('REACT_APP_KEY'),
+                'is_active' => 1
+            ];
+            Helpers::businessUpdateOrInsert(['key' => 'app_activation'], [
+                'value' => json_encode($previous_active)
+            ]);
+
+            return true;
+        }
+        return false;
     }
 
     public static function react_domain_status_check()
@@ -3293,7 +3776,7 @@ class Helpers
         try {
             if ($data && $type == 's3' && Storage::disk('s3')->exists($path . '/' . $data)) {
                 return Storage::disk('s3')->url($path . '/' . $data);
-//                $awsUrl = config('filesystems.disks.s3.url');
+                //                $awsUrl = config('filesystems.disks.s3.url');
 //                $awsBucket = config('filesystems.disks.s3.bucket');
 //                return rtrim($awsUrl, '/') . '/' . ltrim($awsBucket . '/' . $path . '/' . $data, '/');
             }
@@ -4268,11 +4751,21 @@ class Helpers
 
     public static function preparePaginatedResponse($pagination, $limit, $offset, $key = 'data', $extraData = []): array
     {
+        $items = $pagination->items();
+
+        if (
+            !empty($items)
+            && class_exists(\Modules\Rental\Entities\Vehicle::class)
+            && $items[0] instanceof \Modules\Rental\Entities\Vehicle
+        ) {
+            $items = self::vehicle_data_formatting($items, true);
+        }
+
         $response = [
             'total_size' => (int) $pagination->total(),
             'limit' => (int) $limit,
             'offset' => (int) $offset,
-            $key => $pagination->items(),
+            $key => $items,
         ];
 
         return array_merge($response, $extraData);
@@ -4743,17 +5236,19 @@ class Helpers
         }
     }
 
-    public static function validateFile($image)
+    public static function validateFile($image, ?int $maxSizeMb = null, ?string $allowedExtensionsString = null)
     {
         if (! $image instanceof UploadedFile) {
             throw new InvalidUploadException('Invalid file upload.');
         }
 
-        if ($image->getSize() > MAX_FILE_SIZE * 1024 * 1024) {
-            throw new InvalidUploadException('File size exceeds the limit of '.MAX_FILE_SIZE.'MB');
+        $maxSizeMb = $maxSizeMb ?? MAX_FILE_SIZE;
+
+        if ($image->getSize() > $maxSizeMb * 1024 * 1024) {
+            throw new InvalidUploadException('File size exceeds the limit of '.$maxSizeMb.'MB');
         }
 
-        $allowedExtensions = explode(',', IMAGE_EXTENSION.','.VIDEO_EXTENSION.','.DOCUMENT_EXTENSION.','.AUDIO_EXTENSION.','.FILE_EXTENSION);
+        $allowedExtensions = explode(',', $allowedExtensionsString ?? (IMAGE_EXTENSION.','.VIDEO_EXTENSION.','.DOCUMENT_EXTENSION.','.AUDIO_EXTENSION.','.FILE_EXTENSION));
         $allowedExtensions = array_map(function ($ext) {
             return str_replace('.', '', trim($ext));
         }, $allowedExtensions);
@@ -4812,7 +5307,7 @@ class Helpers
     public static function seoPageList()
     {
         return [
-            'home_page', 'top_offers_page', 'brands_page', 'search_page', 'vehicle_search_page', 'about_us_page', 'contact_us_page', 'store_join_page', 'deliveryman_join_page', 'terms_and_conditions_page', 'privacy_policy_page', 'refund_policy_page', 'cancellation_policy_page', 'shipping_policy_page' ,'latest_store_page','flash_sales','popular_store_page' ,
+            'home_page', 'top_offers_page', 'brands_page', 'search_page', 'vehicle_search_page', 'about_us_page', 'contact_us_page', 'store_join_page', 'deliveryman_join_page', 'terms_and_conditions_page', 'privacy_policy_page', 'refund_policy_page', 'cancellation_policy_page', 'shipping_policy_page' ,'latest_store_page','flash_sales','popular_store_page' ,'coupons_page', 'best_sellers_page', 'top_rated_page','organic_page', 'recently_viewed_page', 'recently_ordered_page', 'wishlist_page', 'basic_medicine_page', 'common_conditions_page', 'store_near_you_page', 'restaurant_near_you_page', 'recommended_store_page'
         ];
     }
 
@@ -4867,6 +5362,20 @@ class Helpers
                 }
             }
             $request->headers->set('zoneId', json_encode([$zone->id]));
+        } elseif($request->hasHeader('zoneId') && !empty($request->header('zoneId'))){
+                $zoneIds = json_decode($request->header('zoneId'), true);
+                if(is_int($zoneIds)){
+                    $zoneIds = [$zoneIds];
+                }
+                $zoneIds= Zone::whereIn('id', $zoneIds)->where('status', 1)->pluck('id')->toArray();
+
+                if(empty($zoneIds)){
+                    $zone = Zone::where('status',1)->where('is_default',1)->first() ?? Zone::first();
+                    $request->headers->set('zoneId', json_encode([$zone->id]));
+                } else {
+                    $request->headers->set('zoneId', json_encode($zoneIds));
+                }
+
         }
 
         return true;
@@ -4897,14 +5406,101 @@ class Helpers
                 });
         }
     }
-    public static function maxUploadSizeMb(): int
+    public static function maxUploadSizeMb(int $configuredLimit = MAX_FILE_SIZE): int
     {
         try {
             $serverLimit = self::sizeToMb(ini_get('post_max_size'));
-            return min(MAX_FILE_SIZE, $serverLimit);
+            return min($configuredLimit, $serverLimit);
         } catch (\Throwable $e) {
-            return MAX_FILE_SIZE;
+            return $configuredLimit;
         }
+    }
+
+    public static function productVideoMaxUploadSizeMb(): int
+    {
+        return self::maxUploadSizeMb(PRODUCT_VIDEO_MAX_FILE_SIZE);
+    }
+
+    public static function getStorageDiskByKey($model, string $key, string $default = 'public'): string
+    {
+        if (! $model || ! isset($model->storage) || count($model->storage) < 1) {
+            return $default;
+        }
+
+        foreach ($model->storage as $storage) {
+            if (($storage['key'] ?? null) === $key) {
+                return $storage['value'] ?? $default;
+            }
+        }
+
+        return $default;
+    }
+
+    public static function copyStorageFile(string $dir, ?string $fileName, string $sourceDisk = 'public'): ?string
+    {
+        if (! $fileName) {
+            return null;
+        }
+
+        $extension = pathinfo($fileName, PATHINFO_EXTENSION) ?: 'tmp';
+        $newFileName = \Carbon\Carbon::now()->toDateString().'-'.uniqid().'.'.$extension;
+        $sourcePath = $dir.$fileName;
+        $targetDisk = self::getDisk();
+
+        try {
+            if (! Storage::disk($sourceDisk)->exists($sourcePath)) {
+                return null;
+            }
+
+            if (! Storage::disk($targetDisk)->exists($dir)) {
+                Storage::disk($targetDisk)->makeDirectory($dir);
+            }
+
+            Storage::disk($targetDisk)->put($dir.$newFileName, Storage::disk($sourceDisk)->get($sourcePath));
+
+            return $newFileName;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    public static function duplicateProductVideoData($product): array
+    {
+        if (! $product) {
+            return [
+                'video' => null,
+                'video_link' => null,
+            ];
+        }
+
+        if ($product?->video) {
+            return [
+                'video' => self::copyStorageFile('product/', $product->video, self::getStorageDiskByKey($product, 'video', 'public')),
+                'video_link' => null,
+            ];
+        }
+
+        return [
+            'video' => null,
+            'video_link' => $product?->video_link ?: null,
+        ];
+    }
+
+    public static function getStoredFileSize(string $dir, ?string $fileName, string $disk = 'public'): int
+    {
+        if (! $fileName) {
+            return 0;
+        }
+
+        try {
+            $path = $dir.$fileName;
+            if (Storage::disk($disk)->exists($path)) {
+                return (int) Storage::disk($disk)->size($path);
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return 0;
     }
 
     public static function sizeToMb($value): int
@@ -4925,8 +5521,97 @@ class Helpers
         }
     }
 
+
+    public static function deleteUnUsesdSettings()
+    {
+         $businessSettingKeys = ['landing_page_text'  ,'landing_page_links','speciality','join_as_images','download_app_section','counter_section',
+            'promotion_banner','module_section','feature','testimonial','landing_page_images','web_app_landing_page_settings',
+            'react_header_banner','hero_section','app_download_button','banner_section_full','delivery_service_section',
+            'discount_banner','banner_section_half','app_section_image','footer_logo','react_feature','about_us','privacy_policy',
+            'terms_and_conditions','tax','tax_included','shipping_policy','refund','cancelation','minimum_shipping_charge','per_km_shipping_charge',
+            'order_pending_message','order_confirmation_msg','order_processing_message','out_for_delivery_message','order_delivered_message',
+            'delivery_boy_assign_message','delivery_boy_start_message','delivery_boy_delivered_message','customer_verification','order_handover_message',
+            'order_cancled_message','order_refunded_message'];
+
+        $deleteSettingWithRelations = function ($setting) {
+            $setting->storage()->delete();
+            $setting->translations()->delete();
+            $setting->delete();
+        };
+
+        BusinessSetting::whereIn('key', $businessSettingKeys)
+            ->get()
+            ->each($deleteSettingWithRelations);
+
+        $dataSettingGroups = [
+            'admin_landing_page' => [
+                'earning_seller_image',
+                'earning_delivery_image',
+                'earning_rider_image',
+            ],
+            // 'react_landing_page' => [
+            //     'react_landing_page_settings',
+            //     'react_landing_page_img',
+            // ],
+        ];
+
+        foreach ($dataSettingGroups as $type => $keys) {
+            if (empty($keys)) {
+                continue;
+            }
+
+            DataSetting::withoutGlobalScopes()
+                ->where('type', $type)
+                ->whereIn('key', $keys)
+                ->get()
+                ->each($deleteSettingWithRelations);
+        }
+
+        return true;
+
+        // @php(\App\CentralLogics\Helpers::deleteUnUsesdSettings())
+    }
+
+    public static function getStoreLabelByModuleType(?string $moduleType = null, bool $lowercase = false): string
+    {
+        $resolvedModuleType = $moduleType
+            ?? config('module.current_module_type')
+            ?? self::get_store_data()?->module_type
+            ?? self::get_store_data()?->module?->module_type;
+
+        $label = match ($resolvedModuleType) {
+            'food' => translate('messages.restaurant'),
+            'rental' => translate('messages.provider'),
+            default => translate('messages.store'),
+        };
+
+        return $lowercase ? strtolower($label) : ucfirst($label);
+    }
+
+    public static function visitor_log($model, $user_id, $visitor_log_id, $order_count = false)
+    {
+        switch ($model) {
+            case 'item':
+                $visitor_log_type = 'App\Models\Item';
+                break;
+
+            default:
+                $visitor_log_type = 'App\Models\Item';
+                break;
+        }
+        VisitorLog::updateOrInsert(
+            ['visitor_log_type' => $visitor_log_type,
+                'user_id' => $user_id,
+                'visitor_log_id' => $visitor_log_id,
+            ],
+            [
+                'visit_count' => $order_count == false ? DB::raw('visit_count + 1') : DB::raw('visit_count'),
+                'order_count' => $order_count == true ? DB::raw('order_count + 1') : DB::raw('order_count'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+    }
+
 }
-
-
-
-

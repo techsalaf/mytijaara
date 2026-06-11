@@ -40,7 +40,7 @@ class GenerateAdminRoute extends Command
             'print', 'download', 'export', 'edit', 'update', 'invoice', 'child', 'update-default-status', 'update-status',
             'system-currency', 'status', 'paidStatus', 'priority', 'remove-proof-image', 'select-customer', 'orders', 'logs',
             'refund_mode', 'account-transaction/create', 'provide-deliveryman-earnings/create', 'system-addons', 'social-media/create',
-            'drivemond'
+            'drivemond', 'trashed','admin/transactions/report/vendor-wise-taxes','admin/transactions/report/vendor-tax-report'
         ];
 
         $excludeTermsAjax = $this->getAjaxRoutes($adminRoutes);
@@ -296,6 +296,8 @@ class GenerateAdminRoute extends Command
     private function manualyAddedBladePath($formattedRoutes): array
     {
         $array = [
+            'ride-share::admin.rider-management.rider-vehicle-management.vehicle.list' => ['admin/users/rider/vehicle'],
+            'ride-share::admin.rider-management.rider-vehicle-management.vehicle.request-list' => ['admin/users/rider/vehicle/request/list/pending'],
             'admin-views.order.offline_verification_list' => ['admin/order/offline/payment/list/all'],
             'admin-views.order.list' => ['admin/refund/requested'],
             'admin-views.zone.index' => ['admin/business-settings/zone'],
@@ -392,7 +394,19 @@ class GenerateAdminRoute extends Command
             'rental::admin.provider.bulk-export' => ['dmin/rental/provider/bulk-export'],
             'rental::admin.provider.bulk-import' => ['admin/rental/provider/bulk-import'],
             'rental::admin.home-page-setup.download-app' => ['admin/rental/settings'],
-
+            'ride-share::admin.maps.fleet-map' => ['admin/ride-share/fleet-map/all-driver','admin/ride-share/fleet-map/driver-on-trip','admin/ride-share/fleet-map/driver-idle','admin/ride-share/fleet-map/all-customer'],
+            'ride-share::admin.trip-management.index' => ['admin/ride-share/ride/list/all','admin/ride-share/ride/list/pending','admin/ride-share/ride/list/accepted','admin/ride-share/ride/list/ongoing','admin/ride-share/ride/list/completed','admin/ride-share/ride/list/cancelled'],
+            'ride-share::admin.safety-alert.index' => ['admin/ride-share/safety-alert/list/customer','admin/ride-share/safety-alert/list/driver'],
+            'ride-share::admin.business-management.business-setup.safety-precaution' => ['admin/business-settings/safety-precaution/safety-alert'],
+            'ride-share::admin.business-management.business-setup.precautions' => ['admin/business-settings/safety-precaution/precaution'],
+            'ride-share::admin.rider-management.rider.list' => ['admin/users/rider'],
+            'ride-share::admin.rider-management.rider.index' => ['admin/users/rider/add'],
+            'ride-share::admin.rider-management.rider.new' => ['admin/users/rider/new'],
+            'ride-share::admin.rider-management.rider.deny' => ['admin/users/rider/deny'],
+            'admin-views.report.admin-earning-report' => ['admin/transactions/report/admin-earning-report?tab=all','admin/transactions/report/admin-earning-report?tab=parcel'],
+            'rental::admin.report.earning-report.partials.render._earning-transaction-table' => ['admin/transactions/report/admin-earning-report?tab=rental'],
+            // 'ride-share::admin.reports.admin-earning-report' => ['admin/transactions/ride-share/report/admin-earning-report']
+            'rental::provider.report.earning-report.partials.render._earning-transaction-table' => ['admin/transactions/report/store-earning-report?tab=rental']
 
         ];
 

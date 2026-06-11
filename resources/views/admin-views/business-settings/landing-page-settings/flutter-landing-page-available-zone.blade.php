@@ -37,7 +37,7 @@
     @php($language = $language->value ?? null)
     @php($defaultLang = str_replace('_', '-', app()->getLocale()))
 
-    <form id="zone-setup-form" action="{{ route('admin.business-settings.flutter-landing-page-settings', 'available-zone-section') }}" method="POST" enctype="multipart/form-data">
+    <form id="zone-setup-form" action="{{ route('admin.business-settings.flutter-landing-page-settings-update', 'available-zone-section') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="card mb-3">
             <div class="card-body">
@@ -192,7 +192,7 @@
                                     <small class="text-danger">* {{ translate('( Ratio 1:1 )') }}</small>
                                 </label>
                             </div>
-                            <div class="d-flex justify-content-center upload-zone" data-preview="viewer" data-input="customFileEg1">
+                            <div class="d-flex justify-content-center">
                                 <label class="text-center position-relative">
                                     <img class="img--110 min-height-170px min-width-170px onerror-image image--border" id="viewer"
                                          data-onerror-image="{{ asset('public/assets/admin/img/upload.png') }}"
@@ -206,10 +206,6 @@
                                         </div>
                                     </div>
                                 </label>
-                                <div class="drag-overlay">
-                                    <i class="tio-file-add-outlined"></i>
-                                    <p>{{translate('messages.Drop_image_here')}}</p>
-                                </div>
                             </div>
                         </div>
                     </div>

@@ -69,13 +69,22 @@ if (! function_exists('collect_cash_success')) {
                 $account_transaction->created_by = 'store';
             }
             elseif($data->attribute === 'deliveryman_collect_cash_payments'){
-                $user_data = DeliveryMan::findOrFail($data->attribute_id);
+                $user_data = DeliveryMan::withoutGlobalScope('delivery_only')->findOrFail($data->attribute_id);
                 $user_data->status = 1;
                 $user_data->save();
                 $current_balance = $user_data?->wallet?->collected_cash ?? 0;
                 $account_transaction->from_type = 'deliveryman';
                 $account_transaction->from_id = $user_data->id;
                 $account_transaction->created_by = 'deliveryman';
+            }
+            elseif($data->attribute === 'rider_collect_cash_payments'){
+                $user_data = DeliveryMan::withoutGlobalScope('delivery_only')->findOrFail($data->attribute_id);
+                $user_data->status = 1;
+                $user_data->save();
+                $current_balance = $user_data?->wallet?->collected_cash ?? 0;
+                $account_transaction->from_type = 'rider';
+                $account_transaction->from_id = $user_data->id;
+                $account_transaction->created_by = 'rider';
             }
             else{
                 return 0;
@@ -102,7 +111,7 @@ if (! function_exists('collect_cash_success')) {
 
         try {
             if($data->attribute == 'deliveryman_collect_cash_payments' && config('mail.status') &&  Helpers::getNotificationStatusData('deliveryman','deliveryman_collect_cash','mail_status') && Helpers::get_mail_status('cash_collect_mail_status_dm') == 1 ){
-                Mail::to($user_data?->getRawOriginal('email'))->send(new \App\Mail\CollectCashMail($account_transaction,$user_data['f_name']));
+                Mail::to($user_data?->getRawOriginal('email'))->send(new \App\Mail\CollectCashMail($account_transaction, $user_data));
             }
         } catch (\Exception $exception) {
             info($exception->getMessage());
@@ -161,9 +170,12 @@ if (! function_exists('trip_payment_success')) {
         $trip = Trips::find($data->attribute_id);
         if($trip->payment_method != 'partial_payment'){
             $trip->payment_method=$data->payment_method;
+        }elseif($trip->payment_method == 'partial_payment'){
+            CustomerLogic::create_wallet_transaction($trip->user_id, $trip->partially_paid_amount, 'partial_payment', $trip->id);
         }
         $trip->transaction_reference=$data->transaction_ref;
         $trip->payment_status='paid';
+        $trip->trip_status = $trip->trip_status == 'payment_failed' ? 'completed' : $trip->trip_status;
         $trip->save();
 
         if( $trip?->provider?->is_valid_subscription == 1 && $trip?->provider?->store_sub?->max_order != "unlimited" && $trip?->provider?->store_sub?->max_order > 0){
@@ -309,7 +321,7 @@ if (!function_exists('config_settings')) {
                 if (Config::has($configKey)) {
                     $data = Config::get($configKey);
                 } else {
-                    $data = env('APP_MODE')??'demo';
+                    $data = env('APP_MODE')??config('app.app_mode');
                     Config::set($configKey, $data);
                 }
                 return $data;

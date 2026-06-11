@@ -55,7 +55,7 @@
     @endif
     <div class="tab-content">
         <div class="tab-pane fade show active">
-            <form action="{{ route('admin.business-settings.flutter-landing-page-settings', 'fixed-header') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('admin.business-settings.flutter-landing-page-settings-update', 'fixed-header') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <h5 class="card-title mb-3">
                     <span class="card-header-icon mr-2"><i class="tio-settings-outlined"></i></span> <span>{{translate('messages.header_section')}}</span>
@@ -147,18 +147,14 @@
                                 <label class="form-label d-block mb-2">
                                     {{ translate('messages.Image') }}  <span class="text--primary">{{translate('(size: 1:1)')}}</span>
                                 </label>
-                                <label class="upload-img-3 m-0 upload-zone" data-preview="flutter_fixed_image" data-input="flutter_fixed_input">
+                                <label class="upload-img-3 m-0">
                                     <div class="position-relative">
                                     <div class="img">
-                                        <img id="flutter_fixed_image"
+                                        <img
 
                                         src="{{\App\CentralLogics\Helpers::get_full_url('fixed_header_image', $fixed_header_image?->value?? '', $fixed_header_image?->storage[0]?->value ?? 'public','aspect_1')}}" data-onerror-image="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px onerror-image">
                                     </div>
-                                      <input type="file" name="image" id="flutter_fixed_input" hidden>
-                                      <div class="drag-overlay">
-                                          <i class="tio-file-add-outlined"></i>
-                                          <p>{{translate('messages.Drop_image_here')}}</p>
-                                      </div>
+                                      <input type="file"  name="image" hidden>
                                         @if (isset($fixed_header_image['value']))
                                             <span id="fixed_header_image" class="remove_image_button remove-image"
                                                   data-id="fixed_header_image"
@@ -185,7 +181,7 @@
                 <input type="hidden" name="image_path" value="fixed_header_image" >
                 <input type="hidden" name="field_name" value="value" >
             </form>
-            <form action="{{ route('admin.business-settings.flutter-landing-page-settings', 'fixed-location') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('admin.business-settings.flutter-landing-page-settings-update', 'fixed-location') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <h5 class="card-title mb-3 mt-3">
                     <span class="card-header-icon mr-2"><i class="tio-settings-outlined"></i></span> <span>{{translate('messages.location_setup')}}</span>
@@ -243,7 +239,7 @@
                     </div>
                 </div>
             </form>
-            <form action="{{ route('admin.business-settings.flutter-landing-page-settings', 'fixed-module') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('admin.business-settings.flutter-landing-page-settings-update', 'fixed-module') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <h5 class="card-title mb-3 mt-3">
                     <span class="card-header-icon mr-2"><i class="tio-settings-outlined"></i></span> <span>{{translate('messages.module_setup')}}</span>

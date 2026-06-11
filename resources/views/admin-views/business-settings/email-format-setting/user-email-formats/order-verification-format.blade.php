@@ -62,7 +62,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','user')->where('email_type', 'order_verification')->first())
                 @php($template= $template ?? $data?->email_template ?? 4)
-                <form action="{{ route('admin.business-settings.email-setup', ['user','order-verification']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['user','order-verification']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">

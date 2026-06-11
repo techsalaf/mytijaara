@@ -49,7 +49,7 @@
     @endif
     <div class="tab-content">
         <div class="tab-pane fade show active">
-                <form action="{{ route('admin.business-settings.flutter-landing-page-settings', 'special-criteria-list') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.flutter-landing-page-settings-update', 'special-criteria-list') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                 <h5 class="card-title mb-3 mt-3">
                     <span class="card-header-icon mr-2"><i class="tio-settings-outlined"></i></span> <span>{{translate('Special_Feature_List_Section ')}}</span>
@@ -91,15 +91,11 @@
                                             <img src="{{asset('public/assets/admin/img/info-circle.svg')}}" alt="">
                                         </span></label>
                                     </div>
-                                    <label class="upload-img-3 m-0 upload-zone" data-preview="flutter_criteria_image" data-input="flutter_criteria_input">
+                                    <label class="upload-img-3 m-0">
                                         <div class="img">
-                                            <img id="flutter_criteria_image" src="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px">
+                                            <img src="{{asset('/public/assets/admin/img/aspect-1.png')}}" alt="" class="img__aspect-1 min-w-187px max-w-187px">
                                         </div>
-                                          <input type="file" name="image" id="flutter_criteria_input" hidden>
-                                        <div class="drag-overlay">
-                                            <i class="tio-file-add-outlined"></i>
-                                            <p>{{translate('messages.Drop_image_here')}}</p>
-                                        </div>
+                                          <input type="file"  name="image" hidden>
                                     </label>
                                 </div>
                             </div>

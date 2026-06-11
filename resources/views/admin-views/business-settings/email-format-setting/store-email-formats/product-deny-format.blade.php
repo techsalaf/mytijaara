@@ -59,7 +59,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','store')->where('email_type', 'product_deny')->first())
                 @php($template= $template ?? $data?->email_template ?? 5)
-                <form action="{{ route('admin.business-settings.email-setup', ['store','product-deny']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['store','product-deny']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">
@@ -76,7 +76,7 @@
                                 </div>
                                 <div class="right-content">
                                     <div class="d-flex flex-wrap justify-content-between __gap-15px mt-2 mb-5">
-                                        @php($data=\App\Models\EmailTemplate::withoutGlobalScope('translate')->where('type','store')->where('email_type', 'deny')->first())
+                                        @php($data=\App\Models\EmailTemplate::withoutGlobalScope('translate')->where('type','store')->where('email_type', 'product_deny')->first())
                                         @php($language=\App\Models\BusinessSetting::where('key','language')->first())
                                         @php($language = $language->value ?? null)
                                         @php($defaultLang = str_replace('_', '-', app()->getLocale()))

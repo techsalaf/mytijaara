@@ -28,7 +28,7 @@ class ConfigServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $mode = env('APP_MODE');
+        $mode = getEnvMode();
         try {
             Translator::get(config('app.locale'))->setTranslations([
                 'first_day_of_week' => CarbonImmutable::MONDAY,

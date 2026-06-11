@@ -42,6 +42,44 @@ class OrderLogic
     {
         return true;
     }
+
+    public static function get_original_admin_commission_details($order_transaction)
+    {
+        $order = $order_transaction?->order;
+
+        if (!$order) {
+            return [
+                'original_admin_commission' => 0,
+                'item_price_after_admin_commission' => 0,
+            ];
+        }
+        $totalItemAmount = (float) ($order->order_amount ?? 0)
+            - (float) ($order_transaction->additional_charge ?? 0)
+            - (float) ($order->dm_tips ?? 0)
+            - (float) ($order->delivery_charge ?? 0)
+            - (float) ($order_transaction->tax ?? 0)
+            - (float) ($order->extra_packaging_amount ?? 0)
+            + (float) ($order->coupon_discount_amount ?? 0)
+            + (float) ($order->store_discount_amount ?? 0)
+            + (float) ($order->ref_bonus_amount ?? 0)
+            + (float) ($order->flash_admin_discount_amount ?? 0)
+            + (float) ($order->flash_store_discount_amount ?? 0)
+            + (float) ($order->extra_discount_amount ?? 0);
+
+        $originalAdminCommission = (float) ($order_transaction->admin_commission ?? 0)
+            + (float) ($order_transaction->admin_expense ?? 0)
+            - (float) ($order_transaction->delivery_fee_comission ?? 0)
+            - (float) ($order_transaction->additional_charge ?? 0)
+            - (float) ($order->flash_admin_discount_amount ?? 0);
+
+        $itemPriceAfterAdminCommission = $totalItemAmount - $originalAdminCommission;
+
+        return [
+            'original_admin_commission' => $originalAdminCommission,
+            'item_price_after_admin_commission' => $itemPriceAfterAdminCommission,
+        ];
+    }
+
     public static function create_transaction($order, $received_by = false, $status = null)
     {
         $type = $order->order_type;
@@ -60,6 +98,7 @@ class OrderLogic
         $subscription_mode = 0;
         $commission_percentage = 0;
         $store_amount = 0;
+        $extra_discount_amount = $order->extra_discount_amount ?? 0;
 
         $store = $order?->store;
         $store_sub = $order?->store?->store_sub;
@@ -94,14 +133,15 @@ class OrderLogic
         }
 
         if ($type == 'parcel') {
-            $comission = \App\Models\BusinessSetting::where('key', 'parcel_commission_dm')->first();
+            $comission = BusinessSetting::where('key', 'parcel_commission_dm')->first()?->value ?? 0;
+            $commission_percentage = $comission;
+
             $dm_tips = $dm_tips_manage_status ? $order->dm_tips : 0;
-            $comission = isset($comission) ? $comission->value : 0;
             $order_amount = $order->order_amount - $dm_tips - $order->additional_charge - $order->extra_packaging_amount - $order->total_tax_amount;
             $dm_commission = $comission ? ($order_amount / 100) * $comission : 0;
             $comission_amount = $order_amount - $dm_commission;
         } else {
-            $comission = isset($order->store->comission) == null ? \App\Models\BusinessSetting::where('key', 'admin_commission')->first()->value : $order->store->comission;
+            $comission = isset($order->store->comission) == null ? BusinessSetting::where('key', 'admin_commission')->first()?->value : $order->store->comission;
             $dm_tips = $dm_tips_manage_status ? $order->dm_tips : 0;
             // $order_amount = $order->order_amount - $order->delivery_charge - $order->total_tax_amount - $dm_tips;
 
@@ -131,9 +171,12 @@ class OrderLogic
                 $flash_store_discount_amount = $order->flash_store_discount_amount;
                 Helpers::expenseCreate(amount: $flash_store_discount_amount, type: 'flash_sale_discount', datetime: now(), created_by: 'vendor', order_id: $order->id, store_id: $order->store->id);
             }
+            if ($extra_discount_amount > 0) {
+                Helpers::expenseCreate(amount: $extra_discount_amount, type: 'extra_discount', datetime: now(), created_by: 'vendor', order_id: $order->id, store_id: $order->store->id);
+            }
 
 
-            $order_amount = $order->order_amount - $order->additional_charge - $order->extra_packaging_amount - $order->delivery_charge - $order->total_tax_amount - $dm_tips + $flash_admin_discount_amount + $order->coupon_discount_amount + $store_discount_amount + $flash_store_discount_amount + $ref_bonus_amount;
+            $order_amount = $order->order_amount - $order->additional_charge - $order->extra_packaging_amount - $order->delivery_charge - $order->total_tax_amount - $dm_tips + $flash_admin_discount_amount + $order->coupon_discount_amount + $store_discount_amount + $flash_store_discount_amount + $ref_bonus_amount + $extra_discount_amount;
             // comission in delivery charge
             $delivery_charge_comission = BusinessSetting::where('key', 'delivery_charge_comission')->first();
             $delivery_charge_comission_percentage = $delivery_charge_comission ? $delivery_charge_comission->value : 0;
@@ -169,7 +212,7 @@ class OrderLogic
             $comission_amount = $comission_on_store_amount + $comission_on_actual_delivery_fee;
             $dm_commission = $order->original_delivery_charge - $comission_on_actual_delivery_fee;
         }
-        $store_amount = $store_amount + $order_amount + $order->total_tax_amount + $order->extra_packaging_amount - $comission_on_store_amount - $store_coupon_discount_subsidy - $flash_store_discount_amount;
+        $store_amount = $store_amount + $order_amount + $order->total_tax_amount + $order->extra_packaging_amount - $comission_on_store_amount - $store_coupon_discount_subsidy - $flash_store_discount_amount - $extra_discount_amount;
         try {
             OrderTransaction::insert([
                 'vendor_id' => $type == 'parcel' ? null : $order->store->vendor->id,
@@ -186,13 +229,13 @@ class OrderLogic
                 'zone_id' => $order->zone_id,
                 'module_id' => $order->module_id,
                 'admin_expense' => $admin_subsidy + $admin_coupon_discount_subsidy + $store_discount_amount + $flash_admin_discount_amount + $amount_admin + $ref_bonus_amount,
-                'store_expense' => $store_subsidy + $store_coupon_discount_subsidy + $flash_store_discount_amount,
+                'store_expense' => $store_subsidy + $store_coupon_discount_subsidy + $flash_store_discount_amount + $extra_discount_amount,
                 'status' => $status,
                 'dm_tips' => $dm_tips,
                 'created_at' => now(),
                 'updated_at' => now(),
                 'delivery_fee_comission' => isset($comission_on_actual_delivery_fee) ? $comission_on_actual_delivery_fee : 0,
-                'discount_amount_by_store' => $store_coupon_discount_subsidy + $store_d_amount + $store_subsidy,
+                'discount_amount_by_store' => $store_coupon_discount_subsidy + $store_d_amount + $store_subsidy +$extra_discount_amount,
                 'additional_charge' => $order->additional_charge,
                 'extra_packaging_amount' => $order->extra_packaging_amount,
                 'ref_bonus_amount' => $order->ref_bonus_amount,
@@ -606,7 +649,7 @@ class OrderLogic
         if ($payment) {
             $payment->payment_status = 'paid';
             if ($payment_method != 'partial_payment') {
-                $payment->payment_method = $payment_method;
+                $payment->payment_method = $payment->payment_method  == 'wallet' ? 'wallet' : $payment_method;
             }
             $payment->save();
         }
@@ -676,7 +719,7 @@ class OrderLogic
                 $dm->auth_token = null;
                 $dm->save();
             }
-            
+
         }
         return true;
     }
@@ -687,7 +730,7 @@ class OrderLogic
 
         $refer_wallet_transaction = CustomerLogic::create_wallet_transaction($order?->cashback_history?->user_id, $order?->cashback_history?->calculated_amount, 'CashBack', $order->id);
         if ($refer_wallet_transaction != false) {
-            Helpers::expenseCreate(amount: $order?->cashback_history?->calculated_amount, type: 'CashBack', datetime: now(), created_by: 'admin', order_id: $order->id);
+            Helpers::expenseCreate(amount: $order?->cashback_history?->calculated_amount, type: 'CashBack', datetime: now(), created_by: 'admin', order_id: $order->id, user_id: $order->customer?->id);
             $order?->cashback_history?->cashBack?->increment('total_used');
 
             $notification_data = [
@@ -967,6 +1010,9 @@ class OrderLogic
             $referralHistory->transaction_id = Helpers::generate_transaction_id($referralHistory);
             $referralHistory->save();
             $dmWallet->save();
+
+            Helpers::expenseCreate(amount: $amount, type: 'dm_'.$referType, datetime: now(), created_by: 'admin', order_id: null,delivery_man_id:$deliveryManId);
+            
             DB::commit();
 
         } catch (\Exception $exception) {

@@ -1,5 +1,7 @@
 <?php
 
+const POINT_SRID = 0; // For MariaDB use 4326
+
 //payment methods
 const GATEWAYS_PAYMENT_METHODS = [
     ['key' => 'ssl_commerz', 'value' => 'SSLCOMMERZ'],
@@ -1067,10 +1069,11 @@ const COUNTIRES = [
 
 
 const IMAGE_FORMAT = 'jpeg, jpg, png, gif, webp';
-const IMAGE_EXTENSION = '.jpeg,.jpg,.png,.gif,.webp';
+const IMAGE_EXTENSION = '.jpeg, .jpg, .png, .gif, .webp';
 const IMAGE_FORMAT_FOR_VALIDATION = 'jpeg,jpg,png,gif,webp';
 const VIDEO_FORMAT = 'mp4,webm,ogg';
 const VIDEO_EXTENSION = '.mp4,.webm,.ogg';
+const PRODUCT_VIDEO_MAX_FILE_SIZE = 20;
 const DOCUMENT_FORMAT = 'pdf,doc,docx,excel';
 const DOCUMENT_EXTENSION = '.pdf,.doc,.docx,.excel';
 const AUDIO_FORMAT = 'mp3,wav,ogg';
@@ -1079,3 +1082,8 @@ const FILE_FORMAT = 'pdf,doc,docx,ppt,pptx,txt,zip,rar,7z';
 const FILE_FORMAT_FOR_IMAGE_PICKER = 'jpeg|jpg|png|gif|webp';
 const FILE_EXTENSION = '.pdf,.doc,.docx,.zip,.p8';
 const MAX_FILE_SIZE = 2;
+
+const VEHICLE_CATEGORY_USE_CASE = [
+    'delivery',
+    'ride',
+];

@@ -81,6 +81,8 @@ class ItemController extends Controller
 
     public function store(Request $request)
     {
+        $minimumPrice = Helpers::getDecimalPlaces();
+
         if (!Helpers::get_store_data()->item_section) {
             return response()->json([
                 'errors' => [
@@ -88,7 +90,7 @@ class ItemController extends Controller
                 ]
             ]);
         }
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), array_merge([
             'name' => 'array',
             'name.0' => 'required',
             'name.*' => 'max:191',
@@ -98,15 +100,15 @@ class ItemController extends Controller
                     return (Helpers::get_store_data()->module->module_type != 'food' && $request?->product_gellary == null);
                 })
             ],
-            'price' => 'required|numeric|between:.01,999999999999.99',
+            'price' => 'required|numeric|between:' . $minimumPrice . ',999999999999.999',
             'description.*' => 'max:1000',
             'description.0' => 'required',
-            'discount' => 'required|numeric|min:0',
-        ], [
+            'discount' => 'nullable|numeric|min:0',
+        ], $this->productVideoValidationRules()), [
             'name.0.required' => translate('messages.item_default_name_required'),
             'description.0.required' => translate('messages.item_default_description_required'),
             'category_id.required' => translate('messages.category_required'),
-            'description.*.max' => translate('messages.description_length_warning'),
+            'description.*.max' => translate('messages.Description_must_be_in_1000_char'),
         ]);
 
         if ($request['discount_type'] == 'percent') {
@@ -115,11 +117,11 @@ class ItemController extends Controller
             $dis = $request['discount'];
         }
 
-        if ($request['price'] <= $dis) {
+        if ($dis > 0 && $request['price'] <= $dis) {
             $validator->getMessageBag()->add('unit_price', translate('messages.discount_can_not_be_more_than_or_equal'));
         }
 
-        if ($request['price'] <= $dis || $validator->fails()) {
+        if (($dis > 0 && $request['price'] <= $dis )  || $validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)]);
         }
 
@@ -204,8 +206,11 @@ class ItemController extends Controller
 
         $images = [];
 
+        $gallerySourceItem = null;
+
         if ($request->item_id && $request?->product_gellary == 1) {
-            $item_data = Item::withoutGlobalScope(StoreScope::class)->select(['image', 'images'])->findOrfail($request->item_id);
+            $item_data = Item::withoutGlobalScope(StoreScope::class)->findOrfail($request->item_id);
+            $gallerySourceItem = $item_data;
 
             if (!$request->has('image')) {
 
@@ -386,6 +391,9 @@ class ItemController extends Controller
         $food->price = $request->price;
         $food->veg = $request->veg ?? 0;
         $food->image =  $request->has('image') ? Helpers::upload('product/', 'png', $request->file('image')) : $newFileNamethumb ?? null;
+        $videoData = $this->resolveCreateVideoData($request, $gallerySourceItem);
+        $food->video = $videoData['video'];
+        $food->video_link = $videoData['video_link'];
         $food->available_time_starts = $request->available_time_starts ?? '00:00:00';
         $food->available_time_ends = $request->available_time_ends ?? '23:59:59';
         $food->discount = $request->discount_type == 'amount' ? $request->discount : $request->discount;
@@ -455,7 +463,7 @@ class ItemController extends Controller
         }
 
         if ($module_type == 'ecommerce') {
-            $this->addOrUpdateMetaData($request,$item->id);
+            $this->addOrUpdateMetaData($request, $food->id);
         }
 
 
@@ -543,6 +551,8 @@ class ItemController extends Controller
 
     public function update(Request $request, $id)
     {
+        $minimumPrice = Helpers::getDecimalPlaces();
+
         if (!Helpers::get_store_data()->item_section && Helpers::get_store_data()->product_uploaad_check == 'commission') {
             return response()->json([
                 'errors' => [
@@ -552,20 +562,20 @@ class ItemController extends Controller
         }
 
 
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), array_merge([
             'name' => 'array',
             'name.0' => 'required',
             'name.*' => 'max:191',
             'category_id' => 'required',
-            'price' => 'required|numeric|between:0.01,999999999999.99',
+            'price' => 'required|numeric|between:' . $minimumPrice . ',999999999999.999',
             'description.*' => 'max:1000',
             'description.0' => 'required',
-            'discount' => 'required|numeric|min:0',
-        ], [
+            'discount' => 'nullable|numeric|min:0',
+        ], $this->productVideoValidationRules()), [
             'name.0.required' => translate('messages.item_default_name_required'),
             'description.0.required' => translate('messages.item_default_description_required'),
             'category_id.required' => translate('messages.category_required'),
-            'description.*.max' => translate('messages.description_length_warning'),
+            'description.*.max' => translate('messages.Description_must_be_in_1000_char'),
         ]);
 
         if ($request['discount_type'] == 'percent') {
@@ -574,11 +584,11 @@ class ItemController extends Controller
             $dis = $request['discount'];
         }
 
-        if ($request['price'] <= $dis) {
+        if ($dis > 0 && $request['price'] <= $dis) {
             $validator->getMessageBag()->add('unit_price', translate('messages.discount_can_not_be_more_than_or_equal'));
         }
 
-        if ($request['price'] <= $dis || $validator->fails()) {
+        if (($dis > 0 && $request['price'] <= $dis )|| $validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)]);
         }
 
@@ -595,7 +605,7 @@ class ItemController extends Controller
                 array_push($tag_ids, $tag->id);
             }
         }
-        
+
 
         $nutrition_ids = [];
         if ($request->nutritions != null) {
@@ -634,6 +644,7 @@ class ItemController extends Controller
         }
 
         $p = Item::find($id);
+        $oldVideo = $p->video;
 
         $p->name = $request->name[array_search('default', $request->lang)];
         $p->unit_id = $request?->unit;
@@ -782,7 +793,10 @@ class ItemController extends Controller
             $this->store_temp_data(data: $p, request: $request, tag_ids: $tag_ids, nutrition_ids: $nutrition_ids, allergy_ids: $allergy_ids, generic_ids: $generic_ids, update: true, taxIds: $request['tax_ids']);
             return response()->json(['product_approval' => translate('your_product_added_for_approval')], 200);
         } else {
+            $videoData = $this->resolvePersistedVideoData($request, $p->video, $p->video_link);
             $p->image = $request->has('image') ? Helpers::update('product/', $p->image, 'png', $request->file('image')) : $p->image;
+            $p->video = $videoData['video'];
+            $p->video_link = $videoData['video_link'];
             $images = $p['images'];
 
             foreach ($p->images as $key => $value) {
@@ -850,6 +864,9 @@ class ItemController extends Controller
         }
 
         $p->save();
+        if ($oldVideo && $oldVideo !== $p->video) {
+            Helpers::check_and_delete('product/', $oldVideo);
+        }
         $p->tags()->sync($tag_ids);
         $p->nutritions()->sync($nutrition_ids);
         $p->allergies()->sync($allergy_ids);
@@ -874,6 +891,9 @@ class ItemController extends Controller
             $product = TempProduct::find($request->id);
         } else {
             $product = Item::find($request->id);
+            if ($product?->temp_product?->video) {
+                Helpers::check_and_delete('product/', $product->temp_product->video);
+            }
             $product?->temp_product?->translations()?->delete();
             $product?->temp_product()?->delete();
             $product?->carts()?->delete();
@@ -881,6 +901,9 @@ class ItemController extends Controller
 
         if ($product->image) {
             Helpers::check_and_delete('product/', $product['image']);
+        }
+        if ($product->video) {
+            Helpers::check_and_delete('product/', $product['video']);
         }
 
         foreach ($product->images as $value) {
@@ -999,36 +1022,36 @@ class ItemController extends Controller
         return view('vendor-views.product.list', compact('items', 'category', 'type', 'sub_categories','productWiseTax'));
     }
 
-    public function search(Request $request)
-    {
-        $view = 'vendor-views.product.partials._table';
-        $key = explode(' ', $request['search']);
-        $settings_access = Helpers::get_mail_status('access_all_products');
-        $items = Item::where(function ($q) use ($key) {
-            foreach ($key as $value) {
-                $q->where('name', 'like', "%{$value}%");
-            }
-        })
-            ->module(Helpers::get_store_data()->module_id)
-            ->where('is_approved', 1);
+    // public function search(Request $request)
+    // {
+    //     $view = 'vendor-views.product.partials._table';
+    //     $key = explode(' ', $request['search']);
+    //     $settings_access = Helpers::get_mail_status('access_all_products');
+    //     $items = Item::where(function ($q) use ($key) {
+    //         foreach ($key as $value) {
+    //             $q->where('name', 'like', "%{$value}%");
+    //         }
+    //     })
+    //         ->module(Helpers::get_store_data()->module_id)
+    //         ->where('is_approved', 1);
 
-        if (isset($request->product_gallery) && $request->product_gallery == 1 && $settings_access == 1) {
+    //     if (isset($request->product_gallery) && $request->product_gallery == 1 && $settings_access == 1) {
 
-            $items = $items->withoutGlobalScope(StoreScope::class)->limit(12)->get();
+    //         $items = $items->withoutGlobalScope(StoreScope::class)->limit(12)->get();
 
-            $view = 'vendor-views.product.partials._gallery';
-        } elseif (isset($request->product_gallery) && $request->product_gallery == 1 && $settings_access == 0) {
-            $items = $items->limit(12)->get();
-            $view = 'vendor-views.product.partials._gallery';
-        } else {
-            $items = $items->latest()->limit(50)->get();
-        }
+    //         $view = 'vendor-views.product.partials._gallery';
+    //     } elseif (isset($request->product_gallery) && $request->product_gallery == 1 && $settings_access == 0) {
+    //         $items = $items->limit(12)->get();
+    //         $view = 'vendor-views.product.partials._gallery';
+    //     } else {
+    //         $items = $items->latest()->limit(50)->get();
+    //     }
 
-        return response()->json([
-            'view' => view($view, compact('items'))->render(),
-            'count' => $items->count()
-        ]);
-    }
+    //     return response()->json([
+    //         'view' => view($view, compact('items'))->render(),
+    //         'count' => $items->count()
+    //     ]);
+    // }
 
     public function remove_image(Request $request)
     {
@@ -1496,10 +1519,10 @@ class ItemController extends Controller
                 });
             })
             ->type($type);
-        if (Helpers::get_store_data()->storeConfig?->minimum_stock_for_warning > 0) {
+        if (Helpers::get_store_data()->storeConfig?->show_low_stock_count && Helpers::get_store_data()->storeConfig?->minimum_stock_for_warning > 0) {
             $items = $items->where('stock', '<=', Helpers::get_store_data()->storeConfig->minimum_stock_for_warning);
         } else {
-            $items = $items->where('stock', 0);
+            $items = $items->whereRaw('1 = 0');
         }
 
         $items =  $items->orderby('stock')
@@ -1781,6 +1804,10 @@ class ItemController extends Controller
             $temp_item->image = $newFileName;
         }
 
+        $videoData = $this->resolveTempProductVideoData($request, $temp_item, $data);
+        $temp_item->video = $videoData['video'];
+        $temp_item->video_link = $videoData['video_link'];
+
         $images = $request?->temp_product == 1 ?   $temp_item->images ?? [] : $data->images ?? [];
         if ($request->removedImageKeys) {
             foreach ($images as $key => $value) {
@@ -1875,6 +1902,174 @@ class ItemController extends Controller
         return true;
     }
 
+    private function productVideoValidationRules(): array
+    {
+        return [
+            'video_upload_type' => 'nullable|in:file,link',
+            'video' => 'nullable|file|mimes:mp4,webm,ogg|max:'.$this->productVideoMaxSizeKb(),
+            'video_link' => ['nullable', $this->videoLinkRule()],
+            'remove_video' => 'nullable|in:0,1',
+        ];
+    }
+
+    private function productVideoMaxSizeKb(): int
+    {
+        return Helpers::productVideoMaxUploadSizeMb() * 1024;
+    }
+
+    private function videoLinkRule(): \Closure
+    {
+        return function ($attribute, $value, $fail) {
+            if (! $value) {
+                return;
+            }
+
+            if (! filter_var($value, FILTER_VALIDATE_URL)) {
+                $fail('Please enter a valid video link.');
+                return;
+            }
+
+            $scheme = strtolower(parse_url($value, PHP_URL_SCHEME) ?? '');
+            if (! in_array($scheme, ['http', 'https'])) {
+                $fail('Please enter a valid video link.');
+            }
+        };
+    }
+
+    private function getRequestedVideoType(Request $request, ?string $video = null, ?string $videoLink = null): string
+    {
+        if ($request->video_upload_type) {
+            return $request->video_upload_type;
+        }
+
+        return $videoLink ? 'link' : 'file';
+    }
+
+    private function normalizeVideoLink(?string $videoLink): ?string
+    {
+        $videoLink = trim((string) $videoLink);
+
+        return $videoLink !== '' ? $videoLink : null;
+    }
+
+    private function resolvePersistedVideoData(Request $request, ?string $currentVideo = null, ?string $currentVideoLink = null): array
+    {
+        $type = $this->getRequestedVideoType($request, $currentVideo, $currentVideoLink);
+
+        if ($type === 'link') {
+            return [
+                'video' => null,
+                'video_link' => $this->normalizeVideoLink($request->video_link),
+            ];
+        }
+
+        if ($request->hasFile('video')) {
+            return [
+                'video' => $currentVideo
+                    ? Helpers::update('product/', $currentVideo, 'mp4', $request->file('video'), Helpers::productVideoMaxUploadSizeMb(), VIDEO_EXTENSION)
+                    : Helpers::upload('product/', 'mp4', $request->file('video'), Helpers::productVideoMaxUploadSizeMb(), VIDEO_EXTENSION),
+                'video_link' => null,
+            ];
+        }
+
+        if ((int) $request->input('remove_video', 0) === 1) {
+            return [
+                'video' => null,
+                'video_link' => null,
+            ];
+        }
+
+        return [
+            'video' => $currentVideo,
+            'video_link' => null,
+        ];
+    }
+
+    private function resolveCreateVideoData(Request $request, ?Item $gallerySourceItem = null): array
+    {
+        if (! $gallerySourceItem || ! $request->item_id || $request?->product_gellary != 1) {
+            return $this->resolvePersistedVideoData($request);
+        }
+
+        if ($request->hasFile('video') || (int) $request->input('remove_video', 0) === 1) {
+            return $this->resolvePersistedVideoData($request);
+        }
+
+        if ($request->video_upload_type === 'link' && $this->normalizeVideoLink($request->video_link)) {
+            return $this->resolvePersistedVideoData($request);
+        }
+
+        $galleryVideoData = Helpers::duplicateProductVideoData($gallerySourceItem);
+
+        return $this->resolvePersistedVideoData($request, $galleryVideoData['video'], $galleryVideoData['video_link']);
+    }
+
+    private function resolveTempProductVideoData(Request $request, TempProduct $tempItem, Item $data): array
+    {
+        $type = $this->getRequestedVideoType($request, $request?->temp_product == 1 ? $tempItem->video : $data->video, $request?->temp_product == 1 ? $tempItem->video_link : $data->video_link);
+
+        if ($type === 'link') {
+            if ($tempItem->video) {
+                Helpers::check_and_delete('product/', $tempItem->video);
+            }
+
+            return [
+                'video' => null,
+                'video_link' => $this->normalizeVideoLink($request->video_link),
+            ];
+        }
+
+        if ($request->hasFile('video')) {
+            if ($tempItem->video) {
+                Helpers::check_and_delete('product/', $tempItem->video);
+            }
+
+            return [
+                'video' => Helpers::upload('product/', 'mp4', $request->file('video'), Helpers::productVideoMaxUploadSizeMb(), VIDEO_EXTENSION),
+                'video_link' => null,
+            ];
+        }
+
+        if ((int) $request->input('remove_video', 0) === 1) {
+            if ($tempItem->video) {
+                Helpers::check_and_delete('product/', $tempItem->video);
+            }
+
+            return [
+                'video' => null,
+                'video_link' => null,
+            ];
+        }
+
+        if ($request?->temp_product == 1) {
+            return [
+                'video' => $tempItem->video,
+                'video_link' => $tempItem->video_link,
+            ];
+        }
+
+        if ($data->video_link) {
+            if ($tempItem->video) {
+                Helpers::check_and_delete('product/', $tempItem->video);
+            }
+
+            return [
+                'video' => null,
+                'video_link' => $data->video_link,
+            ];
+        }
+
+        $copiedVideo = Helpers::copyStorageFile('product/', $data->video, Helpers::getStorageDiskByKey($data, 'video', 'public'));
+        if ($tempItem->video && $tempItem->video !== $copiedVideo) {
+            Helpers::check_and_delete('product/', $tempItem->video);
+        }
+
+        return [
+            'video' => $copiedVideo,
+            'video_link' => null,
+        ];
+    }
+
 
 
     public function product_gallery(Request $request)
@@ -1888,24 +2083,18 @@ class ItemController extends Controller
         $items = Item::when($settings_access == 1, function ($q) {
             $q->withoutGlobalScope(StoreScope::class);
         })
-            ->where('is_approved', 1)
+
             ->when(is_numeric($category_id), function ($query) use ($category_id) {
                 return $query->whereHas('category', function ($q) use ($category_id) {
                     return $q->whereId($category_id)->orWhere('parent_id', $category_id);
                 });
             })
-            ->when($request['search'], function ($query) use ($key) {
-                return $query->where(function ($q) use ($key) {
-                    foreach ($key as $value) {
-                        $q->where('name', 'like', "%{$value}%");
-                    }
-                });
-            })
+
+            ->search($request['search'])
             ->type($type)
-            ->inRandomOrder()
             ->module(Helpers::get_store_data()->module_id)
-            ->limit(12)
-            ->get();
+            ->where('is_approved', 1)
+           ->latest()->paginate(12);
 
         $category = $category_id != 'all' ? Category::findOrFail($category_id) : null;
 
@@ -1974,5 +2163,14 @@ class ItemController extends Controller
         $itemMetaData->save();
 
         return true;
+    }
+
+    public function gallery_item_view(Request $request, $id)
+    {
+         $item = Item::withoutGlobalScope(StoreScope::class)->find($id);
+
+        return response()->json([
+            'view' => view('vendor-views.product.partials._view_gallery_item', compact('item'))->render(),
+        ]);
     }
 }

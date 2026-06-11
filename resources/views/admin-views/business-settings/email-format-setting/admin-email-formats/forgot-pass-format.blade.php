@@ -59,7 +59,7 @@
                 @php($data=\App\Models\EmailTemplate::where('type','admin')->where('email_type', 'forget_password')->first())
                 @php($template= $template ?? $data?->email_template ?? 5)
 
-                <form action="{{ route('admin.business-settings.email-setup', ['admin','forget-password']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['admin','forget-password']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">
@@ -298,4 +298,3 @@
     <script src="{{asset('public/assets/admin/js/view-pages/email-templates.js')}}"></script>
     <!-- Email Template End-->
 @endpush
-

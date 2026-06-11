@@ -160,18 +160,14 @@
                                     </div>
                                 </label>
                                 <label class="upload-img-3 m-0">
-                                        <div class="position-relative upload-zone" data-preview="feature_edit_image" data-input="feature_edit_input">
+                                        <div class="position-relative">
                                         <div class="img">
-                                            <img id="feature_edit_image" class="onerror-image" src="{{ $feature->image_full_url ?? '',
+                                            <img class="onerror-image" src="{{ $feature->image_full_url ?? '',
                                                 asset('/public/assets/admin/img/upload-3.png') }}"
 
                                             data-onerror-image="{{asset('/public/assets/admin/img/upload-3.png')}}" alt="">
                                         </div>
-                                            <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="image" id="feature_edit_input" hidden>
-                                            <div class="drag-overlay">
-                                                <i class="tio-file-add-outlined"></i>
-                                                <p>{{translate('messages.Drop_image_here')}}</p>
-                                            </div>
+                                            <input class="upload-file__input single_file_input" accept="{{IMAGE_EXTENSION}}" type="file" name="image"  hidden>
                                             @if (isset($feature->image))
                                             <span id="feature_image" class="remove_image_button remove-image dynamic-checkbox"
                                                   data-id="feature_image"

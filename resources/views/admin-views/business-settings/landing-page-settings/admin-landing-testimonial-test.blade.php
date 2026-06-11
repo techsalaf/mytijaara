@@ -40,22 +40,26 @@
                             <div class="col-md-6">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label for="name" class="form-label">{{translate('Reviewer Name')}}
+                                        <label for="name" class="form-label">{{translate('Reviewer Name')}}<span class="form-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{ translate('Write_the_name_within_30_characters') }}">
+                                                <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}" alt="">
+                                            </span>
                                             <span class="form-label-secondary text-danger"
                                                   data-toggle="tooltip" data-placement="right"
                                                   data-original-title="{{ translate('messages.Required.')}}"> *
                                                 </span>
                                         </label>
-                                        <input required id="name" type="text" name="name" value="{{ $review->name }}" class="form-control" placeholder="{{translate('Ex:  John Doe')}}">
+                                        <input required id="name" type="text" maxlength="30" name="name" value="{{ $review->name }}" class="form-control" placeholder="{{translate('Ex:  John Doe')}}">
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="designation" class="form-label">{{translate('Designation')}}
+                                        <label for="designation" class="form-label">{{translate('Designation')}}<span class="form-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{ translate('Write_the_designation_within_30_characters') }}">
+                                                <img src="{{ asset('public/assets/admin/img/info-circle.svg') }}" alt="">
+                                            </span>
                                             <span class="form-label-secondary text-danger"
                                                   data-toggle="tooltip" data-placement="right"
                                                   data-original-title="{{ translate('messages.Required.')}}"> *
                                                 </span>
                                         </label>
-                                        <input required id="designation" type="text" name="designation" value="{{ $review->designation }}" class="form-control" placeholder="{{translate('Ex:  CTO')}}">
+                                        <input required id="designation" type="text" maxlength="30" name="designation" value="{{ $review->designation }}" class="form-control" placeholder="{{translate('Ex:  CTO')}}">
                                     </div>
                                     <div class="col-md-12">
                                         <label for="review" class="form-label">{{translate('messages.review')}}<span
@@ -86,18 +90,14 @@
                                                 {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                             </div>
                                         </label>
-                                        <label class="upload-img-3 m-0 d-block upload-zone" data-preview="testimonial_test_reviewer_image" data-input="testimonial_test_reviewer_input">
+                                        <label class="upload-img-3 m-0 d-block">
                                             <div class="position-relative">
                                             <div class="img">
-                                                <img id="testimonial_test_reviewer_image"
+                                                <img
 
                                                 src="{{ $review?->reviewer_image_full_url ?? asset('/public/assets/admin/img/aspect-1.png') }}" data-onerror-image="{{asset("/public/assets/admin/img/aspect-1.png")}}" class="img__aspect-1 mw-100 min-w-187px max-w-187px onerror-image" alt="">
                                             </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="reviewer_image" id="testimonial_test_reviewer_input" hidden="">
-                                            <div class="drag-overlay">
-                                                <i class="tio-file-add-outlined"></i>
-                                                <p>{{translate('messages.Drop_image_here')}}</p>
-                                            </div>
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file"  name="reviewer_image" hidden="">
                                              @if (isset($review->reviewer_image))
                                                     <span style="right: 53px;top: 2px;!important;"  id="reviewer_image" class="remove_image_button remove-image dynamic-checkbox"
                                                           data-id="reviewer_image"
@@ -120,17 +120,13 @@
                                                 {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                             </div>
                                         </label>
-                                        <label class="upload-img-4 m-0 d-block my-auto upload-zone" data-preview="testimonial_test_company_image" data-input="testimonial_test_company_input">
+                                        <label class="upload-img-4 m-0 d-block my-auto">
                                             <div class="position-relative">
                                             <div class="img">
-                                                <img id="testimonial_test_company_image"
+                                                <img
                                                 src="{{ $review?->company_image_full_url ?? asset('/public/assets/admin/img/aspect-3-1.png') }}" data-onerror-image="{{asset("/public/assets/admin/img/aspect-3-1.png")}}" class="vertical-img max-w-187px onerror-image" alt="">
                                             </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" id="testimonial_test_company_input" name="company_image" hidden="">
-                                            <div class="drag-overlay">
-                                                <i class="tio-file-add-outlined"></i>
-                                                <p>{{translate('messages.Drop_image_here')}}</p>
-                                            </div>
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" id="image-upload-2" name="company_image" hidden="">
                                             @if (isset($review->company_image))
                                                     <span style="right: 53px;top: 2px;!important;" id="company_image" class="remove_image_button remove-image dynamic-checkbox"
                                                           data-id="company_image"
@@ -235,3 +231,4 @@
     <!-- How it Works -->
     @include('admin-views.business-settings.landing-page-settings.partial.how-it-work')
 @endsection
+

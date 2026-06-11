@@ -2,7 +2,6 @@
 /public/hot
 /public/storage
 /storage/*.key
-/kari.sql
 /vendor
 .env
 .env.backup
@@ -14,10 +13,6 @@ npm-debug.log
 yarn-error.log
 error_log
 /storage/tmp
-/storage/framework/sessions/*
-!/storage/framework/sessions/.gitignore
-/storage/framework/views/*
-!/storage/framework/views/.gitignore
 .DS_Store
 docker-local/
 /public/.well-known

@@ -194,7 +194,7 @@ $(document).on("ready", function () {
             }
 
             // Attach event listener with debouncing
-            $(".select2-search input").on(
+            $rendered.find(".select2-search input").off("input").on(
                 "input",
                 debounce(function () {
                     const inputValue = $(this).val().toLowerCase();
@@ -208,7 +208,7 @@ $(document).on("ready", function () {
                 }, 100)
             );
 
-            $(".select2-search input").on("keydown", function (e) {
+            $rendered.find(".select2-search input").off("keydown").on("keydown", function (e) {
                 if (e.which === 13) {
                     e.preventDefault();
 
@@ -419,3 +419,5 @@ function initTextMaxLimit(selector = 'input[data-maxlength], textarea[data-maxle
     document.addEventListener('DOMContentLoaded', function () {
         initTextMaxLimit();
     });
+
+ 

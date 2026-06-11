@@ -6,6 +6,7 @@ use App\CentralLogics\Helpers;
 use App\CentralLogics\CouponLogic;
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
+use App\Models\Order;
 use App\Models\Store;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,17 +36,28 @@ class CouponController extends Controller
                             $query->whereIn('zone_id', json_decode($zone_id, true));
                         }
                     })
+                    ->with('storeConfig:id,store_id,verified_seller')
                     ->whereIn('id', json_decode($coupon->data, true))->first();
                     if($temp && (in_array("all", json_decode($coupon->customer_id, true)) || in_array($customer_id,json_decode($coupon->customer_id, true))))
                     {
                         $coupon->data = $temp->name;
                         $coupon['store_id'] = (int)$temp->id;
+                        $temp['verified_seller'] = Helpers::get_verified_seller_status($temp, $temp?->storeConfig);
+                        unset($temp['storeConfig']);
+                        $coupon->setRelation('store', $temp);
                         $data[] = $coupon;
                     }
                 }
                 else if($coupon->coupon_type == 'zone_wise')
                 {
                     if(count(array_intersect(json_decode($zone_id, true), json_decode($coupon->data,true))))
+                    {
+                        $data[] = $coupon;
+                    }
+                }
+                else if($coupon->coupon_type == 'first_order')
+                {
+                    if($customer_id  && Order::where('user_id', $customer_id)->where('is_guest', '0')->doesntExist())
                     {
                         $data[] = $coupon;
                     }
@@ -59,12 +71,22 @@ class CouponController extends Controller
                     })->where('id', $coupon->store_id)->exists();
 
                     if($temp){
+                        $coupon->store?->loadMissing('storeConfig:id,store_id,verified_seller');
+                        if ($coupon->store) {
+                            $coupon->store['verified_seller'] = Helpers::get_verified_seller_status($coupon->store, $coupon->store?->storeConfig);
+                            unset($coupon->store['storeConfig']);
+                        }
                         $data[] = $coupon;
                     }
 
                 }
                 else{
                     if((in_array("all", json_decode($coupon->customer_id, true)) || in_array($customer_id,json_decode($coupon->customer_id, true))) ){
+                        $coupon->store?->loadMissing('storeConfig:id,store_id,verified_seller');
+                        if ($coupon->store) {
+                            $coupon->store['verified_seller'] = Helpers::get_verified_seller_status($coupon->store, $coupon->store?->storeConfig);
+                            unset($coupon->store['storeConfig']);
+                        }
                         $data[] = $coupon;
                     }
                 }

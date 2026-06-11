@@ -58,7 +58,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','store')->where('email_type', 'campaign_approve')->first())
                 @php($template= $template ?? $data?->email_template ?? 1)
-                <form action="{{ route('admin.business-settings.email-setup', ['store','campaign-approve']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['store','campaign-approve']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">

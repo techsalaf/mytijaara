@@ -49,7 +49,7 @@
     @endif
     <div class="tab-content">
         <div class="tab-pane fade show active">
-            <form action="{{ route('admin.business-settings.admin-landing-page-settings', 'promotional-section') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('admin.business-settings.admin-landing-page-settings-update', 'promotional-section') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="card mb-3">
                     <div class="card-body">
@@ -107,7 +107,7 @@
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                             @endif
-                        <div class="row g-3">
+                        {{-- <div class="row g-3">
                             <div class="col-sm-6">
                                 <label class="form-label d-block mb-3">
                                     {{translate('Banner')}}  <span class="text--primary">{{translate('(size: 3:1)')}}</span>
@@ -120,20 +120,14 @@
                                     </div>
                                 </label>
 
-                                <div class="upload-zone" data-preview="promoSectionImage" data-input="promoSectionInput" data-max-size="2">
-                                    <label class="upload-img-3 m-0 d-block" for="promoSectionInput">
-                                        <div class="img">
-                                            <img id="promoSectionImage" src="{{asset('/public/assets/admin/img/upload-4.png')}}" data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
-                                        </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" id="promoSectionInput" type="file" name="image" hidden>
-                                    </label>
-                                    <div class="drag-overlay">
-                                        <i class="tio-file-add-outlined"></i>
-                                        <p>{{ translate('Drop_image_here') }}</p>
+                                <label class="upload-img-3 m-0 d-block">
+                                    <div class="img">
+                                        <img src="{{asset('/public/assets/admin/img/upload-4.png')}}" data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
                                     </div>
-                                </div>
+                                        <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input"  type="file" name="image" hidden>
+                                </label>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit" class="btn btn--primary mb-2">{{translate('Add')}}</button>
@@ -145,7 +139,7 @@
             <div class="card">
                 <div class="card-header py-2">
                     <div class="search--button-wrapper">
-                        <h5 class="card-title">{{translate('Promotional_Banner_List')}}
+                        <h5 class="card-title">{{translate('Promotional_List')}}
                             {{-- <span class="badge badge-secondary ml-1">5</span>  --}}
                         </h5>
                     </div>
@@ -166,7 +160,7 @@
                                 <th class="border-0">{{translate('sl')}}</th>
                                 <th class="border-0">{{translate('Title')}}</th>
                                 <th class="border-0">{{translate('Sub Title')}}</th>
-                                <th class="border-0">{{translate('Image')}}</th>
+                                {{-- <th class="border-0">{{translate('Image')}}</th> --}}
                                 <th class="border-0">{{translate('Status')}}</th>
                                 <th class="text-center border-0">{{translate('messages.action')}}</th>
                             </tr>
@@ -185,11 +179,11 @@
                                             {{ $banner->sub_title }}
                                          </span>
                                     </td>
-                                    <td>
+                                    {{-- <td>
                                         <img
                                         src="{{ $banner->image_full_url ?? asset('/public/assets/admin/img/upload-3.png') }}"
                                         data-onerror-image="{{asset('/public/assets/admin/img/upload-3.png')}}" class="__size-105 onerror-image" alt="">
-                                    </td>
+                                    </td> --}}
                                     <td>
                                         <label class="toggle-switch toggle-switch-sm">
                                             <input type="checkbox"

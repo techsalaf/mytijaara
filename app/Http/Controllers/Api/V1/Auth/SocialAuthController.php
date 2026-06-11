@@ -153,7 +153,7 @@ class SocialAuthController extends Controller
                         'errors' => $errors
                     ], 403);
                 }
-                if($customer_verification && !$firebase_otp_verification && !auth()->user()->is_phone_verified && env('APP_MODE') != 'demo')
+                if($customer_verification && !$firebase_otp_verification && !auth()->user()->is_phone_verified && getEnvMode() != 'demo')
                 {
                     // $interval_time = BusinessSetting::where('key', 'otp_interval_time')->first();
                     // $otp_interval_time= isset($interval_time) ? $interval_time->value : 20;
@@ -350,7 +350,7 @@ class SocialAuthController extends Controller
                         'errors' => $errors
                     ], 403);
                 }
-                if($customer_verification && !$firebase_otp_verification && !auth()->user()->is_phone_verified && env('APP_MODE') != 'demo')
+                if($customer_verification && !$firebase_otp_verification && !auth()->user()->is_phone_verified && getEnvMode() != 'demo')
                 {
                     // $interval_time = BusinessSetting::where('key', 'otp_interval_time')->first();
                     // $otp_interval_time= isset($interval_time) ? $interval_time->value : 20;
@@ -561,7 +561,7 @@ class SocialAuthController extends Controller
                     'errors' => $errors
                 ], 403);
             }
-            if($customer_verification && !$firebase_otp_verification && !auth()->user()->is_phone_verified && env('APP_MODE') != 'demo')
+            if($customer_verification && !$firebase_otp_verification && !auth()->user()->is_phone_verified && getEnvMode() != 'demo')
             {
                 // $interval_time = BusinessSetting::where('key', 'otp_interval_time')->first();
                 // $otp_interval_time= isset($interval_time) ? $interval_time->value : 20;

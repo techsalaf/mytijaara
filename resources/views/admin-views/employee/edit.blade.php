@@ -4,6 +4,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @endpush
 
+@section('employee_list')
+active
+@endsection
+
 @section('content')
 <div class="content container-fluid">
     <!-- Page Heading -->
@@ -86,7 +90,7 @@
                             data-toggle="tooltip" data-placement="right"
                             data-original-title="{{ translate('messages.Required.')}}"> *
                             </span> </label>
-                                <input type="number" value="{{$employee['phone']}}" required name="phone" class="form-control" id="phone"
+                                <input type="tel" value="{{$employee['phone']}}" required name="phone" class="form-control" id="phone"
                                         placeholder="{{ translate('messages.Ex:') }} +88017********">
                             </div>
                         </div>
@@ -99,21 +103,16 @@
                                 {{ translate('messages.Employee_image') }} <small  class="text-danger"> ( {{ translate('messages.ratio') }} 1:1 )</small>
 
                             </div>
-                            <div class="upload-zone text-center py-3 my-auto" data-preview="viewer" data-input="customFileUpload" data-max-size="2">
+                            <div class="text-center py-3 my-auto">
                                 <img class="img--100 onerror-image" id="viewer"
                                 data-onerror-image="{{asset('/public/assets/admin/img/admin.png')}}"
                                 src="{{ $employee['image_full_url'] }}" alt="Employee thumbnail"/>
-                                <div class="drag-overlay">
-                                    <i class="tio-file-add-outlined"></i>
-                                    <p>{{ translate('Drop_image_here') }}</p>
-                                </div>
                             </div>
                             <div class="custom-file">
                                 <input type="file" name="image" id="customFileUpload" class="custom-file-input"
                                     accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
                                 <span class="custom-file-label">{{translate('messages.choose_file')}}</span>
                             </div>
-                            <p class="text-center fs-12 text-muted mt-1"><i class="tio-upload"></i> {{ translate('Drag_and_drop_or_click') }}</p>
                         </label>
                     </div>
                 </div>

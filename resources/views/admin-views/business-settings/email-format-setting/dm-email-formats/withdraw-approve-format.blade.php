@@ -60,7 +60,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','dm')->where('email_type', 'withdraw_approve')->first())
                 @php($template= $template ?? $data?->email_template ?? 6)
-                <form action="{{ route('admin.business-settings.email-setup', ['dm','withdraw-approve']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['dm','withdraw-approve']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">

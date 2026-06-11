@@ -572,7 +572,7 @@ $.fn.select2DynamicDisplay = function () {
         }
 
         // Attach event listener with debouncing
-        $(".select2-search input").on(
+        $rendered.find(".select2-search input").off("input").on(
             "input",
             debounce(function () {
                 const inputValue = $(this).val().toLowerCase();
@@ -586,7 +586,7 @@ $.fn.select2DynamicDisplay = function () {
             }, 100)
         );
 
-        $(".select2-search input").on("keydown", function (e) {
+        $rendered.find(".select2-search input").off("keydown").on("keydown", function (e) {
             if (e.which === 13) {
                 e.preventDefault();
 

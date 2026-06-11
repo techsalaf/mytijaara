@@ -166,10 +166,10 @@ class VendorController extends Controller
                 }
 
 
-                if( $st?->storeConfig?->minimum_stock_for_warning > 0){
+                if( $st?->storeConfig?->show_low_stock_count && $st?->storeConfig?->minimum_stock_for_warning > 0){
                     $items=  $st?->items()->where('stock' ,'<=' , $st?->storeConfig?->minimum_stock_for_warning );
                 } else{
-                    $items=  $st?->items()->where('stock',0 );
+                    $items=  $st?->items()->whereRaw('1 = 0');
                 }
 
                 $out_of_stock_count=  $st?->module->module_type != 'food' ?  $items->orderby('stock')->latest()->count() : 0;
@@ -186,6 +186,17 @@ class VendorController extends Controller
         $store->save();
         return response()->json(['message' => $store->active?translate('messages.store_opened'):translate('messages.store_temporarily_closed')], 200);
     }
+
+    // public function verifiedBadgePopupSeen(Request $request)
+    // {
+    //     $store = $request->vendor->stores[0];
+    //     Helpers::mark_verified_badge_popup_seen($store);
+
+    //     return response()->json([
+    //         'message' => translate('messages.updated_successfully'),
+    //         'has_seen_verified_badge_popup' => 1,
+    //     ], 200);
+    // }
 
     public function get_earning_data(Request $request)
     {

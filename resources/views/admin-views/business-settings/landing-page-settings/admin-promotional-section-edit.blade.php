@@ -121,7 +121,7 @@
                                 </div>
                                 <input type="hidden" name="lang[]" value="default">
                             @endif
-                        <div class="row g-3">
+                        {{-- <div class="row g-3">
                             <div class="col-sm-6">
                                 <label class="form-label d-block mb-3">
                                     {{translate('Banner')}}  <span class="text--primary">{{translate('(size: 3:1)')}}</span>
@@ -133,19 +133,15 @@
                                         {{ translate(IMAGE_FORMAT.' ' . 'Less Than 2MB') }}
                                     </div>
                                 </label>
-                                <div class="position-relative upload-zone" data-preview="promo_edit_image" data-input="promo_edit_input">
+                                <div class="position-relative">
                                     <label class="upload-img-3 m-0 d-block">
                                         <div class="img">
-                                            <img id="promo_edit_image"
+                                            <img
                                             src="{{ $banner['image_full_url'] ?? asset('/public/assets/admin/img/upload-4.png') }}"
                                             data-onerror-image="{{asset('/public/assets/admin/img/upload-4.png')}}" class="vertical-img mw-100 vertical onerror-image" alt="">
                                         </div>
-                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="image" id="promo_edit_input" hidden>
+                                            <input accept="{{IMAGE_EXTENSION}}" class="upload-file__input single_file_input" type="file" name="image"  hidden>
                                     </label>
-                                    <div class="drag-overlay">
-                                        <i class="tio-file-add-outlined"></i>
-                                        <p>{{translate('messages.Drop_image_here')}}</p>
-                                    </div>
                                     @if (isset($banner['image'] ))
                                         <span id="banner_image" class="remove_image_button remove-image dynamic-checkbox"
                                               data-id="banner_image"
@@ -156,7 +152,7 @@
                                     @endif
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
                         <div class="btn--container justify-content-end mt-20">
                             <button type="reset" class="btn btn--reset mb-2">{{translate('Reset')}}</button>
                             <button type="submit" class="btn btn--primary mb-2">{{translate('messages.Update')}}</button>

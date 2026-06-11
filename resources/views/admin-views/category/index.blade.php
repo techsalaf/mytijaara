@@ -112,28 +112,21 @@
                             <div class="h-100 d-flex align-items-center flex-column">
                                 <label class="mb-3 text-center">{{ translate('messages.image') }} <small
                                         class="text-danger">* ( {{ translate('messages.ratio') }} 1:1)</small></label>
-                                <div class="upload-zone" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
-                                    <label class="text-center my-auto position-relative d-inline-block" for="customFileEg1">
-                                        <img class="img--176 border" id="viewer"
-                                            @if (isset($category)) src="{{ asset('storage/app/public/category') }}/{{ $category['image'] }}"
-                                            @else
-                                            src="{{ asset('public/assets/admin/img/upload-img.png') }}" @endif
-                                            alt="image" />
-                                        <div class="icon-file-group">
-                                            <div class="icon-file">
-                                                <input type="file" name="image" id="customFileEg1"
-                                                    class="custom-file-input this-url  read-url"
-                                                    accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
-                                                <i class="tio-edit"></i>
-                                            </div>
+                                <label class="text-center my-auto position-relative d-inline-block">
+                                    <img class="img--176 border" id="viewer"
+                                        @if (isset($category)) src="{{ asset('storage/app/public/category') }}/{{ $category['image'] }}"
+                                        @else
+                                        src="{{ asset('public/assets/admin/img/upload-img.png') }}" @endif
+                                        alt="image" />
+                                    <div class="icon-file-group">
+                                        <div class="icon-file">
+                                            <input type="file" name="image" id="customFileEg1"
+                                                class="custom-file-input this-url  read-url"
+                                                accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
+                                            <i class="tio-edit"></i>
                                         </div>
-                                    </label>
-                                    <div class="drag-overlay">
-                                        <i class="tio-file-add-outlined"></i>
-                                        <p>{{ translate('Drop_image_here') }}</p>
                                     </div>
-                                </div>
-                                <p class="text-center fs-12 text-muted mt-2"><i class="tio-upload"></i> {{ translate('Drag_and_drop_or_click') }}</p>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -196,7 +189,7 @@
                                 <img class="avatar avatar-xss avatar-4by3 mr-2"
                                     src="{{ asset('public/assets/admin') }}/svg/components/placeholder-csv-format.svg"
                                     alt="Image Description">
-                                .{{ translate('messages.csv') }}
+                                {{ translate('messages.csv') }}
                             </a>
 
                         </div>
@@ -219,11 +212,19 @@
                                 <th class=" text-title border-0">{{ translate('messages.id') }}</th>
                                 <th class=" text-title border-0 w--1">{{ translate('messages.name') }}</th>
                                 <th class=" text-title border-0 text-center">{{ translate('messages.status') }}</th>
+
+                                @if (Config::get('module.current_module_type') == 'ecommerce')
                                 <th class=" text-title border-0 text-center">{{ translate('messages.featured') }}</th>
+                                @endif
                                 @if ($categoryWiseTax)
                                     <th class=" text-title border-0 ">{{ translate('messages.Vat/Tax') }}</th>
                                 @endif
-                                <th class=" text-title border-0 text-center">{{ translate('messages.priority') }}</th>
+                                <th class=" text-title border-0 text-center">{{ translate('messages.priority') }}
+                                        <span class="input-label-secondary"
+                                            data-toggle="tooltip" data-placement="right" data-original-title="{{translate('Categories will be displayed based on priority order: High first, then Medium, and finally Low ')}}"><img src="{{asset('public/assets/admin/img/info-circle.svg')}}"
+                                            alt="public/img"></span>
+
+                                </th>
                                 <th class=" text-title border-0 text-center">{{ translate('messages.action') }}</th>
                             </tr>
                         </thead>
@@ -251,6 +252,8 @@
                                             </span>
                                         </label>
                                     </td>
+                                    @if (Config::get('module.current_module_type') == 'ecommerce')
+
                                     <td>
                                         <label class="toggle-switch toggle-switch-sm"
                                             for="featuredCheckbox{{ $category->id }}">
@@ -275,6 +278,7 @@
                                             method="get" id="featuredCheckbox{{ $category->id }}_form">
                                         </form>
                                     </td>
+                                    @endif
 
 
                                     @if ($categoryWiseTax)
@@ -286,7 +290,7 @@
                                                         </span> </span>
                                                     <br>
                                                 @empty
-                                                    <span> {{ translate('messages.no_tax') }} </span>
+                                                    <span> {{ translate('messages.N/A') }} </span>
                                                 @endforelse
                                             </span>
                                         </td>

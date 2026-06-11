@@ -25,7 +25,7 @@
                 <div class="card">
                     <div class="card-body">
                         <form id="banner_form" class="custom-validation" data-ajax="true">
-                            
+
                             <div class="row g-3">
                                 <div class="col-lg-6">
                                     @if ($language)
@@ -125,20 +125,15 @@
                                     <div class="error-wrapper">
                                         <div class="h-100 d-flex flex-column">
                                             <label class="mt-auto mb-0 d-block text-center">{{translate('messages.banner_image')}} <small class="text-danger">* ( {{translate('messages.ratio')}} 3:1 )</small></label>
-                                            <div class="upload-zone text-center py-3 my-auto" data-preview="viewer" data-input="customFileEg1" data-max-size="2">
+                                            <div class="text-center py-3 my-auto">
                                                 <img class="img--vertical" id="viewer"
                                                     src="{{asset('public/assets/admin/img/900x400/img1.jpg')}}" alt="banner image"/>
-                                                <div class="drag-overlay">
-                                                    <i class="tio-file-add-outlined"></i>
-                                                    <p>{{ translate('Drop_image_here') }}</p>
-                                                </div>
                                             </div>
                                             <div class="custom-file">
                                                 <input type="file" name="image" id="customFileEg1" class="custom-file-input"
                                                     accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*" required>
                                                 <label class="custom-file-label" for="customFileEg1">{{translate('messages.choose_file')}}</label>
                                             </div>
-                                            <p class="text-center fs-12 text-muted mt-2"><i class="tio-upload"></i> {{ translate('Drag_and_drop_or_click') }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -196,7 +191,7 @@
                                     <th class="border-0">{{translate('messages.title')}}</th>
                                     <th class="border-0">{{translate('messages.type')}}</th>
                                     <th class="border-0 text-center">{{translate('messages.featured')}} <span class="input-label-secondary"
-                                        data-toggle="tooltip" data-placement="right" data-original-title="{{translate('if_you_turn/off_on_this_featured,_it_will_effect_on_website_&_user_app')}}"><img src="{{asset('public/assets/admin/img/info-circle.svg')}}"
+                                        data-toggle="tooltip" data-placement="right" data-original-title="{{translate('If the feature status is turned ON/OFF, the banner will be displayed on the module homepage on the website and in the user app')}}"><img src="{{asset('public/assets/admin/img/info-circle.svg')}}"
                                             alt="public/img"></span></th>
                                     <th class="border-0 text-center">{{translate('messages.status')}}</th>
                                     <th class="border-0 text-center">{{translate('messages.action')}}</th>
@@ -231,8 +226,8 @@
                                             data-image-off="{{ asset('/public/assets/admin/img/modal/basic_campaign_off.png') }}"
                                             data-title-on="{{ translate('By_Turning_ON_As_Featured!') }}"
                                             data-title-off="{{ translate('By_Turning_OFF_As_Featured!') }}"
-                                            data-text-on="<p>{{ translate('If_you_turn_on_this_featured,_then_promotional_banner_will_show_on_website_and_user_app_with_store_or_item.') }}</p>"
-                                            data-text-off="<p>{{ translate('If_you_turn_off_this_featured,_then_promotional_banner_won’t_show_on_website_and_user_app') }}</p>"
+                                            data-text-on="<p>{{ translate('If the feature status is turned ON, the banner will be displayed on the module homepage on the website and in the user app.') }}</p>"
+                                            data-text-off="<p>{{ translate('If the feature status is turned OFF, the banner won’t be displayed on the module homepage on the website and in the user app') }}</p>"
                                             class="toggle-switch-input  dynamic-checkbox" id="featuredCheckbox{{$banner->id}}" {{$banner->featured?'checked':''}}>
                                             <span class="toggle-switch-label">
                                                 <span class="toggle-switch-indicator"></span>
@@ -338,7 +333,7 @@
 
             $('.js-data-example-ajax').select2({
                 ajax: {
-                    url: '{{url('/')}}/admin/store/get-stores',
+                    url: '{{ route('admin.store.get-stores') }}',
                     data: function (params) {
                         return {
                             q: params.term, // search term

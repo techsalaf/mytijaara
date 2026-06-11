@@ -17,6 +17,10 @@ class OrderTransaction extends Model
     {
         return $this->belongsTo(Order::class);
     }
+    public function store()
+    {
+        return $this->belongsTo(Store::class,'vendor_id','vendor_id');
+    }
 
     public function delivery_man()
     {

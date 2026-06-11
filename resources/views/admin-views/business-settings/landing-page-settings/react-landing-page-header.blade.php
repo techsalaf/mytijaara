@@ -63,7 +63,7 @@
 
     <div class="tab-content">
         <div class="tab-pane fade show active">
-            <!-- <form action="{{ route('admin.business-settings.react-landing-page-settings', 'header-section') }}" method="POST" enctype="multipart/form-data">
+            <!-- <form action="{{ route('admin.business-settings.react-landing-page-settings-update', 'header-section') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <h5 class="card-title mb-3 mt-3">
                     <div class="d-flex justify-content-between align-items-center w-100">
@@ -184,17 +184,13 @@ if (isset($header_tag_line->translations) && count($header_tag_line->translation
                                 <label class="form-label d-block mb-2">
                                     {{ translate('messages.Icon') }} <span class="text--primary">{{ translate('(size: 1:1)') }}</span>
                                 </label>
-                                <label class="upload-img-3 m-0 upload-zone" data-preview="react_header_icon_image" data-input="react_header_icon_input">
+                                <label class="upload-img-3 m-0">
                                     <div class="position-relative">
                                     <div class="img">
-                                        <img id="react_header_icon_image"
+                                        <img
                                         src="{{\App\CentralLogics\Helpers::get_full_url('header_icon', $header_icon?->value?? '', $header_icon?->storage[0]?->value ?? 'public','aspect_1')}}" data-onerror-image="{{asset('/public/assets/admin/img/aspect-1.png')}}" class="img__aspect-1 mw-100 min-w-135px onerror-image" alt="">
                                     </div>
-                                    <input type="file" name="image" id="react_header_icon_input" hidden>
-                                    <div class="drag-overlay">
-                                        <i class="tio-file-add-outlined"></i>
-                                        <p>{{translate('messages.Drop_image_here')}}</p>
-                                    </div>
+                                    <input type="file"  name="image" hidden>
                                        @if (isset($header_icon['value']))
                                             <span id="header_icon" class="remove_image_button remove-image"
                                                   data-id="header_icon"
@@ -213,18 +209,15 @@ if (isset($header_tag_line->translations) && count($header_tag_line->translation
                                         </span>
                                 </span>
                                 </label>
-                                <label class="upload-img-3 m-0 upload-zone" data-preview="react_header_banner_image" data-input="react_header_banner_input">
+                                <label class="upload-img-3 m-0">
                                     <div class="position-relative">
                                     <div class="img">
-                                        <img id="react_header_banner_image"
+                                        <img
                                             src="{{\App\CentralLogics\Helpers::get_full_url('header_banner', $header_banner?->value?? '', $header_banner?->storage[0]?->value ?? 'public','aspect_1')}}" data-onerror-image="{{asset('/public/assets/admin/img/aspect-1.png')}}"
                                             class="img__aspect-1 mw-100 min-w-135px onerror-image" alt="">
                                     </div>
-                                        <input type="file" name="banner_image" id="react_header_banner_input" hidden>
-                                        <div class="drag-overlay">
-                                            <i class="tio-file-add-outlined"></i>
-                                            <p>{{translate('messages.Drop_image_here')}}</p>
-                                        </div>
+                                        <input type="file" name="banner_image"  hidden>
+
                                         </div>
                                 </label>
                             </div>
@@ -236,7 +229,7 @@ if (isset($header_tag_line->translations) && count($header_tag_line->translation
                     <button type="submit"   class="btn btn--primary mb-2">{{translate('Save Information')}}</button>
                 </div>
             </form> -->
-            <form action="{{ route('admin.business-settings.react-landing-page-settings', 'header-section') }}"
+            <form action="{{ route('admin.business-settings.react-landing-page-settings-update', 'header-section') }}"
                 method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="card mb-20">

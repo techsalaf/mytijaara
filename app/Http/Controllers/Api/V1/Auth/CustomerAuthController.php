@@ -69,7 +69,7 @@ class CustomerAuthController extends Controller
 
             }
 
-            if(env('APP_MODE')=='test')
+            if(getEnvMode()=='test')
             {
                 if($request['otp']=="123456")
                 {
@@ -511,7 +511,7 @@ class CustomerAuthController extends Controller
                 }
 
                 $otp = rand(100000, 999999);
-                if(env('APP_MODE') == 'test'){
+                if(getEnvMode() == 'test'){
                     $otp = '123456';
                 }
                 DB::table('phone_verifications')->updateOrInsert(['phone' => $request['phone']],
@@ -537,7 +537,7 @@ class CustomerAuthController extends Controller
                 }
 
                 $token = null;
-                if(env('APP_MODE') != 'test' && $response !== 'success') {
+                if(getEnvMode() != 'test' && $response !== 'success') {
                     $errors = [];
                     array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms')]);
                     return response()->json([
@@ -549,7 +549,7 @@ class CustomerAuthController extends Controller
         }elseif (isset($login_settings['email_verification_status']) && $login_settings['email_verification_status'] == 1){
             $mail =0;
             $otp = rand(100000, 999999);
-            if(env('APP_MODE') == 'test'){
+            if(getEnvMode() == 'test'){
                 $otp = '123456';
             }
             DB::table('email_verifications')->updateOrInsert(['email' => $request['email']],
@@ -572,7 +572,7 @@ class CustomerAuthController extends Controller
                 $mailResponse=null;
             }
             $token = null;
-            if(env('APP_MODE') != 'test' && $mailResponse !== 'success') {
+            if(getEnvMode() != 'test' && $mailResponse !== 'success') {
                 $errors = [];
                 array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_mail')]);
                 return response()->json([
@@ -1027,7 +1027,7 @@ class CustomerAuthController extends Controller
             }
 
             $otp = rand(100000, 999999);
-            if(env('APP_MODE') == 'test'){
+            if(getEnvMode() == 'test'){
                 $otp = '123456';
             }
             DB::table('phone_verifications')->updateOrInsert(['phone' => $request_data['phone']],
@@ -1053,7 +1053,7 @@ class CustomerAuthController extends Controller
                 $response = SMS_module::send($request_data['phone'],$otp);
             }
 
-            if((env('APP_MODE') != 'test') && $response !== 'success')
+            if((getEnvMode() != 'test') && $response !== 'success')
             {
                 $errors = [];
                 array_push($errors, ['code' => 'otp', 'message' => translate('messages.failed_to_send_sms')]);
@@ -1146,7 +1146,7 @@ class CustomerAuthController extends Controller
 
             $referar_user = User::where('ref_code', '=', $request->ref_code)->first();
             if (!$referar_user || !$referar_user->status) {
-                return response()->json(['errors' => Helpers::error_formater('ref_code', translate('messages.referer_code_not_found'))], 405);
+                return response()->json(['errors' => Helpers::error_formater('ref_code', translate('Invalid referer code'))], 405);
             }
 
             if (WalletTransaction::where('reference', $request->phone)->first()) {

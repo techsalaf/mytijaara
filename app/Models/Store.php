@@ -355,6 +355,13 @@ class Store extends Model
         return Helpers::get_full_url('store', $value, 'public');
     }
 
+
+    public function wallet()
+    {
+        return $this->hasOne(StoreWallet::class,'vendor_id','vendor_id');
+    }
+
+
     public function package(): BelongsTo
     {
         return $this->belongsTo(SubscriptionPackage::class, 'package_id');
@@ -578,11 +585,17 @@ class Store extends Model
 
     public function scopeWithOpen($query, $longitude, $latitude): void
     {
+        $longitude = $longitude ? $longitude : 0;
+        $latitude = $latitude ? $latitude : 0;
+
         $query->selectRaw('*, IF(((select count(*) from `store_schedule` where `stores`.`id` = `store_schedule`.`store_id` and `store_schedule`.`day` = '.now()->dayOfWeek.' and `store_schedule`.`opening_time` < "'.now()->format('H:i:s').'" and `store_schedule`.`closing_time` >"'.now()->format('H:i:s').'") > 0), true, false) as open,ST_Distance_Sphere(point(longitude, latitude),point('.$longitude.', '.$latitude.')) as distance');
     }
 
     public function scopeWithOpenWithDeliveryTime($query, $longitude, $latitude): void
     {
+        $longitude = $longitude ? $longitude : 0;
+        $latitude = $latitude ? $latitude : 0;
+
         $query->selectRaw('*, IF(((select count(*) from `store_schedule` where `stores`.`id` = `store_schedule`.`store_id` and `store_schedule`.`day` = '.now()->dayOfWeek.' and `store_schedule`.`opening_time` < "'.now()->format('H:i:s').'" and `store_schedule`.`closing_time` >"'.now()->format('H:i:s').'") > 0), true, false) as open,ST_Distance_Sphere(point(longitude, latitude),point('.$longitude.', '.$latitude.')) as distance, CASE WHEN delivery_time IS NULL THEN 9999  WHEN delivery_time LIKE  "%hours%" THEN CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(delivery_time, "-", 1), " ", 1) AS UNSIGNED) * 60 WHEN delivery_time LIKE "%min%" OR delivery_time LIKE "%minute%" THEN CAST(SUBSTRING_INDEX(delivery_time, "-", 1) AS UNSIGNED) ELSE 9999 END AS min_delivery_time');
     }
 

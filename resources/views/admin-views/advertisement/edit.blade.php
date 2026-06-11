@@ -231,20 +231,16 @@ active
                                 <div class="d-flex flex-column align-items-center gap-3 flex-shrink-0">
                                     <p class="title-color mb-0">{{ translate('Profile Image') }} <span class="text-danger">({{ translate('Ratio - 1:1') }})</span></p>
 
-                                    <div class="upload-file upload-zone" data-preview="editProfilePrevImage" data-input="editProfileImageInput" data-max-size="2">
-                                        <input type="file" class="cover_attachment js-upload-input" id="editProfileImageInput"
+                                    <div class="upload-file">
+                                        <input type="file" class="cover_attachment js-upload-input"
                                             data-target="profile-prev-image" name="profile_image"
                                             accept=".webp, .png,.jpg,.jpeg,.gif, |image/*">
                                         <div class="upload-file__img">
-                                            <img id="editProfilePrevImage" src="{{ $advertisement?->profile_image_full_url }}" data-src="{{asset('public/assets/admin/img/media/upload-file.png')}}" alt="" >
+                                            <img src="{{ $advertisement?->profile_image_full_url }}" data-src="{{asset('public/assets/admin/img/media/upload-file.png')}}" alt="" >
                                         </div>
                                         <button class="remove-file-button" type="button">
                                             <i class="tio-clear"></i>
                                         </button>
-                                        <div class="drag-overlay">
-                                            <i class="tio-file-add-outlined"></i>
-                                            <p>{{ translate('Drop_image_here') }}</p>
-                                        </div>
                                     </div>
 
                                     <p class="opacity-75 max-w220 mx-auto text-center fs-12">
@@ -255,20 +251,16 @@ active
                                 </div>
                                 <div class="d-flex flex-column align-items-center gap-3">
                                     <p class="title-color mb-0">{{ translate('Upload Cover') }} <span class="text-danger">({{ translate('Ratio - 2:1') }})</span></p>
-                                    <div class="upload-file upload-zone" data-preview="editCoverPrevImage" data-input="editCoverImageInput" data-max-size="2">
-                                        <input type="file" class="cover_attachment js-upload-input" id="editCoverImageInput"
+                                    <div class="upload-file">
+                                        <input type="file" class="cover_attachment js-upload-input"
                                             data-target="main-image" name="cover_image"
                                             accept=".webp, .png,.jpg,.jpeg,.gif, |image/*">
                                         <div class="upload-file__img upload-file__img_banner aspect-2-1">
-                                            <img id="editCoverPrevImage" src="{{ $advertisement?->cover_image_full_url }}" data-src="{{asset('public/assets/admin/img/media/banner-upload-file.png')}}" alt="" >
+                                            <img src="{{ $advertisement?->cover_image_full_url }}" data-src="{{asset('public/assets/admin/img/media/banner-upload-file.png')}}" alt="" >
                                         </div>
                                         <button class="remove-file-button" type="button">
                                             <i class="tio-clear"></i>
                                         </button>
-                                        <div class="drag-overlay">
-                                            <i class="tio-file-add-outlined"></i>
-                                            <p>{{ translate('Drop_image_here') }}</p>
-                                        </div>
                                     </div>
 
                                     <p class="opacity-75 max-w220 mx-auto text-center fs-12">
@@ -615,7 +607,7 @@ active
             $(document).on('ready', function() {
                     $('.js-data-example-ajax').select2({
                         ajax: {
-                            url: '{{ url('/') }}/admin/store/get-stores',
+                            url: '{{ route('admin.store.get-stores') }}',
                             data: function(params) {
                                 return {
                                     q: params.term, // search term

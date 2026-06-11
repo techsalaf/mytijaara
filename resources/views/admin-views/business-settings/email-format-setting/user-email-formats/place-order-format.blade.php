@@ -57,7 +57,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','user')->where('email_type', 'new_order')->first())
                 @php($template= $template ?? $data?->email_template ?? 3)
-                <form action="{{ route('admin.business-settings.email-setup', ['user','new-order']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['user','new-order']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">

@@ -93,31 +93,24 @@
                         <h4>{{translate('messages.Brand Logo')}} <small class="text-danger">*</small></h4>
                         <p class="fs-12">{{ translate('messages.It will show in website & app.') }}</p>
                         <div class="d-flex justify-content-center">
-                            <div class="upload-zone" data-preview="viewer2" data-input="customFileEg2" data-max-size="1">
-                                <label class="text-center position-relative d-inline-block mb-3" for="customFileEg2">
-                                    <img class="img--176 border" id="viewer2"
-                                            @if(isset($brand))
-                                                src="{{ $brand['image_full_url'] }}"
-                                            @else
-                                                src="{{asset('public/assets/admin/img/upload-img.png')}}"
-                                            @endif
-                                            alt="image"/>
-                                    <div class="icon-file-group">
-                                        <div class="icon-file">
-                                            <input type="file" name="image" id="customFileEg2" class="custom-file-input read-url"
-                                                    accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*" >
-                                            <i class="tio-edit"></i>
-                                        </div>
+                            <label class="text-center position-relative d-inline-block mb-3">
+                                <img class="img--176 border" id="viewer2"
+                                        @if(isset($brand))
+                                            src="{{ $brand['image_full_url'] }}"
+                                        @else
+                                            src="{{asset('public/assets/admin/img/upload-img.png')}}"
+                                        @endif
+                                        alt="image"/>
+                                <div class="icon-file-group">
+                                    <div class="icon-file">
+                                        <input type="file" name="image" id="customFileEg2" class="custom-file-input read-url"
+                                                accept=".webp, .jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*" >
+                                        <i class="tio-edit"></i>
                                     </div>
-                                </label>
-                                <div class="drag-overlay">
-                                    <i class="tio-file-add-outlined"></i>
-                                    <p>{{translate('messages.Drop_image_here')}}</p>
                                 </div>
-                            </div>
+                            </label>
                         </div>
                         <p class="text-center fs-12">{{translate('messages.JPG, JPEG, PNG Less Than 1MB (Ratio 1 : 1)')}}</p>
-                        <p class="text-center fs-12 text-muted"><i class="tio-upload"></i> {{translate('messages.Drag_and_drop_image_or_click_to_browse')}}</p>
                     </div>
 
                 </div>

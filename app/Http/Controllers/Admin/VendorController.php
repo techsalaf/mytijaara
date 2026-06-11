@@ -36,11 +36,13 @@ use App\Models\WithdrawRequest;
 use App\Models\Zone;
 use App\Scopes\StoreScope;
 use Brian2694\Toastr\Facades\Toastr;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -161,7 +163,7 @@ class VendorController extends Controller
 
     public function edit($id)
     {
-        if (env('APP_MODE') == 'demo' && $id == 2) {
+        if (getEnvMode() == 'demo' && $id == 2) {
             Toastr::warning(translate('messages.you_can_not_edit_this_store_please_add_a_new_store_to_edit'));
 
             return back();
@@ -280,7 +282,7 @@ class VendorController extends Controller
 
     public function destroy(Request $request, Store $store)
     {
-        if (env('APP_MODE') == 'demo' && $store->id == 2) {
+        if (getEnvMode() == 'demo' && $store->id == 2) {
             Toastr::warning(translate('messages.you_can_not_delete_this_store_please_add_a_new_store_to_delete'));
 
             return back();
@@ -395,6 +397,7 @@ class VendorController extends Controller
             } else {
 
                 $foods = Item::withoutGlobalScope(\App\Scopes\StoreScope::class)->where('store_id', $store->id)
+                 ->where('is_approved', 1)
                     ->when(isset($key), function ($q) use ($key) {
                         $q->where(function ($q) use ($key) {
                             foreach ($key as $value) {
@@ -420,6 +423,22 @@ class VendorController extends Controller
             return view('admin-views.vendor.view.transaction', compact('store', 'sub_tab'));
         } elseif ($tab == 'reviews') {
             return view('admin-views.vendor.view.review', compact('store', 'sub_tab'));
+        } elseif ($tab == 'reels') {
+            if (!$this->canAccessStoreReelsTab($store)) {
+                Toastr::error(translate('messages.unknown_tab'));
+
+                return back();
+            }
+
+            $filteredQuery = $this->getStoreReelsFilteredQuery($request, $store->id);
+            $reels = $this->applyStoreReelSorting(clone $filteredQuery, $request)
+                ->paginate(config('default_pagination'))
+                ->appends($request->query());
+
+            $overview = $this->getStoreReelsOverview($store->id);
+            $filterCount = $this->getStoreReelFilterCount($request);
+
+            return view('reelsmodule::admin.vendor-view.reels', compact('store', 'reels', 'overview', 'filterCount'));
 
         } elseif ($tab == 'conversations') {
             $user = UserInfo::where(['vendor_id' => $store->vendor->id])->first();
@@ -508,6 +527,182 @@ class VendorController extends Controller
         Toastr::error(translate('messages.unknown_tab'));
 
         return back();
+    }
+
+    private function canAccessStoreReelsTab(Store $store): bool
+    {
+        return addon_published_status('ReelsModule')
+            && class_exists('Modules\\ReelsModule\\Entities\\Reel')
+            && class_exists('Modules\\ReelsModule\\Entities\\ReelEngagement')
+            && in_array($store->module_type, ['grocery', 'food', 'ecommerce', 'pharmacy'], true);
+    }
+
+    private function getStoreReelsFilteredQuery(Request $request, int $storeId)
+    {
+        $reelModel = 'Modules\\ReelsModule\\Entities\\Reel';
+        $reelEngagementModel = 'Modules\\ReelsModule\\Entities\\ReelEngagement';
+        $keywords = array_filter(explode(' ', (string) $request->get('search', '')));
+        $reelStatuses = array_values(array_filter((array) $request->input('reel_status', [])));
+        $today = Carbon::today()->toDateString();
+
+        $query = $reelModel::with(['store', 'storage'])
+            ->withCount([
+                'engagements as total_views' => fn (Builder $builder) => $builder->where('type', $reelEngagementModel::TYPE_VIEW),
+                'engagements as total_likes' => fn (Builder $builder) => $builder->where('type', $reelEngagementModel::TYPE_LIKE),
+                'engagements as total_store_visits' => fn (Builder $builder) => $builder->where('type', $reelEngagementModel::TYPE_VISIT),
+            ])
+            ->where('store_id', $storeId)
+            ->when($request->filled('status_filter'), function ($builder) use ($request) {
+                $builder->where('status', $request->status_filter === 'active' ? 1 : 0);
+            })
+            ->when(!empty($keywords), function ($builder) use ($keywords) {
+                foreach ($keywords as $value) {
+                    $builder->where(function ($subQuery) use ($value) {
+                        $subQuery->where('id', 'like', "%{$value}%")
+                            ->orWhere('description', 'like', "%{$value}%")
+                            ->orWhereHas('store', function ($storeQuery) use ($value) {
+                                $storeQuery->where('name', 'like', "%{$value}%");
+                            })
+                            ->orWhereHas('translations', function ($translationQuery) use ($value) {
+                                $translationQuery->where('key', 'description')
+                                    ->where('value', 'like', "%{$value}%");
+                            });
+                    });
+                }
+            });
+
+        $this->applyStoreReelStatusFilter($query, $reelStatuses, $today);
+        $this->applyStoreReelUploadDateFilter($query, $request);
+
+        return $query;
+    }
+
+    private function applyStoreReelSorting($query, Request $request)
+    {
+        return match ($request->input('sort_by')) {
+            'most_viewed' => $query->orderByDesc('total_views')->latest('id'),
+            'most_liked' => $query->orderByDesc('total_likes')->latest('id'),
+            'most_store_visit' => $query->orderByDesc('total_store_visits')->latest('id'),
+            default => $query->latest(),
+        };
+    }
+
+    private function applyStoreReelStatusFilter($query, array $statuses, string $today): void
+    {
+        $statuses = array_values(array_diff($statuses, ['all']));
+        if (empty($statuses)) {
+            return;
+        }
+
+        $query->where(function ($builder) use ($statuses, $today) {
+            foreach ($statuses as $status) {
+                if ($status === 'deactivated') {
+                    $builder->orWhere('status', 0);
+                }
+
+                if ($status === 'live') {
+                    $builder->orWhere(function ($subQuery) use ($today) {
+                        $subQuery->where('status', 1)
+                            ->where(function ($liveQuery) use ($today) {
+                                $liveQuery->where('is_always_visible', 1)
+                                    ->orWhere(function ($dateQuery) use ($today) {
+                                        $dateQuery->where('is_always_visible', 0)
+                                            ->whereDate('start_date', '<=', $today)
+                                            ->whereDate('end_date', '>=', $today);
+                                    });
+                            });
+                    });
+                }
+
+                if ($status === 'upcoming') {
+                    $builder->orWhere(function ($subQuery) use ($today) {
+                        $subQuery->where('status', 1)
+                            ->where('is_always_visible', 0)
+                            ->whereDate('start_date', '>', $today);
+                    });
+                }
+
+                if ($status === 'expired') {
+                    $builder->orWhere(function ($subQuery) use ($today) {
+                        $subQuery->where('status', 1)
+                            ->where('is_always_visible', 0)
+                            ->whereDate('end_date', '<', $today);
+                    });
+                }
+            }
+        });
+    }
+
+    private function applyStoreReelUploadDateFilter($query, Request $request): void
+    {
+        $filterDate = $request->input('filter_date', 'all_time');
+
+        match ($filterDate) {
+            'this_week' => $query->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]),
+            'this_month' => $query->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()]),
+            'custom' => $this->applyStoreReelCustomDateFilter($query, $request),
+            default => null,
+        };
+    }
+
+    private function applyStoreReelCustomDateFilter($query, Request $request): void
+    {
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+    }
+
+    private function getStoreReelsOverview(int $storeId): array
+    {
+        $reelModel = 'Modules\\ReelsModule\\Entities\\Reel';
+        $reelEngagementModel = 'Modules\\ReelsModule\\Entities\\ReelEngagement';
+
+        return [
+            'total_reels' => $reelModel::query()->where('store_id', $storeId)->count(),
+            'total_views' => $reelEngagementModel::query()
+                ->where('type', $reelEngagementModel::TYPE_VIEW)
+                ->whereHas('reel', fn (Builder $builder) => $builder->where('store_id', $storeId))
+                ->count(),
+            'total_likes' => $reelEngagementModel::query()
+                ->where('type', $reelEngagementModel::TYPE_LIKE)
+                ->whereHas('reel', fn (Builder $builder) => $builder->where('store_id', $storeId))
+                ->count(),
+            'total_store_visits' => $reelEngagementModel::query()
+                ->where('type', $reelEngagementModel::TYPE_VISIT)
+                ->whereHas('reel', fn (Builder $builder) => $builder->where('store_id', $storeId))
+                ->count(),
+        ];
+    }
+
+    private function getStoreReelFilterCount(Request $request): int
+    {
+        $count = 0;
+
+        if ($request->filled('status_filter')) {
+            $count++;
+        }
+
+        if (!empty(array_diff(array_filter((array) $request->input('reel_status', [])), ['all']))) {
+            $count++;
+        }
+
+        if ($request->filled('sort_by') && $request->input('sort_by') !== 'all') {
+            $count++;
+        }
+
+        if ($request->filled('filter_date') && $request->input('filter_date') !== 'all_time') {
+            $count++;
+        }
+
+        if ($request->filled('search')) {
+            $count++;
+        }
+
+        return $count;
     }
 
     public function list(Request $request)
@@ -723,6 +918,9 @@ class VendorController extends Controller
             ->when($request->module_id, function ($query) use ($request) {
                 $query->where('module_id', $request->module_id);
             })
+            ->when($request->show_active == 1, function ($query)  {
+                $query->active();
+            })
             ->when($request->module_type, function ($query) use ($request) {
                 $query->whereHas('module', function ($q) use ($request) {
                     $q->where('module_type', $request->module_type);
@@ -736,8 +934,15 @@ class VendorController extends Controller
                     'text' => $store->name.' ('.$store->zone?->name.')',
                 ];
             });
-        if (isset($request->all)) {
-            $data[] = (object) ['id' => 'all', 'text' => translate('messages.all')];
+
+
+         if (isset($request->all)) {
+            $allOption = (object) [
+            'id'   => $request->all  ? "all" : false,
+            'text' => translate('messages.all')
+            ];
+
+            $data->prepend($allOption);
         }
 
         return response()->json($data);
@@ -834,6 +1039,41 @@ class VendorController extends Controller
         }
 
         Toastr::success(translate('messages.store_status_updated'));
+
+        return back();
+    }
+
+    public function verifiedSeller(Store $store)
+    {
+        $status = Helpers::toggle_verified_seller($store);
+
+        Toastr::success($status ? translate('Verified Badge Given') : translate('messages.Removed Verified badge'));
+
+        return back();
+    }
+
+    public function verifiedSellerAll()
+    {
+        $storeIds = collect(Helpers::get_verified_seller_eligible_stores(countOnly: false, moduleId: config('module.current_module_id')))
+            ->pluck('id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($storeIds->isEmpty()) {
+            Toastr::warning(translate('messages.no_data_found'));
+
+            return back();
+        }
+
+        Store::whereIn('id', $storeIds)->get()->each(function ($store) {
+            Helpers::toggle_verified_seller($store, 1);
+        });
+        
+        Helpers::deleteCacheData('verified_seller_eligible_providers_');
+        Helpers::deleteCacheData('verified_seller_eligible_stores_');
+
+        Toastr::success(translate('Verified Badge Given'));
 
         return back();
     }
@@ -1308,9 +1548,14 @@ class VendorController extends Controller
 
         if ($request->button == 'import') {
 
+            if ($collections->isEmpty()) {
+                Toastr::error(translate('messages.please upload a file with valid data'));
+                return back();
+            }
+
             if (Store::whereIn('email', $email)->orWhereIn('phone', $phone)->exists()
             ) {
-                Toastr::error(translate('messages.duplicate_email_or_phone_exists_at_the_database'));
+                Toastr::error(translate('messages.email_or_phone_exists'));
 
                 return back();
             }
@@ -1624,6 +1869,15 @@ class VendorController extends Controller
             'from_date' => 'required_if:type,date_wise',
             'to_date' => 'required_if:type,date_wise',
         ]);
+        if($request->type == 'id_wise'){
+            $vendors = Vendor::with('stores')->whereBetween('id', [$request['start_id'], $request['end_id']])->whereHas('stores', function ($q) {
+                return $q->where('module_id', Config::get('module.current_module_id'));
+            })->get();
+            if($vendors->isEmpty()){
+                Toastr::error(translate('messages.please provide valid id range'));
+                return back();
+            }
+        }
         $vendors = Vendor::with('stores')
             ->when($request['type'] == 'date_wise', function ($query) use ($request) {
                 $query->whereBetween('created_at', [$request['from_date'].' 00:00:00', $request['to_date'].' 23:59:59']);

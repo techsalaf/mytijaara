@@ -370,6 +370,27 @@ class ItemController extends Controller
         return response()->json($items, 200);
     }
 
+    public function get_top_rated_products(Request $request)
+    {
+        Helpers::setZoneIds($request);
+
+        $type = $request->query('type', 'all');
+        $min_price = $request->query('min_price');
+        $max_price = $request->query('max_price');
+        $rating_count = $request->query('rating_count');
+
+        $filter = $request->query('filter', '');
+        $filter = $filter?(is_array($filter)?$filter:str_getcsv(trim($filter, "[]"), ',')):'';
+        $category_ids = $request->query('category_ids', '');
+
+        $zone_id= $request->header('zoneId');
+        $items = ProductLogic::top_rated_products($zone_id, $request['limit']??25, $request['offset']??1, $type, $category_ids, $filter, $min_price, $max_price, $rating_count, $request['search']);
+        $items['categories'] = $items['categories'];
+        $items['products'] = Helpers::productListDataFormatting($items['products']);
+
+        return response()->json($items, 200);
+    }
+
     public function get_discounted_products(Request $request)
     {
         Helpers::setZoneIds($request);
@@ -439,7 +460,16 @@ class ItemController extends Controller
                     })
                     ->first();
             }
-            
+            // Visitor Log
+            if ($item && auth('api')->check()) {
+                Helpers::visitor_log(
+                    model: 'item',
+                    user_id: auth('api')->id(),
+                    visitor_log_id: $item->id,
+                    order_count: false
+                );
+            }
+
             $store = StoreLogic::get_store_details($item->store_id);
             if($store)
             {
@@ -861,6 +891,28 @@ class ItemController extends Controller
         return response()->json($items, 200);
     }
 
+    public function get_organic_products(Request $request)
+    {
+        Helpers::setZoneIds($request);
+
+        $type = $request->query('type', 'all');
+        $min_price = $request->query('min_price');
+        $max_price = $request->query('max_price');
+        $rating_count = $request->query('rating_count');
+
+        $filter = $request->query('filter', '');
+        $filter = $filter?(is_array($filter)?$filter:str_getcsv(trim($filter, "[]"), ',')):'';
+        $category_ids = $request->query('category_ids', '');
+
+        $zone_id = $request->header('zoneId');
+
+        $items = ProductLogic::organic_products($zone_id, $request['limit']??25, $request['offset']??1, $type, $category_ids, $filter, $min_price, $max_price, $rating_count, $request['search']);
+        $items['categories'] = $items['categories'];
+        $items['products'] = Helpers::productListDataFormatting($items['products']);
+
+        return response()->json($items, 200);
+    }
+
     public function get_products(Request $request)
     {
         Helpers::setZoneIds($request);
@@ -889,6 +941,12 @@ class ItemController extends Controller
                 break;
             case 'new':
                 $items = ProductLogic::get_new_products($zone_id, $type, $min_price, $max_price, $product_id, $limit, $offset, $filter, $rating_count);
+                break;
+            case 'top_rated':
+                $items = ProductLogic::top_rated_products($zone_id, $limit, $offset, $type, $category_ids, $filter, $min_price, $max_price, $rating_count, $request['search']);
+                break;
+            case 'organic':
+                $items = ProductLogic::organic_products($zone_id, $limit, $offset, $type, $category_ids, $filter, $min_price, $max_price, $rating_count, $request['search']);
                 break;
             case 'category':
                 $validator = Validator::make($request->all(), [
@@ -928,6 +986,27 @@ class ItemController extends Controller
     public function getNutritionNameList(){
         $names= Nutrition::select(['nutrition'])->pluck('nutrition');
         return response()->json($names, 200);
+    }
+
+    public function get_recently_viewed_products(Request $request)
+    {
+        Helpers::setZoneIds($request);
+
+        $type = $request->query('type', 'all');
+        $min_price = $request->query('min_price');
+        $max_price = $request->query('max_price');
+        $rating_count = $request->query('rating_count');
+
+        $filter = $request->query('filter', '');
+        $filter = $filter?(is_array($filter)?$filter:str_getcsv(trim($filter, "[]"), ',')):'';
+        $category_ids = $request->query('category_ids', '');
+
+        $zone_id= $request->header('zoneId');
+        $items = ProductLogic::recently_viewed_products($zone_id, $request['limit']??25, $request['offset']??1, $type, $category_ids, $filter, $min_price, $max_price, $rating_count, $request['search']);
+        $items['categories'] = $items['categories'];
+        $items['products'] = Helpers::productListDataFormatting($items['products']);
+
+        return response()->json($items, 200);
     }
 
 

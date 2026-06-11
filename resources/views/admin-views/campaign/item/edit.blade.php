@@ -22,12 +22,11 @@
         </div>
         <!-- End Page Header -->
         <form
-        id="campaign_form"
-                enctype="multipart/form-data" class="custom-validation" data-ajax="true">
+        id="campaign_form"  enctype="multipart/form-data" class="custom-validation" data-ajax="true">
                 <div class="row g-2">
                 @php($language=\App\Models\BusinessSetting::where('key','language')->first())
                 @php($language = $language->value ?? null)
-                @php($defaultLang = str_replace('_', '-', app()->getLocale()))
+
                 @if($language)
                 <div class="col-12">
                     <ul class="nav nav-tabs mb-3 border-0">
@@ -129,13 +128,9 @@
                                     <small class="text-danger">* ( {{translate('messages.ratio')}} 1:1 )</small>
                                 </label>
 
-                                <div id="image-viewer-section" class="text-center py-3 my-auto position-relative upload-zone" data-preview="viewer" data-input="customFileEg1">
+                                <div id="image-viewer-section" class="text-center py-3 my-auto">
                                     <img class="img--120 onerror-image" id="viewer"
                                     src="{{$campaign->image_full_url}}" alt="campaign image" data-onerror-image="{{asset('public/assets/admin/img/100x100/2.png')}}"/>
-                                    <div class="drag-overlay">
-                                        <i class="tio-file-add-outlined"></i>
-                                        <p>{{translate('messages.Drop_image_here')}}</p>
-                                    </div>
                                 </div>
                                 <div class="custom-file">
                                     <input type="file" name="image" id="customFileEg1" class="custom-file-input"
@@ -501,6 +496,18 @@
     <script src="{{asset('public/assets/admin')}}/js/tags-input.min.js"></script>
     <script>
         "use strict";
+        $(document).ready(function(){
+            $('#date_from').attr('min',(new Date()).toISOString().split('T')[0]);
+            $('#date_to').attr('min',(new Date()).toISOString().split('T')[0]);
+        });
+
+        $("#date_from").on("change", function () {
+            $('#date_to').attr('min',$(this).val());
+        });
+
+        $("#date_to").on("change", function () {
+            $('#date_from').attr('max',$(this).val());
+        });
         let element = "";
         function getStoreData(route, id) {
             $.get({
@@ -549,9 +556,19 @@
 
 
 
-        $('#choice_attributes').on('change', function () {
+        $('#choice_attributes').on('change', function() {
+
             $('#customer_choice_options').html(null);
-            $.each($("#choice_attributes option:selected"), function () {
+            $('#variant_combination').html(null);
+            $.each($("#choice_attributes option:selected"), function() {
+                if ($(this).val().length > 50) {
+                    toastr.error(
+                        '{{ translate('validation.max.string', ['attribute' => translate('messages.variation'), 'max' => '50']) }}', {
+                            CloseButton: true,
+                            ProgressBar: true
+                        });
+                    return false;
+                }
                 add_more_customer_choice_option($(this).val(), $(this).text());
             });
         });
@@ -668,7 +685,7 @@
         });
         $('#store_id').select2({
             ajax: {
-                url: '{{url('/')}}/admin/store/get-stores',
+                url: '{{ route('admin.store.get-stores') }}',
                 data: function (params) {
                     return {
                         q: params.term, // search term

@@ -58,7 +58,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','admin')->where('email_type', 'dm_withdraw_request')->first())
                 @php($template= $template ?? $data?->email_template ?? 6)
-                <form action="{{ route('admin.business-settings.email-setup', ['admin','dm-withdraw-request']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['admin','dm-withdraw-request']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">

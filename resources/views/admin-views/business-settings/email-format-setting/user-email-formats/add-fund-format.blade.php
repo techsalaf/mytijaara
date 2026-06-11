@@ -60,7 +60,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','user')->where('email_type', 'add_fund')->first())
                 @php($template= $template ?? $data?->email_template ?? 6)
-                <form action="{{ route('admin.business-settings.email-setup', ['user','add-fund']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['user','add-fund']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">
@@ -356,4 +356,3 @@
     <script src="{{asset('public/assets/admin/js/view-pages/email-templates.js')}}"></script>
     <!-- Email Template End-->
 @endpush
-

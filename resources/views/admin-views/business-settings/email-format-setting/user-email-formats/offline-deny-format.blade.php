@@ -59,7 +59,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','user')->where('email_type', 'offline_payment_deny')->first())
                 @php($template= $template ?? $data?->email_template ?? 5)
-                <form action="{{ route('admin.business-settings.email-setup', ['user','offline-payment-deny']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['user','offline-payment-deny']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">

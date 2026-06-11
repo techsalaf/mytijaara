@@ -4,11 +4,12 @@
 
 @push('css_or_js')
 <link rel="stylesheet" href="{{asset('public/assets/admin/css/custom.css')}}">
-<link rel="stylesheet" href="{{asset('public/assets/admin/css/upload-single-image.css')}}">
+
 @endpush
 
 
 @section('content')
+ 
     <div class="content container-fluid config-inline-remove-class">
         <!-- Page Heading -->
         <div class="page-header">
@@ -263,10 +264,10 @@
                                     class="input-label-secondary" data-toggle="tooltip" data-placement="right"
                                     data-original-title="{{ translate('Specify_the_minimum_order_amount_required_for_customers_when_ordering_from_this_store.') }}"><img
                                         src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
-                                        alt="{{ translate('messages.self_delivery_hint') }}"></span></label>
-                            <input type="number" id="minimum_order" name="minimum_order" step="0.01" min="0"
-                                max="999999999" class="form-control" placeholder="100"
-                                value="{{ $store->minimum_order > 0 ? $store->minimum_order : '' }}">
+                                        alt="{{ translate('messages.self_delivery_hint') }}"></span> <span class="text-danger">*</span></label>
+                            <input type="number" id="minimum_order" name="minimum_order" step="0.01" min="1"
+                                max="999999999" class="form-control" placeholder="100" required
+                                value="{{ $store->minimum_order > 0 ? $store->minimum_order : 0 }}">
                         </div>
                         @if (config('module.' . $store->module->module_type)['order_place_to_schedule_interval'])
                             <div class=" col-md-4">
@@ -287,7 +288,7 @@
                                     class="input-label-secondary" data-toggle="tooltip" data-placement="right"
                                     data-original-title="{{ translate('Set_the_total_time_to_deliver_products.') }}"><img
                                         src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
-                                        alt="{{ translate('Set_the_total_time_to_deliver_products.') }}"></span></label>
+                                        alt="{{ translate('Set_the_total_time_to_deliver_products.') }}"></span> <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <input type="number" id="minimum_delivery_time" name="minimum_delivery_time"
                                     class="form-control" placeholder="Min: 10"
@@ -348,25 +349,6 @@
                                     <input type="number" id="maximum_shipping_charge" name="maximum_shipping_charge"
                                         step="0.01" min="0" max="999999999" class="form-control"
                                         placeholder="10000" value="{{ $store->maximum_shipping_charge ?? '' }}">
-                                </div>
-                            </div>
-                        @endif
-
-                        @if ($store->module->module_type != 'food')
-                            <div class="col-sm-4 col-12">
-                                <div class="">
-                                    <label class="input-label text-capitalize"
-                                        for="minimum_stock_for_warning">{{ translate('messages.Minimum_stock_for_warning') }}
-                                        <span data-toggle="tooltip" data-placement="right"
-                                            data-original-title="{{ translate('When_the_stock_of_a_product_reaches_its_minimum_value_that_you_have_set,_you_will_receive_a_warning_to_update_the_stock._Additionally,_these_products_will_appear_in_the_Admin’s_Low_Stock_list.') }}"
-                                            class="input-label-secondary"><img
-                                                src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
-                                                alt="{{ translate('messages.Minimum_stock_for_warning') }}"></span>
-                                    </label>
-                                    <input type="number" id="minimum_stock_for_warning" name="minimum_stock_for_warning"
-                                        min="0" max="999999999" class="form-control"
-                                        placeholder="{{ translate('messages.Ex: 5') }}"
-                                        value="{{ $store?->storeConfig?->minimum_stock_for_warning ?? '' }}">
                                 </div>
                             </div>
                         @endif
@@ -438,6 +420,64 @@
                 </form>
             </div>
         </div>
+        @if ($store->module->module_type != 'food')
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <span class="card-header-icon">
+                            <i class="tio-apps"></i>
+                        </span>
+                        <span>{{ translate('messages.Stock_Setup') }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ route('vendor.business-settings.update-stock-setup', [$store['id']]) }}" method="post">
+                        @csrf
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-4">
+                                <div class="">
+                                    <label class="toggle-switch toggle-switch-sm d-flex justify-content-between border border-secondary rounded px-4 form-control"
+                                        for="show_low_stock_count">
+                                        <span class="pr-2">{{ translate('messages.Show_Low_Stock_Count') }}
+                                            <span class="form-label-secondary" data-toggle="tooltip" data-placement="right"
+                                                data-original-title="{{ translate('messages.If_enabled_low_stock_count_and_warning_products_will_be_visible_to_customer.') }}"><img
+                                                    src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
+                                                    alt="{{ translate('messages.Show_Low_Stock_Count') }}"></span>
+                                        </span>
+                                        <input type="checkbox" class="toggle-switch-input" name="show_low_stock_count"
+                                            id="show_low_stock_count" value="1"
+                                            {{ ($store?->storeConfig?->show_low_stock_count == 1) ? 'checked' : '' }}>
+                                        <span class="toggle-switch-label">
+                                            <span class="toggle-switch-indicator"></span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="input-label text-capitalize"
+                                    for="minimum_stock_for_warning_stock_card">{{ translate('messages.Minimum_stock_for_warning') }}
+                                    <span data-toggle="tooltip" data-placement="right"
+                                        data-original-title="{{ translate('When_the_stock_of_a_product_reaches_its_minimum_value_that_you_have_set,_you_will_receive_a_warning_to_update_the_stock._Additionally,_these_products_will_appear_in_the_Admin’s_Low_Stock_list.') }}"
+                                        class="input-label-secondary"><img
+                                            src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
+                                            alt="{{ translate('messages.Minimum_stock_for_warning') }}"></span>
+                                </label>
+                                <input type="number" id="minimum_stock_for_warning_stock_card" name="minimum_stock_for_warning"
+                                    min="0" max="999999999" class="form-control"
+                                    placeholder="{{ translate('messages.Ex: 5') }}"
+                                    value="{{ $store?->storeConfig?->minimum_stock_for_warning ?? '' }}">
+                            </div>
+                            <div class="col-12">
+                                <div class="btn--container mt-3 justify-content-end">
+                                    <button type="reset" class="btn btn--reset">{{ translate('messages.reset') }}</button>
+                                    <button type="submit" class="btn btn--primary">{{ translate('messages.update') }}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
         <div class="card mb-3">
             <div class="card-header">
                 <h5 class="card-title">
@@ -518,7 +558,7 @@
 @endsection
 
 @push('script_2')
-    <script src="{{asset('public/assets/admin/js/upload-single-image.js')}}"></script>
+
     <script>
         "use strict";
 
@@ -636,6 +676,10 @@
                 } else {
                     $('#gst').attr('readonly', true);
                 }
+            });
+
+            $("#show_low_stock_count").on('change', function() {
+                // Low stock count visibility is separate from warning threshold.
             });
         });
 

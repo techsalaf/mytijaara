@@ -15,6 +15,9 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             // return view('admin-views.test.surgeprice-setup.daily-schedule');
             // return view('admin-views.test.components');
 
+            //Version-3.9
+            return view('admin-views.test.earning-reports.admin-earning-report');
+
             // version-3.4
             // return view('admin-views.test.marketing-tools');
             // return view('admin-views.test.parcel-cancellation-setup');
@@ -41,6 +44,11 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             // return view('admin-views.test.seo-setting.seo-content-page');
             // return view('admin-views.test.business-setting.business-settins-payment');
             // return view('admin-views.test.business-setting.deliveryman-index');
+
+            // Reels Feature
+            return view('admin-views.test.reels.reels-list');
+            // return view('admin-views.test.reels.vendor-reels-list');
+            // return view('admin-views.test.reels.reels-create');
 
 
         });
@@ -96,6 +104,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
         Route::group(['prefix' => 'item', 'as' => 'item.', 'middleware' => ['module:item']], function () {
             Route::get('add-new', 'ItemController@index')->name('add-new');
+            Route::get('item-view/{id}', 'ItemController@gallery_item_view')->name('item-view');
             Route::post('variant-combination', 'ItemController@variant_combination')->name('variant-combination');
             Route::post('store', 'ItemController@store')->name('store');
             Route::get('edit/{id}', 'ItemController@edit')->name('edit');
@@ -178,6 +187,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('item-search', 'CampaignController@searchItem')->name('searchItem');
             Route::get('store-confirmation/{campaign}/{id}/{status}', 'CampaignController@store_confirmation')->name('store_confirmation');
             Route::get('basic-campaign-export', 'CampaignController@basic_campaign_export')->name('basic_campaign_export');
+            Route::get('basic-campaign-store-export', 'CampaignController@basic_campaign_store_export')->name('basic_campaign_store_export');
             Route::get('item-campaign-export', 'CampaignController@item_campaign_export')->name('item_campaign_export');
 
         });
@@ -206,7 +216,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         Route::group(['prefix' => 'store', 'as' => 'store.'], function () {
             Route::get('get-stores-data/{store}', 'VendorController@get_store_data')->name('get-stores-data');
             Route::get('store-filter/{id}', 'VendorController@store_filter')->name('store-filter');
-            Route::get('get-account-data/{store}', 'VendorController@get_account_data')->name('store-filter');
+            Route::get('get-account-data/{store}', 'VendorController@get_account_data')->name('get-account-data');
             Route::get('get-stores', 'VendorController@get_stores')->name('get-stores');
             Route::get('get-providers', 'VendorController@get_providers')->name('get-providers');
             Route::get('get-addons', 'VendorController@get_addons')->name('get_addons');
@@ -234,6 +244,8 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                 Route::get('export/order/{type}/{store_id}', 'VendorController@order_export')->name('order_export');
                 Route::get('export/withdraw/{type}/{store_id}', 'VendorController@withdraw_trans_export')->name('withdraw_trans_export');
                 Route::get('status/{store}/{status}', 'VendorController@status')->name('status');
+                Route::get('verified-seller/{store}', 'VendorController@verifiedSeller')->name('verified-seller');
+                Route::get('verified-seller-all', 'VendorController@verifiedSellerAll')->name('verified-seller-all');
                 Route::get('featured/{store}/{status}', 'VendorController@featured')->name('featured');
                 Route::get('toggle-settings-status/{store}/{status}/{menu}', 'VendorController@store_status')->name('toggle-settings');
                 Route::post('status-filter', 'VendorController@status_filter')->name('status-filter');
@@ -346,11 +358,11 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('update-order', 'BusinessSettingsController@update_order')->name('update-order');
             Route::post('update-priority', 'BusinessSettingsController@update_priority')->name('update-priority');
             Route::get('app-settings', 'BusinessSettingsController@app_settings')->name('app-settings');
-            Route::POST('app-settings', 'BusinessSettingsController@update_app_settings')->name('app-settings');
+            Route::POST('app-settings', 'BusinessSettingsController@update_app_settings')->name('app-settings-update');
             Route::get('websocket', 'BusinessSettingsController@websocket')->name('websocket');
             Route::post('update-websocket', 'BusinessSettingsController@update_websocket')->name('update-websocket');
             Route::get('pages/admin-landing-page-settings/{tab?}', 'BusinessSettingsController@admin_landing_page_settings')->name('admin-landing-page-settings');
-            Route::POST('pages/admin-landing-page-settings/{tab}', 'BusinessSettingsController@update_admin_landing_page_settings')->name('admin-landing-page-settings');
+            Route::POST('pages/admin-landing-page-settings/{tab}', 'BusinessSettingsController@update_admin_landing_page_settings')->name('admin-landing-page-settings-update');
             Route::get('promotional-status/{id}/{status}', 'BusinessSettingsController@promotional_status')->name('promotional-status');
             Route::get('pages/admin-landing-page-settings/promotional-section/edit/{id}', 'BusinessSettingsController@promotional_edit')->name('promotional-edit');
             Route::post('promotional-section/update/{id}', 'BusinessSettingsController@promotional_update')->name('promotional-update');
@@ -369,7 +381,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::delete('review/delete/{review}', 'BusinessSettingsController@review_destroy')->name('review-delete');
             Route::get('pages/react-landing-page-settings/{tab?}', 'BusinessSettingsController@react_landing_page_settings')->name('react-landing-page-settings');
             Route::POST('pages/react-landing-page-settings/{tab?}',
-                'BusinessSettingsController@update_react_landing_page_settings')->name('react-landing-page-settings');
+                'BusinessSettingsController@update_react_landing_page_settings')->name('react-landing-page-settings-update');
             Route::DELETE('react-landing-page-settings/{tab}/{key}', 'BusinessSettingsController@delete_react_landing_page_settings')->name('react-landing-page-settings-delete');
             Route::get('review-react-status/{id}/{status}', 'BusinessSettingsController@review_react_status')->name('review-react-status');
             Route::get('pages/react-landing-page-settings/testimonials/review-react-list/edit/{id}', 'BusinessSettingsController@review_react_edit')->name('review-react-edit');
@@ -391,7 +403,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('review-react-section/update/{id}', 'BusinessSettingsController@review_react_update')->name('review-react-update');
             Route::delete('review-react/delete/{review}', 'BusinessSettingsController@review_react_destroy')->name('review-react-delete');
             Route::get('pages/flutter-landing-page-settings/{tab?}', 'BusinessSettingsController@flutter_landing_page_settings')->name('flutter-landing-page-settings');
-            Route::POST('pages/flutter-landing-page-settings/{tab}', 'BusinessSettingsController@update_flutter_landing_page_settings')->name('flutter-landing-page-settings');
+            Route::POST('pages/flutter-landing-page-settings/{tab}', 'BusinessSettingsController@update_flutter_landing_page_settings')->name('flutter-landing-page-settings-update');
             Route::get('flutter-criteria-status/{id}/{status}', 'BusinessSettingsController@flutter_criteria_status')->name('flutter-criteria-status');
             Route::get('pages/flutter-landing-page-settings/special-criteria/edit/{id}', 'BusinessSettingsController@flutter_criteria_edit')->name('flutter-criteria-edit');
             Route::post('flutter-criteria-section/update/{id}', 'BusinessSettingsController@flutter_criteria_update')->name('flutter-criteria-update');
@@ -430,7 +442,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('login-url-setup/update', 'BusinessSettingsController@login_url_page_update')->name('login_url_update');
 
             Route::get('email-setup/{type}/{tab?}', 'BusinessSettingsController@email_index')->name('email-setup');
-            Route::POST('email-setup/{type}/{tab?}', 'BusinessSettingsController@update_email_index')->name('email-setup');
+            Route::POST('email-setup/{type}/{tab?}', 'BusinessSettingsController@update_email_index')->name('email-setup-update');
             Route::get('email-status/{type}/{tab}/{status}', 'BusinessSettingsController@update_email_status')->name('email-status');
 
             Route::get('toggle-settings/{key}/{value}', 'BusinessSettingsController@toggle_settings')->name('toggle-settings');
@@ -443,6 +455,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
             Route::post('update-fcm-messages', 'BusinessSettingsController@update_fcm_messages')->name('update-fcm-messages');
             Route::post('update-fcm-messages-rental', 'BusinessSettingsController@update_fcm_messages_rental')->name('update-fcm-messages-rental');
+            Route::post('update-fcm-messages-ride-share', 'BusinessSettingsController@update_fcm_messages_ride_share')->name('update-fcm-messages-ride-share');
 
             Route::get('currency-add', 'BusinessSettingsController@currency_index')->name('currency-add');
             Route::post('currency-add', 'BusinessSettingsController@currency_store');
@@ -495,7 +508,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                 Route::get('sms-module', 'SMSModuleController@sms_index')->name('sms-module');
                 Route::post('sms-module-update/{sms_module}', 'SMSModuleController@sms_update')->name('sms-module-update');
                 Route::get('payment-method', 'BusinessSettingsController@payment_index')->name('payment-method');
-                // Route::post('payment-method-update/{payment_method}', 'BusinessSettingsController@payment_update')->name('payment-method-update');
+
                 Route::post('payment-method-update', 'BusinessSettingsController@payment_config_update')->name('payment-method-update');
                 Route::get('config-setup', 'BusinessSettingsController@config_setup')->name('config-setup');
                 Route::post('config-update', 'BusinessSettingsController@config_update')->name('config-update');
@@ -627,33 +640,33 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         });
 
         Route::group(['prefix' => 'report', 'as' => 'report.', 'middleware' => ['module:report']], function () {
-            Route::get('order', 'ReportController@order_index')->name('order');
-            Route::get('transaction-report', 'ReportController@day_wise_report')->name('transaction-report');
-            Route::get('item-wise-report', 'ReportController@item_wise_report')->name('item-wise-report');
-            Route::get('item-wise-export', 'ReportController@item_wise_export')->name('item-wise-export');
-            Route::post('item-wise-report-search', 'ReportController@item_search')->name('item-wise-report-search');
-            Route::post('day-wise-report-search', 'ReportController@day_search')->name('day-wise-report-search');
-            Route::get('day-wise-report-export', 'ReportController@day_wise_export')->name('day-wise-report-export');
-            Route::get('order-transactions', 'ReportController@order_transaction')->name('order-transaction');
-            Route::get('earning', 'ReportController@earning_index')->name('earning');
-            Route::post('set-date', 'ReportController@set_date')->name('set-date');
+        //     Route::get('order', 'ReportController@order_index')->name('order');
+        //     Route::get('transaction-report', 'ReportController@day_wise_report')->name('transaction-report');
+        //     Route::get('item-wise-report', 'ReportController@item_wise_report')->name('item-wise-report');
+        //     Route::get('item-wise-export', 'ReportController@item_wise_export')->name('item-wise-export');
+        //     Route::post('item-wise-report-search', 'ReportController@item_search')->name('item-wise-report-search');
+        //     Route::post('day-wise-report-search', 'ReportController@day_search')->name('day-wise-report-search');
+        //     Route::get('day-wise-report-export', 'ReportController@day_wise_export')->name('day-wise-report-export');
+        //     Route::get('order-transactions', 'ReportController@order_transaction')->name('order-transaction');
+        //     Route::get('earning', 'ReportController@earning_index')->name('earning');
+        //     Route::post('set-date', 'ReportController@set_date')->name('set-date');
             Route::get('stock-report', 'ReportController@stock_report')->name('stock-report');
-            Route::post('stock-report', 'ReportController@stock_search')->name('stock-search');
-            Route::get('stock-wise-report-search', 'ReportController@stock_wise_export')->name('stock-wise-report-export');
-            Route::get('order-report', 'ReportController@order_report')->name('order-report');
-            Route::post('order-report-search', 'ReportController@search_order_report')->name('search_order_report');
-            Route::get('order-report-export', 'ReportController@order_report_export')->name('order-report-export');
-            Route::get('store-wise-report', 'ReportController@store_summary_report')->name('store-summary-report');
-            Route::post('store-summary-report-search', 'ReportController@store_summary_search')->name('store-summary-report-search');
-            Route::get('store-summary-report-export', 'ReportController@store_summary_export')->name('store-summary-report-export');
-            Route::get('store-wise-sales-report', 'ReportController@store_sales_report')->name('store-sales-report');
-            Route::get('store-wise-sales-report-export', 'ReportController@store_sales_export')->name('store-sales-report-export');
-            Route::get('store-wise-order-report', 'ReportController@store_order_report')->name('store-order-report');
-            Route::post('store-wise-order-report-search', 'ReportController@store_order_search')->name('store-order-report-search');
-            Route::get('store-wise-order-report-export', 'ReportController@store_order_export')->name('store-order-report-export');
-            Route::get('expense-report', 'ReportController@expense_report')->name('expense-report');
-            Route::get('expense-export', 'ReportController@expense_export')->name('expense-export');
-            Route::post('expense-report-search', 'ReportController@expense_search')->name('expense-report-search');
+        //     Route::post('stock-report', 'ReportController@stock_search')->name('stock-search');
+        //     Route::get('stock-wise-report-search', 'ReportController@stock_wise_export')->name('stock-wise-report-export');
+        //     Route::get('order-report', 'ReportController@order_report')->name('order-report');
+        //     Route::post('order-report-search', 'ReportController@search_order_report')->name('search_order_report');
+        //     Route::get('order-report-export', 'ReportController@order_report_export')->name('order-report-export');
+        //     Route::get('store-wise-report', 'ReportController@store_summary_report')->name('store-summary-report');
+        //     Route::post('store-summary-report-search', 'ReportController@store_summary_search')->name('store-summary-report-search');
+        //     Route::get('store-summary-report-export', 'ReportController@store_summary_export')->name('store-summary-report-export');
+        //     Route::get('store-wise-sales-report', 'ReportController@store_sales_report')->name('store-sales-report');
+        //     Route::get('store-wise-sales-report-export', 'ReportController@store_sales_export')->name('store-sales-report-export');
+        //     Route::get('store-wise-order-report', 'ReportController@store_order_report')->name('store-order-report');
+        //     Route::post('store-wise-order-report-search', 'ReportController@store_order_search')->name('store-order-report-search');
+        //     Route::get('store-wise-order-report-export', 'ReportController@store_order_export')->name('store-order-report-export');
+        //     Route::get('expense-report', 'ReportController@expense_report')->name('expense-report');
+        //     Route::get('expense-export', 'ReportController@expense_export')->name('expense-export');
+        //     Route::post('expense-report-search', 'ReportController@expense_search')->name('expense-report-search');
             Route::get('generate-statement/{id}', 'ReportController@generate_statement')->name('generate-statement');
         });
 
@@ -712,6 +725,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                     Route::post('set-date', 'CustomerWalletController@set_date')->name('set-date');
                     Route::get('report', 'CustomerWalletController@report')->name('report');
                     Route::get('export', 'CustomerWalletController@export')->name('export');
+                    Route::get('get-user-wallet', 'CustomerWalletController@getUserWallet')->name('getUserWallet');
                 });
 
                 Route::group(['middleware' => ['module:customer_management']], function () {
@@ -764,16 +778,38 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                 Route::get('item-wise-report', 'ReportController@item_wise_report')->name('item-wise-report');
                 Route::get('item-wise-export', 'ReportController@item_wise_export')->name('item-wise-export');
                 Route::post('item-wise-report-search', 'ReportController@item_search')->name('item-wise-report-search');
-                Route::post('day-wise-report-search', 'ReportController@day_search')->name('day-wise-report-search');
                 Route::get('day-wise-report-export', 'ReportController@day_wise_export')->name('day-wise-report-export');
                 Route::get('order-transactions', 'ReportController@order_transaction')->name('order-transaction');
                 Route::get('earning', 'ReportController@earning_index')->name('earning');
                 Route::post('set-date', 'ReportController@set_date')->name('set-date');
+                Route::get('admin-earning-report', 'AdminEarningReportController@getAdminEarningReport')->name('admin-earning-report');
+                Route::get('admin-earning-summary', 'AdminEarningReportController@getAdminEarningSummary')->name('admin-earning-summary');
+                Route::get('admin-earning-breakdown', 'AdminEarningReportController@getAdminEarningBreakdown')->name('admin-earning-breakdown');
+                Route::get('admin-expense-breakdown', 'AdminEarningReportController@getAdminExpenseBreakdown')->name('admin-expense-breakdown');
+                Route::get('admin-monthly-earnings', 'AdminEarningReportController@getMonthlyEarningsReport')->name('admin-monthly-earnings');
+                Route::get('admin-zone-wise-earnings', 'AdminEarningReportController@getZoneWiseEarnings')->name('admin-zone-wise-earnings');
+                Route::get('admin-top-earning-stores', 'AdminEarningReportController@getTopEarningStores')->name('admin-top-earning-stores');
+                Route::get('admin-earning-transactions', 'AdminEarningReportController@getEarningTransactions')->name('admin-earning-transactions');
+                Route::get('admin-earning-export', 'AdminEarningReportController@exportEarningTransactions')->name('admin-earning-export');
+                Route::get('admin-deliveryman-earning-transactions', 'AdminEarningReportController@getDeliverymanEarningTransactions')->name('admin-deliveryman-earning-transactions');
+                Route::get('admin-deliveryman-earning-export', 'AdminEarningReportController@exportDeliverymanEarningTransactions')->name('admin-deliveryman-earning-export');
+                Route::get('store-earning-report', 'StoreEarningReportController@getStoreEarningReport')->name('store-earning-report');
+                Route::get('store-earning-summary', 'StoreEarningReportController@getStoreEarningSummary')->name('store-earning-summary');
+                Route::get('store-earning-breakdown', 'StoreEarningReportController@getStoreEarningBreakdown')->name('store-earning-breakdown');
+                Route::get('store-expense-breakdown', 'StoreEarningReportController@getStoreExpenseBreakdown')->name('store-expense-breakdown');
+                Route::get('store-earning-trend', 'StoreEarningReportController@getStoreEarningTrend')->name('store-earning-trend');
+                Route::get('store-earning-transactions', 'StoreEarningReportController@getStoreEarningTransactions')->name('store-earning-transactions');
+                Route::get('store-earning-export', 'StoreEarningReportController@exportStoreEarningTransactions')->name('store-earning-export');
+                Route::get('deliveryman-earning-report', 'DeliverymanEarningReportController@getDeliverymanEarningReport')->name('deliveryman-earning-report');
+                Route::get('deliveryman-earning-summary', 'DeliverymanEarningReportController@getDeliverymanEarningSummary')->name('deliveryman-earning-summary');
+                Route::get('deliveryman-earning-breakdown', 'DeliverymanEarningReportController@getDeliverymanEarningBreakdown')->name('deliveryman-earning-breakdown');
+                Route::get('deliveryman-expense-breakdown', 'DeliverymanEarningReportController@getDeliverymanExpenseBreakdown')->name('deliveryman-expense-breakdown');
+                Route::get('deliveryman-earning-trend', 'DeliverymanEarningReportController@getDeliverymanEarningTrend')->name('deliveryman-earning-trend');
                 Route::get('stock-report', 'ReportController@stock_report')->name('stock-report');
                 Route::post('stock-report', 'ReportController@stock_search')->name('stock-search');
                 Route::get('stock-wise-report-search', 'ReportController@stock_wise_export')->name('stock-wise-report-export');
                 Route::get('order-report', 'ReportController@order_report')->name('order-report');
-                Route::post('order-report-search', 'ReportController@search_order_report')->name('search_order_report');
+                // Route::post('order-report-search', 'ReportController@search_order_report')->name('search_order_report');
                 Route::get('order-report-export', 'ReportController@order_report_export')->name('order-report-export');
                 Route::get('store-wise-report', 'ReportController@store_summary_report')->name('store-summary-report');
                 Route::post('store-summary-report-search', 'ReportController@store_summary_search')->name('store-summary-report-search');

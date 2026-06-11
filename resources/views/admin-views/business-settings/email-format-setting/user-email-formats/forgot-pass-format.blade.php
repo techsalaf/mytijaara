@@ -59,7 +59,7 @@
                 </div>
                 @php($data=\App\Models\EmailTemplate::where('type','user')->where('email_type', 'forget_password')->first())
                 @php($template= $template ?? $data?->email_template ?? 4)
-                <form action="{{ route('admin.business-settings.email-setup', ['user','forget-password']) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('admin.business-settings.email-setup-update', ['user','forget-password']) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="card border-0">
                         <div class="card-body">

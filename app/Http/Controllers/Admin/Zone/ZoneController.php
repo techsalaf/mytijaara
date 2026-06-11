@@ -83,7 +83,7 @@ class ZoneController extends BaseController
 
     public function getUpdateView(string|int $id): View|RedirectResponse
     {
-        if (env('APP_MODE') == 'demo' && $id == 1) {
+        if (getEnvMode() == 'demo' && $id == 1) {
             Toastr::warning(translate('messages.you_can_not_edit_this_zone_please_add_a_new_zone_to_edit'));
             return back();
         }
@@ -112,7 +112,7 @@ class ZoneController extends BaseController
 
     public function delete(Request $request): RedirectResponse
     {
-        if (env('APP_MODE') == 'demo' && $request['id'] == 1) {
+        if (getEnvMode() == 'demo' && $request['id'] == 1) {
             Toastr::warning(translate('messages.you_can_not_delete_this_zone_please_add_a_new_zone_to_delete'));
             return back();
         }
@@ -184,6 +184,13 @@ class ZoneController extends BaseController
             Toastr::error(translate('Please select at least one payment method'));
             return back()->withInput();
         }
+
+        $ride_share_module = Module::whereIn('id', $request->module_id ?? [])->where('module_type', 'ride-share')->exists();
+        if ($ride_share_module && addon_published_status('RideShare') && !$request->cash_on_delivery && !$request->digital_payment) {
+            Toastr::error(translate('Both Cash on delivery and Digital payment cannot be inactive for RideShare module'));
+            return back()->withInput();
+        }
+        
         $cash_on_delivery = Helpers::get_business_settings('cash_on_delivery');
         $digital_payment = Helpers::get_business_settings('digital_payment');
         $offline_payment = Helpers::get_business_settings('offline_payment_status');
@@ -250,7 +257,7 @@ class ZoneController extends BaseController
 
     public function updateStatus(Request $request): RedirectResponse
     {
-        if (env('APP_MODE') == 'demo' && $request['id'] == 1) {
+        if (getEnvMode() == 'demo' && $request['id'] == 1) {
             Toastr::warning('Sorry!You can not inactive this zone!');
             return back();
         }
