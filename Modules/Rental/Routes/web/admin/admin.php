@@ -74,7 +74,6 @@ Route::group(['middleware' => ['admin', 'current-module']], function () {
                 Route::get('new-requests', [ProviderController::class, 'newRequests'])->name('new-requests');
                 Route::get('new-requests-details/{id}', [ProviderController::class, 'newRequestsDetails'])->name('new-requests-details');
                 Route::get('approve-or-deny/{id}', [ProviderController::class, 'approveOrDeny'])->name('approve-or-deny');
-                Route::get('status/{store_id}', [ProviderController::class, 'status'])->name('status');
 
                 Route::get('bulk-import', [ProviderController::class, 'bulkImportIndex'])->name('bulk_import');
                 Route::post('bulk-import', [ProviderController::class, 'bulkImportData']);
@@ -179,7 +178,7 @@ Route::group(['middleware' => ['admin', 'current-module']], function () {
     });
     Route::group(['prefix' => 'business-settings', 'as' => 'business-settings.', 'middleware' => ['module:settings', 'actch']], function () {
         Route::get('rental-email-setup/{type}/{tab?}', [SettingsController::class,'email_index'])->name('rental-email-setup');
-        Route::POST('rental-email-setup/{type}/{tab?}', [SettingsController::class,'update_email_index'])->name('rental-email-setup');
+        Route::POST('rental-email-setup/{type}/{tab?}', [SettingsController::class,'update_email_index']);
         Route::get('rental-email-status/{type}/{tab}/{status}', [SettingsController::class,'update_email_status'])->name('rental-email-status');
     });
     Route::group(['prefix' => 'transactions', 'as' => 'transactions.', 'middleware' => ['module:rental_report']], function () {

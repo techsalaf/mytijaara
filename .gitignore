@@ -19,6 +19,8 @@ error_log
 .DS_Store
 docker-local/
 /public/.well-known
+/deploy/deploy-log.txt
+/deploy/deploy-log.txt.*.old
 .idea/
 .vscode/
 .ddev/

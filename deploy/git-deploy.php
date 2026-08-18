@@ -9,26 +9,28 @@ $config = [
     'secret' => '2025myTijaaraSuperSecretToken',
     'repo_path' => '/home/iqacibco/mytijaara',
     'branch' => 'main',
+    'git_path' => '/usr/local/cpanel/3rdparty/lib/path-bin/git',
     'php_path' => '/usr/local/bin/php',
     'log_file' => __DIR__ . '/deploy-log.txt',
     'max_log_size' => 5 * 1024 * 1024, // 5MB
-    'allowed_ips' => [], // Recommended: GitHub webhook IPs for extra security
+    'allowed_ips' => [], // Optional: GitHub webhook IPs for extra security
 
     'post_deploy_commands' => [
-        // Regenerate Composer autoload (important for file renames)
-        'composer dump-autoload --optimize',
+        // Regenerate package discovery cache (bootstrap/cache/packages.php).
+        // The server has no composer, and vendor/ is committed, so this is
+        // what keeps service providers like Inertia registered correctly.
+        '{{php}} artisan package:discover',
 
-        // Laravel optimization commands
+        // Clear stale Laravel caches (config/routes/views/events/bootstrap)
+        '{{php}} artisan optimize:clear',
+
+        // Regenerate caches (config, routes, events, views)
         '{{php}} artisan optimize',
-        '{{php}} artisan config:clear',
-        '{{php}} artisan config:cache',
-        '{{php}} artisan route:cache',
-        '{{php}} artisan view:cache',
 
         // Permissions
         'chmod -R 775 storage bootstrap/cache',
 
-        // Optional: Uncomment if you want auto migrations
+        // Migrations
         '{{php}} artisan migrate --force',
     ]
 ];
@@ -55,6 +57,26 @@ function respondError($code, $message)
     http_response_code($code);
     logDeploy($message, 'ERROR');
     exit(json_encode(['error' => $message, 'timestamp' => time()]));
+}
+
+/**
+ * Run a shell command, log it, and abort the deploy if it fails.
+ */
+function runCommand($cmd)
+{
+    global $config;
+    logDeploy("Running: $cmd");
+
+    $output = [];
+    $code = 0;
+    exec($cmd . " 2>&1", $output, $code);
+
+    logDeploy("Exit code: $code");
+    logDeploy("Output:\n" . implode("\n", $output));
+
+    if ($code !== 0) {
+        respondError(500, "Command failed: $cmd");
+    }
 }
 
 
@@ -111,6 +133,22 @@ if ($branch !== $config['branch']) {
     exit(json_encode(['status' => 'ignored', 'reason' => "Branch mismatch ($branch)"]));
 }
 
+// Acknowledge the webhook immediately so GitHub never sees a timeout.
+// The actual deploy continues running after the response is flushed.
+ignore_user_abort(true);
+http_response_code(200);
+header('Content-Type: application/json');
+echo json_encode(['status' => 'accepted', 'message' => 'Deploy queued', 'timestamp' => time()]);
+
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+} else {
+    while (ob_get_level() > 0) {
+        ob_end_flush();
+    }
+    flush();
+}
+
 
 // =============================================================
 // 3. BEGIN DEPLOYMENT
@@ -121,67 +159,11 @@ if (!chdir($config['repo_path'])) {
     respondError(500, "Could not change directory to repo path");
 }
 
-// Fetch latest code
-$fetchCmd = "git fetch origin {$config['branch']} 2>&1";
-logDeploy("Running: $fetchCmd");
-
-$output = shell_exec($fetchCmd);
-logDeploy("Git Fetch Output:\n$output");
-
-// Fix case-sensitive filename issues (Linux is case-sensitive, Windows is not)
-// Remove potentially misnamed files before reset
-// $caseFixFiles = [
-//     'app/CentralLogics/helpers.php',
-//     'app/CentralLogics/sms_module.php',
-// ];
-// foreach ($caseFixFiles as $file) {
-//     $fullPath = $config['repo_path'] . '/' . $file;
-//     if (file_exists($fullPath)) {
-//         unlink($fullPath);
-//         logDeploy("Removed case-mismatched file: $file");
-//     }
-// }
-
-// Clean untracked files BUT EXCLUDE ignored files (like .env, system-addons.php)
-// Using -fd instead of -fdx to preserve .gitignore'd files
-$cleanCmd = "git clean -fd 2>&1";
-logDeploy("Running: $cleanCmd");
-
-$output .= shell_exec($cleanCmd);
-logDeploy("Git Clean Output:\n$output");
-
-// Reset tracked files to remote
-$resetCmd = "git reset --hard origin/{$config['branch']} 2>&1";
-logDeploy("Running: $resetCmd");
-
-$output .= shell_exec($resetCmd);
-logDeploy("Git Reset Output:\n$output");
-
-
-// Detect Git pull failure
-$git = '/usr/local/cpanel/3rdparty/lib/path-bin/git';
-
-$commands = [
-    "$git fetch origin {$config['branch']}",
-    "$git clean -fd",  // Changed from -fdx to -fd to preserve ignored files
-    "$git reset --hard origin/{$config['branch']}",
-];
-
-foreach ($commands as $cmd) {
-    logDeploy("Running: $cmd");
-
-    $out = [];
-    $code = 0;
-
-    exec($cmd . " 2>&1", $out, $code);
-
-    logDeploy("Exit code: $code");
-    logDeploy("Output:\n" . implode("\n", $out));
-
-    if ($code !== 0) {
-        respondError(500, "Git command failed: $cmd");
-    }
-}
+// Fetch, clean, and hard-reset the working tree to the remote branch.
+// Ignored files (like .env) are preserved by using `-fd` instead of `-fdx`.
+runCommand("{$config['git_path']} fetch origin {$config['branch']}");
+runCommand("{$config['git_path']} clean -fd");
+runCommand("{$config['git_path']} reset --hard origin/{$config['branch']}");
 
 
 // =============================================================
@@ -192,9 +174,7 @@ logDeploy("=== Running Laravel Post-Deploy Commands ===");
 foreach ($config['post_deploy_commands'] as $cmd) {
     $cmd = str_replace('{{php}}', $config['php_path'], $cmd);
     logDeploy("Executing: $cmd");
-
-    $cmdOutput = shell_exec($cmd . ' 2>&1');
-    logDeploy("Output:\n$cmdOutput");
+    runCommand($cmd);
 }
 
 
