@@ -24,8 +24,10 @@ $config = [
         // Clear stale Laravel caches (config/routes/views/events/bootstrap)
         '{{php}} artisan optimize:clear',
 
-        // Regenerate caches (config, routes, events, views)
-        '{{php}} artisan optimize',
+        // Regenerate caches (events, routes, views). Config is deliberately
+        // NOT cached: this CodeCanyon build reads env() directly in Blade
+        // views and controllers, and config:cache makes env() return null.
+        '{{php}} artisan optimize --except=config',
 
         // Permissions
         'chmod -R 775 storage bootstrap/cache',
