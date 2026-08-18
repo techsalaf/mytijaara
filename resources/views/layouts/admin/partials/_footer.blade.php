@@ -31,7 +31,7 @@
                     </li>
                     <li class="list-inline-item d-inline-block">
                         <label class="badge badge-soft-primary m-0">
-                            {{translate('messages.software_version')}} : {{env('SOFTWARE_VERSION')}}
+                            {{translate('messages.software_version')}} : {{config('app.software_version')}}
                         </label>
                     </li>
                 </ul>
