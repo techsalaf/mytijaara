@@ -157,7 +157,7 @@ active
                                         data-placeholder="{{ translate('messages.select_zone') }}"
                                         class="form-control js-select2-custom get_zone_data">
                                         @foreach (\App\Models\Zone::active()->get(['id', 'name']) as $zone)
-                                            @if (isset(auth('admin')->user()->zone_id))
+                                            @if (auth('admin')?->user()?->zone_id)
                                                 @if (auth('admin')->user()->zone_id == $zone->id)
                                                     <option value="{{ $zone->id }}"
                                                         {{ $store->zone_id == $zone->id ? 'selected' : '' }}>
@@ -686,7 +686,7 @@ active
     <script>
         "use strict";
         $(document).on('ready', function() {
-            @if (isset(auth('admin')->user()->zone_id))
+            @if (auth('admin')?->user()?->zone_id)
                 $('#choice_zones').trigger('change');
             @endif
         });

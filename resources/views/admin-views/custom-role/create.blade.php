@@ -1208,6 +1208,15 @@
                                             <label class="form-check-label ps--3 qcont text-dark opacity-70" for="subscription">{{translate('messages.subscription')}}</label>
                                         </div>
                                     </div>
+                                    @if (\App\CentralLogics\Helpers::get_business_settings('pro_member_status') == 1)
+                                    <div class="check-item">
+                                        <div class="form-group form-check form--check">
+                                            <input type="checkbox" name="modules[]" value="pro_customer_subscription" class="form-check-input"
+                                                   id="pro_customer_subscription">
+                                            <label class="form-check-label ps--3 qcont text-dark opacity-70" for="pro_customer_subscription">{{translate('messages.Pro_Customer_Subscription')}}</label>
+                                        </div>
+                                    </div>
+                                    @endif
                                     <div class="check-item">
                                         <div class="form-group form-check form--check">
                                             <input type="checkbox" name="modules[]" value="brand" class="form-check-input"

@@ -40,7 +40,7 @@
                 <select class="form-control w-100 js-select2-custom store-select" id="store_id" name="store_id" required>
                     <option value="" disabled {{ !$selectedStoreId ? 'selected' : '' }}>{{ $selectStoreLabel }}</option>
                     @foreach ($stores as $store)
-                        <option value="{{ $store->id }}" data-logo="{{ $store->logo_full_url }}" {{ (int) $selectedStoreId === (int) $store->id ? 'selected' : '' }}>
+                        <option value="{{ $store->id }}" data-verified="{{ (int) $store->verified_seller }}" data-logo="{{ $store->logo_full_url }}" {{ (int) $selectedStoreId === (int) $store->id ? 'selected' : '' }}>
                             {{ $store->name }}
                         </option>
                     @endforeach
@@ -205,6 +205,34 @@
                         placeholder="{{ translate('messages.select_reels_duration') }}" autocomplete="off" {{ $alwaysVisible ? 'disabled' : '' }}>
                 </div>
             </div>
+
+            <div class="bg-light p-3 p-xxl-4 rounded mt-20">
+                <label for="call-to-action-toggle" class="d-flex gap-2 justify-content-between flex-wrap mb-0">
+                    <span class="text-title font-semibold">{{ translate('messages.Call_to_Action_Button') }}</span>
+                    <label class="toggle-switch toggle-switch-sm">
+                        <input type="checkbox" id="call-to-action-toggle" name="order_now_button" value="1" class="status toggle-switch-input" {{ (int) old('order_now_button', $reel->order_now_button ?? 0) === 1 ? 'checked' : '' }}>
+                        <span class="toggle-switch-label text">
+                            <span class="toggle-switch-indicator"></span>
+                        </span>
+                    </label>
+                </label>
+            </div>
+
+            <div class="bg-light p-3 p-xxl-4 rounded mt-20 product-select-wrapper" id="product-select-wrapper" style="{{ (int) old('order_now_button', $reel->order_now_button ?? 0) === 1 ? '' : 'display:none;' }}">
+                <label class="form-label" for="product_id">
+                    {{ $productLabel ?? translate('messages.Product') }}
+                    <span class="input-label-secondary" data-toggle="tooltip" data-title="{{ translate('messages.Selected product will be visible in the order') }}">
+                        <i class="tio-info"></i>
+                    </span>
+                    <span class="text-danger">*</span>
+                </label>
+                <select class="form-control w-100 js-select2-custom" id="product_id" name="product_id" data-selected-product="{{ $selectedProductId ?? '' }}">
+                    <option value="">{{ translate('messages.select') }} {{ $productLabel ?? translate('messages.Product') }}</option>
+                    @foreach ($items as $item)
+                        <option value="{{ $item->id }}" {{ (int) ($selectedProductId ?? 0) === (int) $item->id ? 'selected' : '' }}>{{ $item->name }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
 
         <div class="col-lg-4">
@@ -220,12 +248,15 @@
                         </button>
                     </div>
                         <div class="reel-des-wrapper">
-                            <div class="d-flex gap-2 align-items-center mb-2">
-                            <div class="reel-preview-thumbnail" data-reel-thumbnail="{{ $previewStoreLogo }}" style="{{ $previewStoreLogo ? "background-image: url('{$previewStoreLogo}');" : '' }}"></div>
-                            <div class="thumbnail-placeholder" style="{{ $previewStoreLogo ? 'display:none;' : '' }}"></div>
-                            <div class="reel-preview-title" data-reel-title="{{ $previewStoreName }}">{{ $previewStoreName }}</div>
-                            <div class="title-placeholder" style="{{ $previewStoreName ? 'display:none;' : '' }}"></div>
-                        </div>
+                            <div class="d-flex gap-2 align-items-center justify-content-between mb-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <div class="reel-preview-thumbnail" data-reel-thumbnail="{{ $previewStoreLogo }}" style="{{ $previewStoreLogo ? "background-image: url('{$previewStoreLogo}');" : '' }}"></div>
+                                    <div class="thumbnail-placeholder" style="{{ $previewStoreLogo ? 'display:none;' : '' }}"></div>
+                                    <div class="reel-preview-title" data-reel-title="{{ $previewStoreName }}">{{ $previewStoreName }}</div>
+                                    <div class="title-placeholder" style="{{ $previewStoreName ? 'display:none;' : '' }}"></div>
+                                </div>
+                                <button type="button" id="order-now-btn" class="btn px-2 py-1 fs-12 btn--warning text-white" style="{{ (int) old('order_now_button', $reel->order_now_button ?? 0) === 1 ? '' : 'display:none;' }}">{{ $actionLabel ?? translate('messages.Order_Now') }}</button>
+                            </div>
                         <div class="reel-preview-des">{{ $defaultDescription }}</div>
                         <div class="des-placeholder" style="{{ $defaultDescription ? 'display:none;' : '' }}">
                             <div class="mb-1"></div>

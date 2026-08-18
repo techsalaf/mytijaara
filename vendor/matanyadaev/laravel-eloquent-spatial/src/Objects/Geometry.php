@@ -12,7 +12,6 @@ use Illuminate\Contracts\Database\Query\Expression as ExpressionContract;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Database\ConnectionInterface;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
 use JsonException;
@@ -92,7 +91,12 @@ abstract class Geometry implements Arrayable, Castable, Jsonable, JsonSerializab
     public static function fromWkt(string $wkt, int|Srid|null $srid = null): static
     {
         $geometry = Factory::parseWkt($wkt);
-        $geometry->srid = Helper::getSrid($srid);
+
+        if ($srid !== null) {
+            $geometry->srid = Helper::getSrid($srid);
+        } elseif ($geometry->srid === 0) {
+            $geometry->srid = Helper::getSrid(null);
+        }
 
         if (! ($geometry instanceof static)) {
             throw new InvalidArgumentException(
@@ -199,10 +203,10 @@ abstract class Geometry implements Arrayable, Castable, Jsonable, JsonSerializab
 
         if (! AxisOrder::supported($connection)) {
             // @codeCoverageIgnoreStart
-            return DB::raw((new GeometryExpression("ST_GeomFromText('{$wkt}', {$this->srid})"))->normalize($connection));
+            return $connection->raw((new GeometryExpression("ST_GeomFromText('{$wkt}', {$this->srid})"))->normalize($connection));
             // @codeCoverageIgnoreEnd
         }
 
-        return DB::raw((new GeometryExpression("ST_GeomFromText('{$wkt}', {$this->srid}, 'axis-order=long-lat')"))->normalize($connection));
+        return $connection->raw((new GeometryExpression("ST_GeomFromText('{$wkt}', {$this->srid}, 'axis-order=long-lat')"))->normalize($connection));
     }
 }

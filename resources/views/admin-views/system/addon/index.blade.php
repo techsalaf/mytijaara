@@ -135,11 +135,39 @@
             </div>
         </div>
 
+        {{-- Builder addon needs wildcard sub-domains so each vendor's storefront
+             resolves on its own sub-domain. Uses the platform's standard info-hint
+             bar; only shown once Builder is active. --}}
+        @if(addon_published_status('Builder'))
+            {{-- Reduce a sub-domain host (e.g. admin.example.com) to its registrable
+                 root domain (example.com) so the wildcard hint targets the main domain.
+                 Inline php-directive form only here: a raw php block breaks the other
+                 inline php directives above in this same file. --}}
+            @php($appHost = preg_replace('/^www\./i', '', parse_url(config('app.url'), PHP_URL_HOST) ?: 'yourdomain.com'))
+            @php($hostParts = explode('.', $appHost))
+            @php($secondLevelTlds = ['co', 'com', 'net', 'org', 'gov', 'edu', 'ac'])
+            @php($appHost = count($hostParts) > 2 ? implode('.', array_slice($hostParts, -(in_array($hostParts[count($hostParts) - 2], $secondLevelTlds) ? 3 : 2))) : $appHost)
+            <div class="fs-12 color-656565 px-3 py-2 bg-opacity-10 rounded bg-info mb-5">
+                <div class="d-flex align-items-start gap-2 mb-0">
+                    <span class="text-info fs-16">
+                        <i class="tio-light-on"></i>
+                    </span>
+                    <span>
+                        <strong>{{ translate('Builder addon is active') }}.</strong>
+                        {{ translate('To let vendors open their storefronts on their own sub-domains, configure a wildcard domain on your server') }}
+                        (<code>*.{{ $appHost }}</code>)
+                        {{ translate('pointing to this server, with a matching wildcard SSL certificate. Without it, vendor sub-domains will not resolve and their storefronts will not open.') }}
+                    </span>
+                </div>
+            </div>
+        @endif
+
         <!-- Theme Items -->
         <div class="row g-1 g-sm-2">
             @foreach($addons as $key => $addon)
             <?php
             $data= include $addon.'/Addon/info.php';
+            $data['name'] = $data['name'] == 'Builder' ? translate('Vendor Website Builder') : $data['name']
             ?>
             <div class="col-6 col-md-4 col-xxl-3">
                 <div class="card theme-card">
@@ -247,6 +275,9 @@
             @endforeach
             <!-- Activated Theme Modal -->
             @include('admin-views.system.addon.partials.activation-modal')
+
+            <!-- Builder Requirements-Not-Met Modal -->
+            @include('admin-views.system.addon.partials.builder-requirements-modal')
         </div>
     </div>
 
@@ -385,6 +416,11 @@
                             // console.log(data.view)
                             $('#activatedThemeModal').modal('show');
                             $('#activateData').empty().html(data.view);
+                        } else if (data.flag === 'requirements_missing') {
+                            // Builder pre-flight blocked activation —
+                            // server returned the rendered modal body
+                            $('#builderRequirementsData').empty().html(data.view);
+                            $('#builderRequirementsModal').modal('show');
                         } else {
                             if (data.errors) {
                                 for (let i = 0; i < data.errors.length; i++) {
@@ -444,6 +480,13 @@
                 },
             });
         })
+
+        @if(session('builder_requirements_issues'))
+            // activation() flashed pre-flight issues — open the modal once on load.
+            $(function () {
+                $('#builderRequirementsModal').modal('show');
+            });
+        @endif
 
         let swiper = new Swiper(".mySwiper", {
             pagination: {

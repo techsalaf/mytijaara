@@ -52,6 +52,7 @@ class ModuleController extends BaseController
         $module = $this->moduleRepo->add(data: $this->moduleService->getAddData(request: $request));
         $this->translationRepo->addByModel(request: $request, model: $module, modelPath: 'App\Models\Module', attribute: 'module_name');
         $this->translationRepo->addByModel(request: $request, model: $module, modelPath: 'App\Models\Module', attribute: 'description');
+        $this->translationRepo->addByModel(request: $request, model: $module, modelPath: 'App\Models\Module', attribute: 'short_description');
 
         Toastr::success(translate('messages.module_created_successfully'));
         return back();
@@ -89,6 +90,7 @@ class ModuleController extends BaseController
         $module = $this->moduleRepo->update(id: $id ,data: $this->moduleService->getUpdateData(request: $request,module: $module));
         $this->translationRepo->updateByModel(request: $request, model: $module, modelPath: 'App\Models\Module', attribute: 'module_name');
         $this->translationRepo->updateByModel(request: $request, model: $module, modelPath: 'App\Models\Module', attribute: 'description');
+        $this->translationRepo->updateByModel(request: $request, model: $module, modelPath: 'App\Models\Module', attribute: 'short_description');
 
         Toastr::success(translate('messages.module_updated_successfully'));
         return back();

@@ -35,6 +35,24 @@
             </div>
             @endif
 
+            @if (!empty($include_pro_customer))
+
+            <div class="col-lg-4 col-md-6 col-sm-6">
+                <div class="item border-right">
+                    <div
+                        class="flex-shrink-0 success rounded-10 w-40px aspect-1-1 d-flex justify-content-center align-items-center mb-3">
+                        <img src="{{ asset('public/assets/admin/img/report/earning-breakdown/subscription.svg') }}"
+                            alt="earning">
+                    </div>
+                    <div class="mb-2">{{ translate('messages.Pro Customer Subscription') }}</div>
+                    <h2 class="font-medium fs-24 fs-18-mobile mb-2">
+                        {{ App\CentralLogics\Helpers::format_currency($earnings['pro_customer_subscription']) }}</h2>
+                    <div class="fs-12 bg-light px-2 py-1 rounded-lg w-max-content">
+                        {{ $earnings['pro_customer_subscription_percentage'] }}% {{ translate('messages.of Total') }}</div>
+                </div>
+            </div>
+            @endif
+
             <div class="col-lg-4 col-md-6 col-sm-6">
                 <div class="item border-right">
                     <div
@@ -66,7 +84,22 @@
                 </div>
             </div>
 
-            
+            @if (!empty($earnings['express_charge']))
+            <div class="col-lg-4 col-md-6 col-sm-6">
+                <div class="item">
+                    <div
+                        class="flex-shrink-0 info rounded-10 w-40px aspect-1-1 d-flex justify-content-center align-items-center mb-3">
+                        <img src="{{ asset('public/assets/admin/img/report/earning-breakdown/other-income.svg') }}"
+                            alt="earning">
+                    </div>
+                    <div class="mb-2">{{ translate('messages.Express Delivery Charge') }}</div>
+                    <h2 class="font-medium fs-24 fs-18-mobile mb-2">
+                        {{ App\CentralLogics\Helpers::format_currency($earnings['express_charge']) }}</h2>
+                    <div class="fs-12 bg-light px-2 py-1 rounded-lg w-max-content">
+                        {{ $earnings['express_charge_percentage'] }}% {{ translate('messages.of Total') }}</div>
+                </div>
+            </div>
+            @endif
 
         </div>
     </div>

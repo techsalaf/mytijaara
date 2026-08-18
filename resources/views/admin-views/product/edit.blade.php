@@ -481,7 +481,45 @@
             let store_id = $(this).val();
             let id = 'add_on';
             getStoreData(route, store_id, id);
+
+            loadStoreCategories(store_id);
         });
+
+        function loadStoreCategories(storeId) {
+            let $select = $('#store_category_id');
+            if (!$select.length) return;
+            let $col = $('#store_category_col');
+            let currentVal = $select.val();
+            $select.empty().append(
+                '<option value="">{{ translate('messages.Select_Store_Category') }}</option>'
+            );
+            if (!storeId) {
+                // No store selected → no asterisk, not required.
+                $select.prop('required', false);
+                $('.store-category-required-mark').hide();
+                $col.hide();
+                return;
+            }
+            let url = $select.data('url');
+            if (!url) return;
+            $.get(url, { store_id: storeId }, function(data) {
+                const categories = (data && data.categories) ? data.categories : (Array.isArray(data) ? data : []);
+                categories.forEach(function(cat) {
+                    $select.append($('<option>', {
+                        value: cat.id,
+                        text: cat.name,
+                        selected: String(cat.id) === String(currentVal)
+                    }));
+                });
+                $select.trigger('change');
+                // Toggle the "*" mark + required attribute based on whether
+                // the selected store has any of its own categories.
+                const required = !!(data && data.has_categories);
+                $select.prop('required', required);
+                $('.store-category-required-mark').toggle(required);
+                $col.toggle(required);
+            });
+        }
 
         function getStoreData(route, store_id, id) {
             $.get({

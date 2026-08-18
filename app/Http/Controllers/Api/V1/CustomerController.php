@@ -8,6 +8,7 @@ use App\Models\EmailVerifications;
 use App\Models\ExternalConfiguration;
 use App\Models\Item;
 use App\Models\PhoneVerification;
+use App\Models\ProCustomerSubscription;
 use App\Models\User;
 use App\Models\UserInfo;
 use App\Models\Zone;
@@ -28,6 +29,7 @@ use App\Models\UserFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Modules\Gateways\Traits\SmsGateway;
 use MatanYadaev\EloquentSpatial\Objects\Point;
@@ -35,6 +37,13 @@ use Modules\RideShare\Entities\ReviewModule\RideReview;
 
 class CustomerController extends Controller
 {
+    /**
+     * Host scope tuple. Mobile API V1 only serves host customers; all
+     * aux-table reads/writes here pin to (0, 0) so they don't pick up
+     * storefront-scoped rows after the per-storefront migration.
+     */
+    private const HOST_SCOPE = ['tenant_id' => 0, 'sub_tenant_id' => 0];
+
     public function save_prescription_files(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -306,6 +315,8 @@ class CustomerController extends Controller
         $data['discount_amount'] = (float)data_get($discount_data, 'discount_amount');
         $data['discount_amount_type'] = data_get($discount_data, 'discount_amount_type');
         $data['validity'] = (string)data_get($discount_data, 'validity');
+        $data['pro_subscription'] = ProCustomerSubscription::where('user_id', $user->id)->first() ?? null;
+
 
         if(addon_published_status('RideShare')) {
             $reviews = RideReview::where('review_for', CUSTOMER)
@@ -568,10 +579,17 @@ class CustomerController extends Controller
     #handshake
     public function update_profile(Request $request)
     {
+        $authUserId = $request?->user()?->id;
+        $authUser   = $authUserId ? User::find($authUserId) : null;
+        if ($authUser && $authUser->is_phone_verified == 1) {
+            $request->merge(['phone' => $authUser->phone]);
+        }
+        $hostScope = fn ($q) => $q->where('tenant_id', 0)->where('sub_tenant_id', 0);
+
         $validator = Validator::make($request->all(), [
             'name' => 'required',
-            'email' => 'required|unique:users,email,' . $request?->user()?->id,
-            'phone' => 'required|unique:users,phone,' . $request?->user()?->id,
+            'email' => ['required', Rule::unique('users', 'email')->ignore($authUserId)->where($hostScope)],
+            'phone' => ['required', Rule::unique('users', 'phone')->ignore($authUserId)->where($hostScope)],
             'image' => 'nullable|max:2048',
             'password' => ['nullable', Password::min(8)],
         ]);
@@ -591,11 +609,11 @@ class CustomerController extends Controller
 
         $user = User::where(['id' => $request?->user()?->id])->with('userinfo')->first();
 
-        $login_settings = array_column(BusinessSetting::whereIn('key', ['email_verification_status', 'phone_verification_status', 'firebase_otp_verification'])->get(['key', 'value'])->toArray(), 'value', 'key');
+        $login_settings = array_column(BusinessSetting::whereIn('key', ['email_verification_status', 'phone_verification_status', 'firebase_otp_verification', 'send_otp_via'])->get(['key', 'value'])->toArray(), 'value', 'key');
 
         if($request->button_type != 'change_password' && !$request->otp ){
             if (  data_get($login_settings, 'phone_verification_status') == 1  && ($user->phone != $request->phone  || $request->button_type == 'phone' || (!$user->is_phone_verified  && !$request->button_type) )) {
-                if (data_get($login_settings, 'firebase_otp_verification') == 1) {
+                if (data_get($login_settings, 'firebase_otp_verification') == 1 && data_get($login_settings, 'send_otp_via') == 'firebase') {
                     return response()->json(['verification_on' => 'phone', 'verification_medium' => 'firebase', 'otp_send' => true, 'message' => translate('Otp_successfully_sent')], 200);
                 } else {
                     $verification_data =  $this->verification_check($request->phone);
@@ -671,9 +689,9 @@ class CustomerController extends Controller
     private function verification_check($phone)
     {
         $otp_interval_time = 60; //seconds
-        $verification_data = DB::table('phone_verifications')->where('phone', $phone)->first();
+        $verification_data = DB::table('phone_verifications')->where('phone', $phone)->where(self::HOST_SCOPE)->first();
         if (isset($verification_data) &&  \Carbon\Carbon::parse($verification_data->updated_at)->DiffInSeconds() < $otp_interval_time) {
-            $time = $otp_interval_time - Carbon::parse($verification_data->updated_at)->DiffInSeconds();
+            $time = round($otp_interval_time - Carbon::parse($verification_data->updated_at)->DiffInSeconds());
             return ['is_success' => false,  'message' => translate('messages.please_try_again_after_') . $time . ' ' . translate('messages.seconds'), 'code' => 403];
         }
 
@@ -682,7 +700,7 @@ class CustomerController extends Controller
             $otp = '123456';
         }
         DB::table('phone_verifications')->updateOrInsert(
-            ['phone' => $phone],
+            ['phone' => $phone] + self::HOST_SCOPE,
             [
                 'token' => $otp,
                 'otp_hit_count' => 0,
@@ -714,7 +732,7 @@ class CustomerController extends Controller
             $otp = '123456';
         }
         DB::table('email_verifications')->updateOrInsert(
-            ['email' => $data['email']],
+            ['email' => $data['email']] + self::HOST_SCOPE,
             [
                 'token' => $otp,
                 'created_at' => now(),
@@ -859,7 +877,7 @@ class CustomerController extends Controller
 
         if (isset($verification_data)) {
             if (isset($verification_data->temp_block_time) && Carbon::parse($verification_data->temp_block_time)->DiffInSeconds() <= $temp_block_time) {
-                $time = $temp_block_time - Carbon::parse($verification_data->temp_block_time)->DiffInSeconds();
+                $time = round($temp_block_time - Carbon::parse($verification_data->temp_block_time)->DiffInSeconds());
                 return  ['is_success' => false, 'verification_medium' => 'SMS', 'message' => translate('messages.please_try_again_after_') . CarbonInterval::seconds($time)->cascade()->forHumans(), 'code' => 403];
             }
 

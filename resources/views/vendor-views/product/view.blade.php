@@ -147,6 +147,14 @@
                 </div>
             </div>
         </div>
+        <div class="info-notes-bg px-3 py-2 rounded fz-11  gap-2 align-items-center d-flex mt-20 mb-20">
+            <img src="{{asset('public/assets/admin/img/info-idea.svg')}}" alt="">
+            <span>
+                {{translate('Customer selected this item for monthly repeat')}}
+                <strong class="text-title"> {{translate('(Qty: 67).')}}</strong>
+                {{translate('Please update your stock to ensure smooth sales.')}}.
+            </span>
+        </div>
         <!-- End Card -->
         @if (\App\CentralLogics\Helpers::get_store_data()->review_permission)
             <!-- Description Card Start -->
@@ -229,7 +237,7 @@
                                     @endif
 
                                     @if ($product->module->module_type != 'food')
-                                        <td class="px-4">{{ $product->stock }}</td>
+                                        <td class="px-4">{{ max((int) $product->stock, 0) }}</td>
                                     @endif
 
                                     @if (in_array($product->module->module_type, ['pharmacy']))

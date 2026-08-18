@@ -38,6 +38,7 @@ use CuyZ\Valinor\Type\Types\PositiveIntegerType;
 use CuyZ\Valinor\Type\Types\ScalarConcreteType;
 use CuyZ\Valinor\Type\Types\ShapedArrayElement;
 use CuyZ\Valinor\Type\Types\ShapedArrayType;
+use CuyZ\Valinor\Type\Types\ShapedListType;
 use CuyZ\Valinor\Type\Types\StringValueType;
 use CuyZ\Valinor\Type\Types\UndefinedObjectType;
 use CuyZ\Valinor\Type\Types\UnionType;
@@ -86,7 +87,11 @@ final class TypeCompiler
             case $type instanceof StringValueType:
                 $value = var_export($type->toString(), true);
 
-                return "$class::from($value)";
+                if (! $type->hasQuoteChar()) {
+                    return "new $class($value)";
+                }
+
+                return "$class::quoted($value)";
             case $type instanceof IntegerValueType:
             case $type instanceof FloatValueType:
                 $value = var_export($type->value(), true);
@@ -95,7 +100,7 @@ final class TypeCompiler
             case $type instanceof IntersectionType:
             case $type instanceof UnionType:
                 $subTypes = array_map(
-                    fn (Type $subType) => $this->compile($subType),
+                    $this->compile(...),
                     $type->types()
                 );
 
@@ -107,7 +112,7 @@ final class TypeCompiler
                     'int' => "$class::integer()",
                     default => (function () use ($type, $class) {
                         $types = array_map(
-                            fn (Type $subType) => $this->compile($subType),
+                            $this->compile(...),
                             $type->types,
                         );
 
@@ -115,6 +120,7 @@ final class TypeCompiler
                     })(),
                 };
             case $type instanceof ShapedArrayType:
+            case $type instanceof ShapedListType:
                 $elements = [];
 
                 foreach ($type->elements as $key => $element) {
@@ -127,10 +133,9 @@ final class TypeCompiler
                 }
 
                 $elements = implode(', ', $elements);
-                $isUnsealed = var_export($type->isUnsealed, true);
-                $unsealedType = $type->hasUnsealedType() ? $this->compile($type->unsealedType()) : 'null';
+                $unsealedType = $type->isUnsealed() ? $this->compile($type->unsealedType()) : 'null';
 
-                return "new $class([$elements], $isUnsealed, $unsealedType)";
+                return "new $class([$elements], $unsealedType)";
             case $type instanceof ArrayType:
             case $type instanceof NonEmptyArrayType:
                 if ($type->toString() === 'array' || $type->toString() === 'non-empty-array') {
@@ -173,7 +178,7 @@ final class TypeCompiler
                 return "new $class('{$type->className()}', [$generics])";
             case $type instanceof ClassStringType:
                 $subTypes = implode(', ', array_map(
-                    fn (Type $subType) => $this->compile($subType),
+                    $this->compile(...),
                     $type->subTypes(),
                 ));
 
@@ -193,7 +198,7 @@ final class TypeCompiler
             case $type instanceof CallableType:
                 $returnType = $this->compile($type->returnType);
                 $parameters = implode(', ', array_map(
-                    fn (Type $subType) => $this->compile($subType),
+                    $this->compile(...),
                     $type->parameters,
                 ));
 

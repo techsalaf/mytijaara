@@ -5,14 +5,17 @@ namespace Modules\ReelsModule\Http\Controllers\Admin;
 use App\CentralLogics\Helpers;
 use App\Exceptions\InvalidUploadException;
 use App\Http\Controllers\Controller;
+use App\Models\Item;
 use App\Models\Store;
 use Brian2694\Toastr\Facades\Toastr;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -49,9 +52,67 @@ class ReelController extends Controller
             'total_views' => $this->getModuleEngagementCount(ReelEngagement::TYPE_VIEW),
             'total_likes' => $this->getModuleEngagementCount(ReelEngagement::TYPE_LIKE),
             'total_store_visits' => $this->getModuleEngagementCount(ReelEngagement::TYPE_VISIT),
+            'total_sale' => $this->getModuleEngagementCount(ReelEngagement::TYPE_ORDER),
+            'total_sale_amount' => $this->getModuleSaleAmount(),
         ];
+        $overviewCards = $this->buildOverviewCards($overview, $analytics);
 
-        return view('reelsmodule::admin.reels.index', compact('reels', 'stores', 'overview', 'analytics', 'filterCount'));
+        return view('reelsmodule::admin.reels.index', compact('reels', 'stores', 'overview', 'overviewCards', 'analytics', 'filterCount'));
+    }
+
+    private function buildOverviewCards(array $overview, array $analytics): array
+    {
+        return [
+            [
+                'value' => $overview['total_reels'],
+                'label' => translate('messages.Total_Reels'),
+                'icon' => 'tio-video-camera-outlined',
+                'color' => 'text-purple',
+                'bg' => 'bg-purple bg-opacity-10',
+            ],
+            [
+                'value' => $overview['total_views'],
+                'label' => translate('messages.Total_Views'),
+                'icon' => 'tio-invisible',
+                'color' => 'text-info',
+                'bg' => 'bg-info bg-opacity-10',
+                'note' => $analytics['weekly_change']['views'] . ' ' . translate('messages.this_week'),
+            ],
+            [
+                'value' => $overview['total_likes'],
+                'label' => translate('messages.Total_Likes'),
+                'icon' => 'tio-heart-outlined',
+                'color' => 'text-danger',
+                'bg' => 'bg-danger bg-opacity-10',
+                'note' => $analytics['weekly_change']['likes'] . ' ' . translate('messages.this_week'),
+            ],
+            [
+                'value' => $overview['total_store_visits'],
+                'label' => translate('messages.Store_Visits'),
+                'icon' => 'tio-home-vs-2-outlined',
+                'color' => 'text-success',
+                'bg' => 'bg-success bg-opacity-10',
+                'note' => $analytics['weekly_change']['visits'] . ' ' . translate('messages.this_week'),
+            ],
+            [
+                'value' => Helpers::format_currency($overview['total_sale_amount'] ?? 0),
+                'label' => translate('messages.Total_Sale_Amount'),
+                'tooltip' => translate('messages.Total_order_value_from_Reel_Order_Now_purchases'),
+                'icon' => 'tio-money',
+                'color' => 'text-primary',
+                'bg' => 'bg-primary bg-opacity-10',
+                'note' => ($analytics['weekly_change']['sale_amount'] ?? '0%') . ' ' . translate('messages.this_week'),
+            ],
+            [
+                'value' => $overview['total_sale'] ?? 0,
+                'label' => translate('messages.Total_Sale'),
+                'tooltip' => translate('messages.Total_orders_placed_using_the_Reel_Order_Now_button'),
+                'icon' => 'tio-shopping-cart',
+                'color' => 'text-warning',
+                'bg' => 'bg-warning bg-opacity-10',
+                'note' => ($analytics['weekly_change']['sale'] ?? '0%') . ' ' . translate('messages.this_week'),
+            ],
+        ];
     }
 
     public function create(): View|RedirectResponse
@@ -67,8 +128,12 @@ class ReelController extends Controller
             'is_always_visible' => false,
             'status' => true,
         ]);
+        $items = collect();
+        $selectedProductId = null;
+        $productLabel = $this->productLabel();
+        $actionLabel = $this->actionLabel();
 
-        return view('reelsmodule::admin.reels.create', compact('language', 'defaultLang', 'stores', 'reel'));
+        return view('reelsmodule::admin.reels.create', compact('language', 'defaultLang', 'stores', 'reel', 'items', 'selectedProductId', 'productLabel', 'actionLabel'));
     }
 
     public function store(ReelStoreRequest $request)
@@ -118,8 +183,12 @@ class ReelController extends Controller
         $language = getWebConfig('language') ?? [];
         $defaultLang = str_replace('_', '-', app()->getLocale());
         $stores = $this->getStores();
+        $items = $this->getStoreItems($reel->store_id);
+        $selectedProductId = $reel->productable_id;
+        $productLabel = $this->productLabel();
+        $actionLabel = $this->actionLabel();
 
-        return view('reelsmodule::admin.reels.edit', compact('language', 'defaultLang', 'stores', 'reel'));
+        return view('reelsmodule::admin.reels.edit', compact('language', 'defaultLang', 'stores', 'reel', 'items', 'selectedProductId', 'productLabel', 'actionLabel'));
     }
 
     public function update(ReelUpdateRequest $request, int $id)
@@ -234,6 +303,103 @@ class ReelController extends Controller
             ->get(['id', 'name', 'logo', 'module_id']);
     }
 
+    public function items(Request $request): JsonResponse
+    {
+        return response()->json([
+            'items' => $this->getStoreItems((int) $request->input('store_id'))->map(fn ($item) => [
+                'id' => $item->id,
+                'name' => $item->name,
+                'price' => (float) $item->price,
+            ])->values(),
+        ]);
+    }
+
+    private function isRentalModule(): bool
+    {
+        return config('module.current_module_type') === 'rental';
+    }
+
+    private function productLabel(): string
+    {
+        return $this->isRentalModule() ? translate('messages.Vehicle') : translate('messages.Product');
+    }
+
+    private function actionLabel(): string
+    {
+        return $this->isRentalModule() ? translate('messages.Book_Now') : translate('messages.Order_Now');
+    }
+
+    private function getStoreItems(?int $storeId): Collection
+    {
+        if (!$storeId) {
+            return collect();
+        }
+
+        if ($this->isRentalModule()) {
+            if (!class_exists(\Modules\Rental\Entities\Vehicle::class)) {
+                return collect();
+            }
+
+            return \Modules\Rental\Entities\Vehicle::withoutGlobalScopes()
+                ->where('provider_id', $storeId)
+                ->where('status', 1)
+                ->orderBy('name')
+                ->get(['id', 'name', 'day_wise_price', 'hourly_price', 'distance_price'])
+                ->map(fn ($vehicle) => (object) [
+                    'id' => $vehicle->id,
+                    'name' => $vehicle->name,
+                    'price' => (float) ($vehicle->day_wise_price ?: $vehicle->hourly_price ?: $vehicle->distance_price),
+                ]);
+        }
+
+        // withoutGlobalScopes() bypasses Store/Zone scoping, but it also strips
+        // the model's `translate` scope that pins the always-eager-loaded
+        // `translations` to the current locale. Without that pin, ALL locales
+        // load and Item::getNameAttribute() returns the first translation row
+        // regardless of locale (e.g. Arabic), so re-apply the locale constraint.
+        return Item::withoutGlobalScopes()
+            ->with(['translations' => function ($query) {
+                $query->where('locale', app()->getLocale());
+            }])
+            ->where('store_id', $storeId)
+            ->where('status', 1)
+            ->where('is_approved', 1)
+            ->when(ReelModuleConfig::isMultiModule(), fn ($query) => $query->where('module_id', config('module.current_module_id')))
+            ->orderBy('name')
+            ->get(['id', 'name', 'price']);
+    }
+
+    private function resolveReelProductable($productId, int $storeId): array
+    {
+        $productId = (int) $productId;
+        $empty = ['type' => null, 'id' => null];
+
+        if (!$productId) {
+            return $empty;
+        }
+
+        if ($this->isRentalModule()) {
+            if (!class_exists(\Modules\Rental\Entities\Vehicle::class)) {
+                return $empty;
+            }
+
+            $belongs = \Modules\Rental\Entities\Vehicle::withoutGlobalScopes()
+                ->where('id', $productId)
+                ->where('provider_id', $storeId)
+                ->exists();
+
+            return $belongs ? ['type' => \Modules\Rental\Entities\Vehicle::class, 'id' => $productId] : $empty;
+        }
+
+        $belongs = Item::withoutGlobalScopes()
+            ->where('id', $productId)
+            ->where('store_id', $storeId)
+            ->when(ReelModuleConfig::isMultiModule(), fn ($query) => $query->where('module_id', config('module.current_module_id')))
+            ->exists();
+
+        return $belongs ? ['type' => Item::class, 'id' => $productId] : $empty;
+    }
+
     private function resolveStore(int|string|null $storeId): ?Store
     {
         return Store::withoutGlobalScopes()
@@ -261,7 +427,7 @@ class ReelController extends Controller
         $reelStatuses = array_values(array_filter((array) $request->input('reel_status', [])));
         $today = Carbon::today()->toDateString();
 
-        $query = Reel::with(['store', 'storage'])
+        $query = Reel::with(['store', 'storage', 'productable'])
             ->withCount([
                 'engagements as total_views' => fn (Builder $builder) => $builder->where('type', ReelEngagement::TYPE_VIEW),
                 'engagements as total_likes' => fn (Builder $builder) => $builder->where('type', ReelEngagement::TYPE_LIKE),
@@ -386,17 +552,25 @@ class ReelController extends Controller
             return [
                 'view_trend_categories' => collect($monthlyRange)->map(fn ($month) => $month->format('M'))->values()->all(),
                 'view_trend_values' => array_fill(0, 12, 0),
-                'engagement_series' => [0, 0, 0],
+                'chart_series' => [
+                    'views' => array_fill(0, 12, 0),
+                    'likes' => array_fill(0, 12, 0),
+                    'visits' => array_fill(0, 12, 0),
+                    'sell' => array_fill(0, 12, 0),
+                ],
+                'engagement_series' => [0, 0, 0, 0],
                 'weekly_change' => [
                     'views' => '0%',
                     'likes' => '0%',
                     'visits' => '0%',
+                    'sale' => '0%',
+                    'sale_amount' => '0%',
                 ],
             ];
         }
 
         $engagements = ReelEngagement::query()
-            ->select(['type', 'created_at'])
+            ->select(['type', 'amount', 'created_at'])
             ->whereIn('reel_id', $reelIds)
             ->get();
 
@@ -410,27 +584,40 @@ class ReelController extends Controller
 
         $monthlyRange = CarbonPeriod::create(Carbon::now()->subMonths(11)->startOfMonth(), '1 month', Carbon::now()->startOfMonth());
         $chartCategories = [];
-        $chartValues = [];
+        $viewSeries = [];
+        $likeSeries = [];
+        $visitSeries = [];
+        $sellSeries = [];
 
         foreach ($monthlyRange as $month) {
+            $monthKey = $month->format('Y-m');
             $chartCategories[] = $month->format('M');
-            $chartValues[] = $engagements
-                ->filter(fn ($engagement) => $engagement->type === ReelEngagement::TYPE_VIEW)
-                ->filter(fn ($engagement) => Carbon::parse($engagement->created_at)->format('Y-m') === $month->format('Y-m'))
-                ->count();
+            $monthly = $engagements->filter(fn ($engagement) => Carbon::parse($engagement->created_at)->format('Y-m') === $monthKey);
+            $viewSeries[] = $monthly->where('type', ReelEngagement::TYPE_VIEW)->count();
+            $likeSeries[] = $monthly->where('type', ReelEngagement::TYPE_LIKE)->count();
+            $visitSeries[] = $monthly->where('type', ReelEngagement::TYPE_VISIT)->count();
+            $sellSeries[] = $monthly->where('type', ReelEngagement::TYPE_ORDER)->count();
         }
 
         $totalViews = $engagements->where('type', ReelEngagement::TYPE_VIEW)->count();
         $totalLikes = $engagements->where('type', ReelEngagement::TYPE_LIKE)->count();
         $totalVisits = $engagements->where('type', ReelEngagement::TYPE_VISIT)->count();
+        $totalSales = $engagements->where('type', ReelEngagement::TYPE_ORDER)->count();
 
         return [
             'view_trend_categories' => $chartCategories,
-            'view_trend_values' => $chartValues,
+            'view_trend_values' => $viewSeries,
+            'chart_series' => [
+                'views' => $viewSeries,
+                'likes' => $likeSeries,
+                'visits' => $visitSeries,
+                'sell' => $sellSeries,
+            ],
             'engagement_series' => [
                 $totalViews,
                 $totalLikes,
                 $totalVisits,
+                $totalSales,
             ],
             'weekly_change' => [
                 'views' => $this->calculatePercentChange(
@@ -445,6 +632,14 @@ class ReelController extends Controller
                     (float) $previousPeriod->where('type', ReelEngagement::TYPE_VISIT)->count(),
                     (float) $currentPeriod->where('type', ReelEngagement::TYPE_VISIT)->count()
                 ),
+                'sale' => $this->calculatePercentChange(
+                    (float) $previousPeriod->where('type', ReelEngagement::TYPE_ORDER)->count(),
+                    (float) $currentPeriod->where('type', ReelEngagement::TYPE_ORDER)->count()
+                ),
+                'sale_amount' => $this->calculatePercentChange(
+                    (float) $previousPeriod->where('type', ReelEngagement::TYPE_ORDER)->sum('amount'),
+                    (float) $currentPeriod->where('type', ReelEngagement::TYPE_ORDER)->sum('amount')
+                ),
             ],
         ];
     }
@@ -457,6 +652,16 @@ class ReelController extends Controller
                 $builder->moduleWise();
             })
             ->count();
+    }
+
+    private function getModuleSaleAmount(): float
+    {
+        return (float) ReelEngagement::query()
+            ->where('type', ReelEngagement::TYPE_ORDER)
+            ->whereHas('reel', function (Builder $builder) {
+                $builder->moduleWise();
+            })
+            ->sum('amount');
     }
 
     private function calculatePercentChange(float $previous, float $current): string
@@ -517,6 +722,10 @@ class ReelController extends Controller
         $reel->module_type = ReelModuleConfig::isMultiModule()
             ? (string) config('module.current_module_type')
             : ReelModuleConfig::defaultModuleType();
+        $product = $this->resolveReelProductable($request->input('product_id'), $store->id);
+        $reel->productable_type = $product['type'];
+        $reel->productable_id = $product['id'];
+        $reel->order_now_button = $request->boolean('order_now_button');
         $reel->description = $request->description[array_search('default', $request->lang)] ?? $request->description[0];
         $reel->is_always_visible = $request->boolean('is_always_visible');
         $reel->start_date = $reel->is_always_visible ? null : $startDate;

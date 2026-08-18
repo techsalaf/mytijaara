@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\Item\BrandController;
 use App\Http\Controllers\Admin\Banner\BannerController;
 use App\Http\Controllers\Admin\Coupon\CouponController;
 use App\Http\Controllers\Admin\Item\CategoryController;
+use App\Http\Controllers\Admin\Item\StoreCategoryController;
 use App\Http\Controllers\Admin\Module\ModuleController;
 use App\Http\Controllers\Admin\Item\AttributeController;
 use App\Http\Controllers\Admin\Employee\EmployeeController;
@@ -40,6 +41,7 @@ use App\Http\Controllers\Admin\Promotion\AdvertisementController;
 use App\Http\Controllers\Admin\Notification\NotificationController;
 use App\Http\Controllers\Admin\Subscription\SubscriptionController;
 use App\Http\Controllers\Admin\SurgePriceController;
+use App\Http\Controllers\Admin\SmartBannerController;
 
 Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
@@ -76,6 +78,18 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                 Route::get(Category::BULK_EXPORT[URI], [CategoryController::class, 'getBulkExportView'])->name('bulk-export-index');
                 Route::post(Category::BULK_EXPORT[URI], [CategoryController::class, 'exportBulkData'])->name('bulk-export');
             });
+        });
+
+        Route::group(['prefix' => 'store-category', 'as' => 'store-category.', 'middleware' => ['module:category']], function () {
+            Route::get('list', [StoreCategoryController::class, 'index'])->name('list');
+            Route::post('store', [StoreCategoryController::class, 'store'])->name('store');
+            Route::get('edit/{id}', [StoreCategoryController::class, 'getUpdateView'])->name('edit');
+            Route::post('update/{id}', [StoreCategoryController::class, 'update'])->name('update');
+            Route::get('status', [StoreCategoryController::class, 'updateStatus'])->name('status');
+            Route::get('priority/{id}', [StoreCategoryController::class, 'updatePriority'])->name('priority');
+            Route::delete('delete', [StoreCategoryController::class, 'delete'])->name('delete');
+            Route::get('by-store', [StoreCategoryController::class, 'getByStore'])->name('by-store');
+            Route::get('export', [StoreCategoryController::class, 'exportList'])->name('export');
         });
 
         Route::group(['prefix' => 'attribute', 'as' => 'attribute.', 'middleware' => ['module:attribute']], function () {
@@ -259,6 +273,18 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
                     Route::post('update/{id}', [SurgePriceController::class, 'update'])->name('update');
                     Route::delete('delete/{id}', [SurgePriceController::class, 'destroy'])->name('delete');
                 });
+
+                Route::group(['prefix' => 'smart-banner', 'as' => 'smart-banner.', 'middleware' => ['module:zone']], function () {
+                    Route::get('categories/{module_id}', [SmartBannerController::class, 'categoriesByModule'])->name('categories');
+                    Route::get('stores/{module_id}/{zone_id}', [SmartBannerController::class, 'storesByModuleZone'])->name('stores');
+                    Route::get('view/{id}', [SmartBannerController::class, 'view'])->name('view');
+                    Route::get('edit/{id}', [SmartBannerController::class, 'edit'])->name('edit');
+                    Route::post('store/{zone_id}', [SmartBannerController::class, 'store'])->name('store');
+                    Route::post('update/{id}', [SmartBannerController::class, 'update'])->name('update');
+                    Route::get('status/{id}/{status}', [SmartBannerController::class, 'status'])->name('status');
+                    Route::delete('delete/{id}', [SmartBannerController::class, 'destroy'])->name('delete');
+                    Route::get('/{zone_id}', [SmartBannerController::class, 'index'])->name('list');
+                });
             });
 
             Route::group(['prefix' => 'module', 'as' => 'module.', 'middleware' => ['module:module']], function () {
@@ -276,7 +302,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         });
 
         Route::group(['prefix' => 'users', 'as' => 'users.'], function () {
-            Route::group(['prefix' => 'custom-role', 'as' => 'custom-role.', 'middleware' => ['module:custom_role']], function () {
+            Route::group(['prefix' => 'custom-role', 'as' => 'custom-role.', 'middleware' => ['module:employee_role']], function () {
                 Route::get(CustomRole::ADD[URI], [CustomRoleController::class, 'index'])->name('create');
                 Route::post(CustomRole::ADD[URI], [CustomRoleController::class, 'add'])->name('store');
                 Route::get(CustomRole::EDIT[URI] . '/{id}', [CustomRoleController::class, 'getUpdateView'])->name('edit');

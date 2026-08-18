@@ -379,21 +379,31 @@
                                 style="display: {{ Request::is('vendor-panel/category*') ? 'block' : 'none' }}">
                                 <li class="nav-item {{ Request::is('vendor-panel/category/list') ? 'active' : '' }}">
                                     <a class="nav-link " href="{{ route('vendor.category.add') }}"
-                                        title="{{ translate('messages.category') }}">
+                                        title="{{ translate('messages.Main_Category') }}">
                                         <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">{{ translate('messages.category') }}</span>
+                                        <span class="text-truncate">{{ translate('messages.Main_Category') }}</span>
                                     </a>
                                 </li>
 
                                 <li
                                     class="nav-item {{ Request::is('vendor-panel/category/sub-category-list') ? 'active' : '' }}">
                                     <a class="nav-link " href="{{ route('vendor.category.add-sub-category') }}"
-                                        title="{{ translate('messages.sub_category') }}">
+                                        title="{{ translate('messages.Main_Sub_Category') }}">
                                         <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">{{ translate('messages.sub_category') }}</span>
+                                        <span class="text-truncate">{{ translate('messages.Main_Sub_Category') }}</span>
                                     </a>
                                 </li>
                             </ul>
+                        </li>
+                    @endif
+
+                    @if (\App\CentralLogics\Helpers::storeCategoryStatus())
+                        <li class="navbar-vertical-aside-has-menu {{ Request::is('vendor-panel/store-category*') ? 'active' : '' }}">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link"
+                                href="{{ route('vendor.store-category.list') }}" title="{{ translate('messages.My_Category') }}">
+                                <i class="tio-folder-bookmarked nav-icon"></i>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{ translate('messages.My_Category') }}</span>
+                            </a>
                         </li>
                     @endif
 

@@ -239,6 +239,7 @@ class ItemController extends Controller
         }
         $item->category_ids = json_encode($category);
         $item->category_id = $request->sub_category_id ? $request->sub_category_id : $request->category_id;
+        $item->store_category_id = $request->filled('store_category_id') ? (int) $request->store_category_id : null;
         $item->description = $request->description[array_search('default', $request->lang)];
 
         $choice_options = [];
@@ -374,10 +375,12 @@ class ItemController extends Controller
             $item_details->common_condition_id = $request->condition_id;
             $item_details->is_basic = $request->basic ?? 0;
             $item_details->is_prescription_required = $request->is_prescription_required ?? 0;
+            $item_details->unit_value = $request->unit_value;
+            $item_details->manufacturer = $request->manufacturer;
             $item_details->save();
             $item->generic()->sync($generic_ids);
         }
-        if ($module_type == 'ecommerce') {
+        if (in_array($module_type, ['ecommerce', 'grocery'])) {
             $item_details = new EcommerceItemDetails;
             $item_details->item_id = $item->id;
             $item_details->brand_id = $request->brand_id;
@@ -448,7 +451,11 @@ class ItemController extends Controller
         $taxVats = $taxData['taxVats'];
         $taxVatIds = $productWiseTax ? $product->taxVats()->pluck('tax_id')->toArray() : [];
 
-        return view('admin-views.product.edit', compact('product', 'sub_category', 'category', 'temp_product', 'productWiseTax', 'taxVats', 'taxVatIds'));
+        $store_categories = Helpers::storeCategoryStatus()
+            ? \App\Models\StoreCategory::active()->where('store_id', $product->store_id)->orderBy('priority', 'desc')->get(['id', 'name'])
+            : collect();
+
+        return view('admin-views.product.edit', compact('product', 'sub_category', 'category', 'temp_product', 'productWiseTax', 'taxVats', 'taxVatIds', 'store_categories'));
     }
 
     public function status(Request $request)
@@ -596,6 +603,7 @@ class ItemController extends Controller
 
         $item->category_id = $request->sub_category_id ? $request->sub_category_id : $request->category_id;
         $item->category_ids = json_encode($category);
+        $item->store_category_id = $request->filled('store_category_id') ? (int) $request->store_category_id : null;
         $item->description = $request->description[array_search('default', $request->lang)];
 
         $choice_options = [];
@@ -828,10 +836,12 @@ class ItemController extends Controller
                         'common_condition_id' => $request->condition_id,
                         'is_basic' => $request->basic ?? 0,
                         'is_prescription_required' => $request->is_prescription_required ?? 0,
+                        'unit_value' => $request->unit_value,
+                        'manufacturer' => $request->manufacturer,
                     ]
                 );
         }
-        if ($item->module->module_type == 'ecommerce') {
+        if (in_array($item->module->module_type, ['ecommerce', 'grocery'])) {
             DB::table('ecommerce_item_details')
                 ->updateOrInsert(
                     ['item_id' => $item->id],
@@ -1123,6 +1133,7 @@ class ItemController extends Controller
         $store_id = $request->query('store_id', 'all');
         $category_id = $request->query('category_id', 'all');
         $sub_category_id = $request->query('sub_category_id', 'all');
+        $store_category_id = $request->query('store_category_id', 'all');
         $zone_id = $request->query('zone_id', 'all');
         $condition_id = $request->query('condition_id', 'all');
         $brand_id = $request->query('brand_id', 'all');
@@ -1143,6 +1154,9 @@ class ItemController extends Controller
                 return $query->whereHas('category', function ($q) use ($category_id) {
                     return $q->whereId($category_id)->orWhere('parent_id', $category_id);
                 });
+            })
+            ->when(is_numeric($store_category_id), function ($query) use ($store_category_id) {
+                return $query->where('store_category_id', $store_category_id);
             })
             ->when(is_numeric($zone_id), function ($query) use ($zone_id) {
                 return $query->whereHas('store', function ($q) use ($zone_id) {
@@ -1178,10 +1192,14 @@ class ItemController extends Controller
         $condition = $condition_id != 'all' ? CommonCondition::findOrFail($condition_id) : [];
         $brand = $brand_id != 'all' ? Brand::findOrFail($brand_id) : [];
 
+        $store_categories = (Helpers::storeCategoryStatus() && is_numeric($store_id))
+            ? \App\Models\StoreCategory::active()->where('store_id', $store_id)->orderBy('priority', 'desc')->get(['id', 'name'])
+            : collect();
+
         $taxData = Helpers::getTaxSystemType(getTaxVatList: false);
         $productWiseTax = $taxData['productWiseTax'];
 
-        return view('admin-views.product.list', compact('items', 'store', 'category', 'type', 'sub_category', 'condition', 'productWiseTax'));
+        return view('admin-views.product.list', compact('items', 'store', 'category', 'type', 'sub_category', 'condition', 'productWiseTax', 'store_categories', 'store_category_id'));
     }
 
     public function remove_image(Request $request)
@@ -1485,6 +1503,19 @@ class ItemController extends Controller
                                     $collections[$key * $chunkSize + $key]['CommonConditions'] ?? 0,
                                 'is_basic' =>
                                     $collections[$key * $chunkSize + $key]['IsBasic'] ?? 0,
+                                'unit_value' =>
+                                    $collections[$key * $chunkSize + $key]['UnitValue'] ?? null,
+                                'manufacturer' =>
+                                    $collections[$key * $chunkSize + $key]['Manufacturer'] ?? null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                        if (in_array($module_type, ['ecommerce', 'grocery'], true)) {
+                            DB::table('ecommerce_item_details')->insert([
+                                'item_id' => $insertedId,
+                                'brand_id' =>
+                                    $collections[$key * $chunkSize + $key]['BrandId'] ?? null,
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ]);
@@ -1600,11 +1631,24 @@ class ItemController extends Controller
                         Helpers::updateStorageTable(get_class(new Item), $insertedId, $item['image']);
                     }
 
+                    if (in_array($module_type, ['ecommerce', 'grocery'], true)) {
+                        $brandId = $collections[$key * $chunkSize + $key]['BrandId'] ?? null;
+                        DB::table('ecommerce_item_details')->updateOrInsert(
+                            ['item_id' => $item['id']],
+                            [
+                                'brand_id' => $brandId,
+                                'updated_at' => now(),
+                            ]
+                        );
+                    }
+
                     if ($module_type === 'pharmacy') {
 
                         $isPrescriptionRequired = $collections[$key * $chunkSize + $key]['IsPrescriptionRequired'] ?? 0;
                         $commonConditionId = $collections[$key * $chunkSize + $key]['CommonConditions'] ?? 0;
                         $isBasic = $collections[$key * $chunkSize + $key]['IsBasic'] ?? 0;
+                        $unitValue = $collections[$key * $chunkSize + $key]['UnitValue'] ?? null;
+                        $manufacturer = $collections[$key * $chunkSize + $key]['Manufacturer'] ?? null;
                         if (
                             DB::table('pharmacy_item_details')
                                 ->where('item_id', $item['id'])
@@ -1616,6 +1660,8 @@ class ItemController extends Controller
                                     'is_prescription_required' => $isPrescriptionRequired,
                                     'common_condition_id' => $commonConditionId,
                                     'is_basic' => $isBasic,
+                                    'unit_value' => $unitValue,
+                                    'manufacturer' => $manufacturer,
                                     'updated_at' => now(),
                                 ]);
                         } else {
@@ -1625,6 +1671,8 @@ class ItemController extends Controller
                                     'is_prescription_required' => $isPrescriptionRequired,
                                     'common_condition_id' => $commonConditionId,
                                     'is_basic' => $isBasic,
+                                    'unit_value' => $unitValue,
+                                    'manufacturer' => $manufacturer,
                                     'created_at' => now(),
                                     'updated_at' => now(),
                                 ]);
@@ -2154,6 +2202,7 @@ class ItemController extends Controller
 
         $item->category_id = $data->category_id;
         $item->category_ids = $data->category_ids;
+        $item->store_category_id = $data->store_category_id;
 
         $item->choice_options = $data->choice_options;
         $item->food_variations = $data->food_variations;
@@ -2193,12 +2242,13 @@ class ItemController extends Controller
                 'temp_product_id' => null,
             ]);
         }
-        if ($item->module->module_type == 'ecommerce') {
+        if (in_array($item->module->module_type, ['ecommerce', 'grocery'])) {
             DB::table('ecommerce_item_details')->where('temp_product_id', $data->id)->update([
                 'item_id' => $item->id,
                 'temp_product_id' => null,
             ]);
-
+        }
+        if ($item->module->module_type == 'ecommerce') {
             DB::table('item_seo_data')->where('temp_item_id', $data->id)->update([
                 'item_id' => $item->id,
                 'temp_item_id' => null,

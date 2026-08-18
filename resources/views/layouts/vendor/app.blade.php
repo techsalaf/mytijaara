@@ -26,7 +26,7 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
     <!-- Title -->
     <title>@yield('title')</title>
     <!-- Favicon -->
-    @php($logo = \App\Models\BusinessSetting::where(['key' => 'icon'])->first())
+    @php $logo = \App\Models\BusinessSetting::where(['key' => 'icon'])->first(); @endphp
     <link rel="shortcut icon" href="">
     <link rel="icon" type="image/x-icon"
         href="{{\App\CentralLogics\Helpers::get_full_url('business', $logo?->value ?? '', $logo?->storage[0]?->value ?? 'public', 'favicon')}}">
@@ -40,9 +40,24 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/theme.minc619.css?v=1.0">
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/emogi-area.css')}}">
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/style.css')}}">
+    <link rel="stylesheet" href="{{asset('public/assets/admin/css/app-toast.css')}}">
     <link rel="stylesheet" href="{{asset('public/assets/admin/intltelinput/css/intlTelInput.css')}}">
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/owl.min.css')}}">
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/upload-single-image.css')}}">
+
+    {{-- Layout version + feature toggles come from config/layout.php (central switch). --}}
+    @php
+        $layout_version  = config('layout.version', 'auto');
+        $layout_features = config('layout.features', []);
+        $use_v2_chrome   = match ($layout_version) {
+            'v1'    => false,
+            'v2'    => isset($moduleType),
+            default => isset($moduleType),
+        };
+    @endphp
+    @if($use_v2_chrome)
+        <link rel="stylesheet" href="{{ asset('public/assets/admin/css/admin-v2.css') }}">
+    @endif
     @if(addon_published_status('ReelsModule'))
         <link rel="stylesheet" href="{{ asset('Modules/ReelsModule/public/assets/css/reels.css') }}">
     @endif
@@ -53,13 +68,17 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/toastr.css">
 </head>
 
-<body class="footer-offset">
+<body class="footer-offset @if($use_v2_chrome ?? false) v2-chrome @endif @if(($use_v2_chrome ?? false) && (($layout_features['pin'] ?? true) === false)) layout-no-pin @endif">
     @if (getEnvMode() == 'demo')
         <div class="direction-toggle">
             <i class="tio-settings"></i>
             <span></span>
         </div>
     @endif
+
+    {{-- Global toast container: new_tostar(type, title, description) --}}
+    <div id="app-toast-container" class="app-toast-container"></div>
+
     <div class="container">
         <div class="row">
             <div class="col-md-12">
@@ -84,6 +103,15 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
         @include("rental::provider.partials._sidebar_{$moduleType}")
     @else
         @include('layouts.vendor.partials._sidebar')
+    @endif
+
+    @if($use_v2_chrome ?? false)
+        @include('layouts.vendor.partials._header_v2')
+        @if($moduleType === 'rental')
+            @include('rental::provider.partials._sidebar_v2_rental')
+        @else
+            @include('layouts.vendor.partials._sidebar_v2')
+        @endif
     @endif
     <!-- END ONLY DEV -->
 
@@ -317,8 +345,12 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
     <!-- JS Front -->
     <script src="{{asset('public/assets/admin')}}/js/vendor.min.js"></script>
     <script src="{{asset('public/assets/admin')}}/js/theme.min.js"></script>
+    {{-- Centralized verified-store badge for every select2 dropdown (must load right after select2/theme). --}}
+    <script src="{{asset('public/assets/admin')}}/js/verified-select2.js"></script>
     <script src="{{asset('public/assets/admin')}}/js/sweet_alert.js"></script>
     <script src="{{asset('public/assets/admin')}}/js/toastr.js"></script>
+    <script src="{{asset('public/assets/admin/js/app-toast.js')}}"></script>
+    <script src="{{asset('public/assets/admin/js/field-error-toast.js')}}"></script>
     <script src="{{asset('public/assets/admin')}}/js/emogi-area.js"></script>
     <script src="{{asset('public/assets/admin/js/owl.min.js')}}"></script>
     <script src="{{asset('public/assets/admin/js/app-blade/vendor.js')}}"></script>
@@ -505,7 +537,7 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
             location.href = nurl;
         }
 
-        @php($fcm_credentials = \App\CentralLogics\Helpers::get_business_settings('fcm_credentials'))
+        @php $fcm_credentials = \App\CentralLogics\Helpers::get_business_settings('fcm_credentials'); @endphp
         let firebaseConfig = {
             apiKey: "{{isset($fcm_credentials['apiKey']) ? $fcm_credentials['apiKey'] : ''}}",
             authDomain: "{{isset($fcm_credentials['authDomain']) ? $fcm_credentials['authDomain'] : ''}}",
@@ -525,7 +557,7 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
                     return messaging.getToken();
                 })
                 .then(function (token) {
-                    @php($store_id = \App\CentralLogics\Helpers::get_store_id())
+                    @php $store_id = \App\CentralLogics\Helpers::get_store_id(); @endphp
                     // Send the token to your backend to subscribe to topic
                     subscribeTokenToBackend(token, 'store_panel_{{$store_id}}_message');
                 }).catch(function (error) {
@@ -588,7 +620,7 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
             })
         }
 
-        @php($order_notification_type = \App\CentralLogics\Helpers::get_business_settings('order_notification_type') ?? 'firebase')
+        @php $order_notification_type = \App\CentralLogics\Helpers::get_business_settings('order_notification_type') ?? 'firebase'; @endphp
         let order_type = 'all';
         let is_trip = false;
         messaging.onMessage(function (payload) {
@@ -683,7 +715,9 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
             }
         });
         startFCM();
+        @if(\App\CentralLogics\Helpers::employee_module_permission_check('chat'))
         conversationList();
+        @endif
         if (getUrlParameter('conversation')) {
             conversationView();
         }
@@ -692,6 +726,10 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
             const inputs = document.querySelectorAll('input[type="tel"]');
 
             inputs.forEach(input => {
+
+                if (window.intlTelInputGlobals && window.intlTelInputGlobals.getInstance(input)) {
+                    return;
+                }
 
                 const iti = window.intlTelInput(input, {
                     initialCountry: "{{$countryCode}}",
@@ -887,10 +925,6 @@ $verifiedBadgePopupLabel = isset($moduleType) && $moduleType == 'rental' ? trans
     </script>
 
 
-    <!-- IE Support -->
-    <script>
-        if (/MSIE \d|Trident.*rv:/.test(navigator.userAgent)) document.write('<script src="{{asset('public/assets/admin')}}/vendor/babel-polyfill/polyfill.min.js"><\/script>');
-    </script>
 </body>
 
 </html>

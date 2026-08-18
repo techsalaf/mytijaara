@@ -3,7 +3,7 @@
         <li class="nav-item">
             <a class="nav-link {{ (!request()->tab && !request()->routeIs('admin.transactions.ride-share.report.admin-earning-report')) || request()->tab == 'all' ? 'active' : '' }}"
                 href="{{ route('admin.transactions.report.admin-earning-report', array_merge(['tab' => 'all'], $parcelOrderTypes)) }}"
-                aria-disabled="true">{{ translate('messages.All Modules') }}</a>
+                aria-disabled="true">{{ translate('messages.Order Modules') }}</a>
         </li>
         <li class="nav-item">
             <a class="nav-link {{ request()->tab == 'parcel' ? 'active' : '' }}"

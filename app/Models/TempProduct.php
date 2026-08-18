@@ -14,6 +14,7 @@ use Modules\TaxModule\Entities\Taxable;
 class TempProduct extends Model
 {
     use HasFactory, HasProductVideoPreview;
+    protected $with = ['storeCategory'];
     protected $casts = [
         'tax' => 'float',
         'price' => 'float',
@@ -23,6 +24,7 @@ class TempProduct extends Model
         'set_menu' => 'integer',
         'category_id' => 'integer',
         'store_id' => 'integer',
+        'store_category_id' => 'integer',
         'reviews_count' => 'integer',
         'recommended' => 'integer',
         'maximum_cart_quantity' => 'integer',
@@ -135,6 +137,11 @@ class TempProduct extends Model
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function storeCategory()
+    {
+        return $this->belongsTo(StoreCategory::class, 'store_category_id');
     }
 
     public function storage()

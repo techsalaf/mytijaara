@@ -1,5 +1,5 @@
 <div class="col-6 pr-0">
-    <input type="text" class="form-control form-control-lg" name="custome_recaptcha"
+    <input type="text" class="form-control form-control-lg input-lg" name="custome_recaptcha"
             id="custome_recaptcha" required placeholder="{{\translate('Enter recaptcha value')}}" autocomplete="off" value="{{getEnvMode()=='dev'? session('six_captcha'):''}}">
 </div>
 <div class="col-6 bg-white rounded d-flex">

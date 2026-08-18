@@ -104,12 +104,19 @@
                 complete: function () { $('#loading').hide(); }
             });
         }
+        function syncCallToActionPreview() {
+            const enabled = $('#call-to-action-toggle').is(':checked');
+            $('#product-select-wrapper').toggle(enabled);
+            $('#order-now-btn').toggle(enabled);
+        }
         $(function () {
             initReelDateRange();
             toggleAlwaysVisibleState();
             updateTextCounters();
+            syncCallToActionPreview();
             $(document).on('change', '#is_always_visible', toggleAlwaysVisibleState);
             $(document).on('input', '.reel-des-textarea', updateTextCounters);
+            $(document).on('change', '#call-to-action-toggle', syncCallToActionPreview);
             $('#reel-form').on('submit', function (e) {
                 e.preventDefault();
                 submitReelForm(this);

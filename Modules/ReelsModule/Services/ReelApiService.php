@@ -23,7 +23,11 @@ class ReelApiService
 
         return Reel::query()
             ->active()
-            ->with(['store.storeConfig:id,store_id,verified_seller', 'storage'])
+            ->with([
+                'store.storeConfig:id,store_id,verified_seller',
+                'storage',
+                'productable',
+            ])
             ->select([
                 'id',
                 'description',
@@ -31,6 +35,12 @@ class ReelApiService
                 'video',
                 'store_id',
                 'module_id',
+                'module_type',
+                'productable_type',
+                'productable_id',
+                'order_now_button',
+                'order_count',
+                'total_sale_amount',
                 'status',
                 'is_always_visible',
                 'start_date',
@@ -76,7 +86,11 @@ class ReelApiService
     {
         return Reel::query()
             ->active()
-            ->with(['store.storeConfig:id,store_id,verified_seller', 'storage'])
+            ->with([
+                'store.storeConfig:id,store_id,verified_seller',
+                'storage',
+                'productable',
+            ])
             ->when($moduleId !== null, fn (Builder $query) => $query->where('module_id', $moduleId))
             ->find($id);
     }
@@ -89,6 +103,42 @@ class ReelApiService
     public function trackVisit(Reel $reel, ?int $userId, ?string $guestId): void
     {
         $this->trackUniqueEngagement($reel, $userId, $guestId, 'visit', 'total_store_visits');
+    }
+
+    public function trackOrder(Reel $reel, ?int $userId, ?string $guestId, float $amount = 0): void
+    {
+        $this->recordOrderSale($reel->id, $amount, $userId, $guestId);
+    }
+
+    public function recordOrderSale(int $reelId, float $amount = 0, ?int $userId = null, ?string $guestId = null): bool
+    {
+        $reel = Reel::query()->lockForUpdate()->find($reelId);
+
+        if (!$reel) {
+            return false;
+        }
+
+        $alreadyRecorded = ReelEngagement::query()
+            ->where('reel_id', $reel->id)
+            ->where('type', ReelEngagement::TYPE_ORDER)
+            ->when($userId, fn ($query) => $query->where('user_id', $userId))
+            ->when(!$userId, fn ($query) => $query->where('guest_id', $guestId))
+            ->exists();
+
+        if (!$alreadyRecorded) {
+            ReelEngagement::create([
+                'reel_id' => $reel->id,
+                'user_id' => $userId,
+                'guest_id' => $userId ? null : $guestId,
+                'type' => ReelEngagement::TYPE_ORDER,
+                'amount' => $amount,
+            ]);
+        }
+
+        $reel->increment('order_count');
+        $reel->increment('total_sale_amount', $amount);
+
+        return true;
     }
 
     public function toggleLike(Reel $reel, int $userId): array

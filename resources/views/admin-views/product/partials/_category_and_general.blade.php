@@ -36,7 +36,7 @@
                         <div class="row g-2">
                             @php($column = 4)
                             @if (Auth::guard('admin')->check())
-                                <div class="col-sm-6 col-lg-3">
+                                <div class="col-sm-6 col-lg-4">
     
                                     <div class="form-group mb-0 error-wrapper">
                                         <label class="input-label" for="store_id">{{ translate('messages.store') }} <span
@@ -58,11 +58,11 @@
     
     
                                 </div>
-                                @php($column = 3)
+                                @php($column = 4)
                                 <div class="col-sm-6 col-lg-{{ $column }}">
                                     <div class="form-group mb-0 error-wrapper">
                                         <label class="input-label"
-                                            for="exampleFormControlSelect1">{{ translate('messages.category') }}<span
+                                            for="exampleFormControlSelect1">{{ translate('messages.Main Category') }}<span
                                                 class="form-label-secondary text-danger" data-toggle="tooltip"
                                                 data-placement="right"
                                                 data-original-title="{{ translate('messages.Required.') }}"> *
@@ -83,7 +83,7 @@
                                 <div class="col-sm-6 col-lg-4">
                                     <div class="form-group mb-0 error-wrapper">
                                         <label class="input-label"
-                                            for="exampleFormControlSelect1">{{ translate('messages.category') }}<span
+                                            for="exampleFormControlSelect1">{{ translate('messages.Main Category') }}<span
                                                 class="input-label-secondary">*</span></label>
                                         <select name="category_id" id="category_id"
                                             class="form-control js-select2-custom get-request"
@@ -108,7 +108,7 @@
     
                                 <div class="form-group mb-0 error-wrapper">
                                     <label class="input-label"
-                                        for="exampleFormControlSelect1">{{ translate('messages.sub_category') }}<span
+                                        for="exampleFormControlSelect1">{{ translate('messages.main sub_category') }}<span
                                             class="form-label-secondary" data-toggle="tooltip" data-placement="right"
                                             data-original-title="{{ translate('messages.category_required_warning') }}"><img
                                                 src="{{ asset('/public/assets/admin/img/info-circle.svg') }}"
@@ -128,7 +128,38 @@
     
     
                             </div>
-    
+
+                            @if (\App\CentralLogics\Helpers::storeCategoryStatus())
+                            @if (Auth::guard('admin')->check() || \App\CentralLogics\Helpers::hasAnyStoreCategory(isset($product) ? $product->store_id : null))
+                            <div class="col-sm-6 col-lg-{{ $column }}" id="store_category_col"
+                                style="{{ \App\CentralLogics\Helpers::hasAnyStoreCategory(isset($product) ? $product->store_id : null) ? '' : 'display: none;' }}">
+                                <div class="form-group mb-0 error-wrapper">
+                                    <label class="input-label" for="store_category_id">
+                                        {{ translate('messages.Store_Category') }}
+                                        <span class="text-danger store-category-required-mark"
+                                            style="{{ \App\CentralLogics\Helpers::hasAnyStoreCategory(isset($product) ? $product->store_id : null) ? '' : 'display: none;' }}">*</span>
+                                    </label>
+                                    <select name="store_category_id" id="store_category_id"
+                                        data-placeholder="{{ translate('messages.Select_Store_Category') }}"
+                                        @if (Auth::guard('admin')->check())
+                                            data-url="{{ route('admin.store-category.by-store') }}"
+                                        @endif
+                                        class="form-control js-select2-custom"
+                                        {{ \App\CentralLogics\Helpers::hasAnyStoreCategory(isset($product) ? $product->store_id : null) ? 'required' : '' }}>
+                                        <option value="">{{ translate('messages.Select_Store_Category') }}</option>
+                                        @foreach ($store_categories ?? [] as $sc)
+                                            <option value="{{ $sc->id }}"
+                                                {{ (isset($product) && $product->store_category_id == $sc->id) || old('store_category_id') == $sc->id ? 'selected' : '' }}>
+                                                {{ $sc->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            @endif
+                            @endif
+
+
                             @if (Config::get('module.current_module_type') == 'food')
                                 <div class="col-sm-6 col-lg-{{ $column }}" id="veg_input">
                                     <div class="form-group mb-0 error-wrapper">
@@ -153,9 +184,9 @@
     
     
                             @if (Config::get('module.current_module_type') == 'pharmacy')
-    
+
                                 <div class="col-sm-6 col-lg-{{ $column }}" id="condition_input">
-    
+
                                     <div class="form-group mb-0 error-wrapper">
                                         <label class="input-label"
                                             for="condition_id">{{ translate('messages.Suitable_For') }}<span
@@ -163,7 +194,7 @@
                                         <select name="condition_id" id="condition_id"
                                             data-placeholder="{{ translate('messages.Select_Condition') }}"
                                             class="js-data-example-ajax form-control">
-    
+
                                             @if (isset($product?->pharmacy_item_details?->common_condition_id))
                                                 <option value="{{ $product->pharmacy_item_details->common_condition_id }}"
                                                     selected="selected">
@@ -175,10 +206,21 @@
                                         </select>
                                     </div>
                                 </div>
+
+                                <div class="col-sm-6 col-lg-{{ $column }} error-wrapper" id="manufacturer_wrapper">
+                                    <div class="form-group mb-0">
+                                        <label class="input-label text-capitalize" for="manufacturer">
+                                            {{ translate('messages.Manufacturer') }}
+                                        </label>
+                                        <input type="text" name="manufacturer" id="manufacturer" class="form-control"
+                                            placeholder="{{ translate('messages.Enter_manufacturer_name') }}"
+                                            value="{{ isset($product) ? ($product->pharmacy_item_details?->manufacturer ?? (isset($temp_product) && $temp_product == 1 ? $product->manufacturer : '')) : '' }}">
+                                    </div>
+                                </div>
                             @endif
     
-                            @if (Config::get('module.current_module_type') == 'ecommerce')
-    
+                            @if (in_array(Config::get('module.current_module_type'), ['ecommerce', 'grocery']))
+
                                 <div class="col-sm-6 col-lg-{{ $column }}" id="brand_input">
                                     <div class="form-group mb-0 error-wrapper">
                                         <label class="input-label" for="brand_id">{{ translate('messages.Brand') }}<span
@@ -186,21 +228,22 @@
                                         <select name="brand_id" id="brand_id"
                                             data-placeholder="{{ translate('messages.Select_brand') }}"
                                             class="js-data-example-ajax form-control">
-                                            @if (isset($product->ecommerce_item_details?->brand_id))
+                                            @if (isset($product?->ecommerce_item_details?->brand_id))
                                                 <option value="{{ $product->ecommerce_item_details->brand_id }}"
                                                     selected="selected">
-                                                    {{ $product->ecommerce_item_details?->brand->name }}</option>
-                                            @elseif(isset($temp_product) && $temp_product == 1 && $product->brand_id)
+                                                    {{ $product?->ecommerce_item_details?->brand?->name }}</option>
+                                            @elseif(isset($temp_product) && $temp_product == 1 && $product?->brand_id)
                                                 <option value="{{ $product->brand_id }}" selected="selected">
-                                                    {{ $product->brand->name }}</option>
+                                                    {{ $product?->brand?->name }}</option>
                                             @endif
                                         </select>
                                     </div>
                                 </div>
                             @endif
                             @if (Config::get('module.current_module_type') != 'food')
-    
-                                <div class="col-sm-6 col-lg-{{ $column }}" id="unit_input">
+                                @php($is_pharmacy = Config::get('module.current_module_type') == 'pharmacy')
+
+                                <div class="col-sm-6 col-lg-{{ $is_pharmacy ? 2 : $column }}" id="unit_input">
                                     <div class="form-group mb-0 error-wrapper">
                                         <label class="input-label text-capitalize"
                                             for="unit">{{ translate('messages.unit') }}</label>
@@ -215,6 +258,19 @@
                                         </select>
                                     </div>
                                 </div>
+
+                                @if ($is_pharmacy)
+                                    <div class="col-sm-6 col-lg-2 error-wrapper" id="unit_value_wrapper">
+                                        <div class="form-group mb-0">
+                                            <label class="input-label text-capitalize" for="unit_value">
+                                                {{ translate('messages.Unit_Value') }}
+                                            </label>
+                                            <input type="text" name="unit_value" id="unit_value" class="form-control"
+                                                placeholder="{{ translate('messages.e_g_10_pcs_per_strip') }}"
+                                                value="{{ isset($product) ? ($product->pharmacy_item_details?->unit_value ?? (isset($temp_product) && $temp_product == 1 ? $product->unit_value : '')) : '' }}">
+                                        </div>
+                                    </div>
+                                @endif
                             @endif
     
     
@@ -290,7 +346,7 @@
                                 </div>
                             @endif
                             @if (Config::get('module.current_module_type') == 'pharmacy')
-                                <div class="col-sm-6 col-lg--6 error-wrapper" id="generic_name">
+                                <div class="col-sm-6 col-lg-4 error-wrapper" id="generic_name">
                                     <label class="input-label" for="sub-categories">
                                         {{ translate('generic_name') }}
                                         <span class="input-label-secondary"
@@ -313,28 +369,32 @@
                                         @endif
                                     </div>
                                 </div>
-    
-                                <div class="col-sm-6 col-lg-4 error-wrapper" id="basic">
-                                    <div class="form-check mb-sm-2 pb-sm-1">
-                                        <input class="form-check-input" name="basic" type="checkbox" value="1"
-                                            id="is_basic_medicine"
-                                            {{ isset($product) && $product->pharmacy_item_details?->is_basic == 1 ? 'checked' : (isset($temp_product) && $temp_product == 1 && $product->basic == 1 ? 'checked' : '') }}>
-                                        <label class="form-check-label" for="is_basic_medicine">
-                                            {{ translate('messages.Is_Basic_Medicine') }}
-                                        </label>
+                                <div class="col-12">
+                                <div class="d-flex flex-wrap gap-3">
+                                    <div class="flex-fill error-wrapper" id="basic">
+                                        <div class="form-check mb-sm-2 pb-sm-1">
+                                            <input class="form-check-input" name="basic" type="checkbox" value="1"
+                                                id="is_basic_medicine"
+                                                {{ isset($product) && $product->pharmacy_item_details?->is_basic == 1 ? 'checked' : (isset($temp_product) && $temp_product == 1 && $product->basic == 1 ? 'checked' : '') }}>
+                                            <label class="form-check-label" for="is_basic_medicine">
+                                                {{ translate('messages.Is_Basic_Medicine') }}
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex-fill error-wrapper" id="is_prescription_required">
+                                        <div class="form-check mb-sm-2 pb-sm-1">
+                                            <input class="form-check-input" name="is_prescription_required" type="checkbox"
+                                                value="1" id="prescription_required"
+                                                {{ isset($product) && $product->pharmacy_item_details?->is_prescription_required == 1 ? 'checked' : (isset($temp_product) && $temp_product == 1 && $product->is_prescription_required == 1 ? 'checked' : '') }}>
+                                            <label class="form-check-label" for="prescription_required">
+                                                {{ translate('messages.is_prescription_required') }}
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
-    
-                                <div class="col-sm-6 col-lg-4 error-wrapper" id="is_prescription_required">
-                                    <div class="form-check mb-sm-2 pb-sm-1">
-                                        <input class="form-check-input" name="is_prescription_required" type="checkbox"
-                                            value="1" id="prescription_required"
-                                            {{ isset($product) && $product->pharmacy_item_details?->is_prescription_required == 1 ? 'checked' : (isset($temp_product) && $temp_product == 1 && $product->is_prescription_required == 1 ? 'checked' : '') }}>
-                                        <label class="form-check-label" for="prescription_required">
-                                            {{ translate('messages.is_prescription_required') }}
-                                        </label>
-                                    </div>
                                 </div>
+                                
                             @endif
                             @if (Config::get('module.current_module_type') == 'grocery')
                                 <div class="col-sm-6 col-lg-4 error-wrapper" id="organic">

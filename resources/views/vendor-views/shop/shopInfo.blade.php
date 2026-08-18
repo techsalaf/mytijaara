@@ -44,17 +44,9 @@
 
                         <div class="my-resturant--content_wrap flex-grow-1">
                             <div class="info-area mb-20">
-                                <h3 class="fs-20 mb-0 fw-bold text--title d-flex align-items-center gap-0">
+                                <h3 class="fs-20 mb-0 fw-bold text--title d-flex align-items-center gap-2">
                                     {{ $shop->name }}
-                                    @if ($verified_seller_badge == 1 && $shop->storeConfig?->verified_seller)
-                                        <span class="w-20px" data-toggle="tooltip" data-placement="top"
-                                            data-original-title="{{ translate('messages.Verified Badge') }}">
-                                            <img width="18" height="18"
-                                                src="{{ asset('public/assets/admin/img/badge-big.png') }}" alt=""
-                                                class="w-100 h-100 rounded-0 object-contain">
-                                        </span>
-                                    @endif
-
+                                    @include('partials._verified_store_badge', ['store' => $shop])
                                 </h3>
                                 <span class="fs-12 lh--12 text-8797AB">{{ translate('Created at') }}
                                     {{ \App\CentralLogics\Helpers::date_format($shop->created_at) }}</span>

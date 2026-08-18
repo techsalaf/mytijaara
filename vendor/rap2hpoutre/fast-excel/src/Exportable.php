@@ -3,20 +3,21 @@
 namespace Rap2hpoutre\FastExcel;
 
 use DateTimeInterface;
-use Generator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\Common\AbstractOptions;
 use OpenSpout\Writer\Common\Creator\WriterEntityFactory;
+use OpenSpout\Writer\WriterInterface;
+use Traversable;
 
 /**
  * Trait Exportable.
  *
  * @property bool                           $transpose
  * @property bool                           $with_header
+ * @property callable|null                  $writer_configurator
  * @property \Illuminate\Support\Collection $data
  */
 trait Exportable
@@ -56,7 +57,7 @@ trait Exportable
      *
      * @return string
      */
-    public function export($path, callable $callback = null)
+    public function export($path, ?callable $callback = null)
     {
         self::exportOrDownload($path, 'openToFile', $callback);
 
@@ -74,7 +75,7 @@ trait Exportable
      *
      * @return \Symfony\Component\HttpFoundation\StreamedResponse|string
      */
-    public function download($path, callable $callback = null)
+    public function download($path, ?callable $callback = null)
     {
         if (method_exists(response(), 'streamDownload')) {
             return response()->streamDownload(function () use ($path, $callback) {
@@ -97,21 +98,9 @@ trait Exportable
      * @throws \OpenSpout\Writer\Exception\WriterNotOpenedException
      * @throws \OpenSpout\Common\Exception\SpoutException
      */
-    private function exportOrDownload($path, $function, callable $callback = null)
+    private function exportOrDownload($path, $function, ?callable $callback = null)
     {
-        if (Str::endsWith($path, 'csv')) {
-            $options = new \OpenSpout\Writer\CSV\Options();
-            $writer = new \OpenSpout\Writer\CSV\Writer($options);
-        } elseif (Str::endsWith($path, 'ods')) {
-            $options = new \OpenSpout\Writer\ODS\Options();
-            $writer = new \OpenSpout\Writer\ODS\Writer($options);
-        } else {
-            $options = new \OpenSpout\Writer\XLSX\Options();
-            $writer = new \OpenSpout\Writer\XLSX\Writer($options);
-        }
-
-        $this->setOptions($options);
-        /* @var \OpenSpout\Writer\WriterInterface $writer */
+        $writer = $this->makeWriter($path);
         $writer->$function($path);
 
         $has_sheets = ($writer instanceof \OpenSpout\Writer\XLSX\Writer || $writer instanceof \OpenSpout\Writer\ODS\Writer);
@@ -122,7 +111,7 @@ trait Exportable
         foreach ($data as $key => $collection) {
             if ($collection instanceof Collection) {
                 $this->writeRowsFromCollection($writer, $collection, $callback);
-            } elseif ($collection instanceof Generator) {
+            } elseif ($collection instanceof Traversable) {
                 $this->writeRowsFromGenerator($writer, $collection, $callback);
             } elseif (is_array($collection)) {
                 $this->writeRowsFromArray($writer, $collection, $callback);
@@ -137,6 +126,52 @@ trait Exportable
             }
         }
         $writer->close();
+    }
+
+    private function makeWriter(string $path): WriterInterface
+    {
+        $extension = $this->resolveWriterExtension($path);
+
+        if ($extension === 'csv') {
+            $options = new \OpenSpout\Writer\CSV\Options();
+        } elseif ($extension === 'ods') {
+            $options = new \OpenSpout\Writer\ODS\Options();
+        } else {
+            $options = new \OpenSpout\Writer\XLSX\Options();
+        }
+
+        $this->setOptions($options);
+
+        if (is_callable($this->writer_configurator ?? null)) {
+            $writer = call_user_func($this->writer_configurator, $options, $extension);
+
+            if ($writer instanceof WriterInterface) {
+                return $writer;
+            }
+        }
+
+        if ($extension === 'csv') {
+            return new \OpenSpout\Writer\CSV\Writer($options);
+        }
+
+        if ($extension === 'ods') {
+            return new \OpenSpout\Writer\ODS\Writer($options);
+        }
+
+        return new \OpenSpout\Writer\XLSX\Writer($options);
+    }
+
+    private function resolveWriterExtension(string $path): string
+    {
+        if (str_ends_with($path, 'csv')) {
+            return 'csv';
+        }
+
+        if (str_ends_with($path, 'ods')) {
+            return 'ods';
+        }
+
+        return 'xlsx';
     }
 
     /**
@@ -176,6 +211,15 @@ trait Exportable
                 return $callback($value);
             });
         }
+
+        if ($collection->isEmpty()) {
+            if ($this->data instanceof SheetCollection) {
+                $this->writePlaceholderRowForEmptySheet($writer);
+            }
+
+            return;
+        }
+
         // Prepare collection (i.e remove non-string)
         $this->prepareCollection($collection);
         // Add header row.
@@ -211,9 +255,12 @@ trait Exportable
         $writer->addRows($styled_rows);
     }
 
-    private function writeRowsFromGenerator($writer, Generator $generator, ?callable $callback = null)
+    private function writeRowsFromGenerator($writer, Traversable $generator, ?callable $callback = null)
     {
+        $hasRows = false;
+
         foreach ($generator as $key => $item) {
+            $hasRows = true;
             // Apply callback
             if ($callback) {
                 $item = $callback($item);
@@ -229,11 +276,23 @@ trait Exportable
             // Write rows (one by one).
             $writer->addRow($this->createRow($item->toArray(), $this->rows_style, $this->column_styles));
         }
+
+        if (!$hasRows && $this->data instanceof SheetCollection) {
+            $this->writePlaceholderRowForEmptySheet($writer);
+        }
     }
 
     private function writeRowsFromArray($writer, array $array, ?callable $callback = null)
     {
         $collection = collect($array);
+
+        if ($collection->isEmpty()) {
+            if ($this->data instanceof SheetCollection) {
+                $this->writePlaceholderRowForEmptySheet($writer);
+            }
+
+            return;
+        }
 
         if (is_object($collection->first()) || is_array($collection->first())) {
             // provided $array was valid and could be converted to a collection
@@ -318,6 +377,21 @@ trait Exportable
         $this->rows_style = $style;
 
         return $this;
+    }
+
+    /**
+     * OpenSpout multi-sheet workbooks require at least one non-empty row per worksheet.
+     * Empty rows are skipped by the XLSX writer and would otherwise produce a corrupt file.
+     *
+     * @param \OpenSpout\Writer\WriterInterface $writer
+     */
+    private function writePlaceholderRowForEmptySheet($writer): void
+    {
+        if (!$writer instanceof \OpenSpout\Writer\XLSX\Writer && !$writer instanceof \OpenSpout\Writer\ODS\Writer) {
+            return;
+        }
+
+        $writer->addRow($this->createRow([' ']));
     }
 
     /**

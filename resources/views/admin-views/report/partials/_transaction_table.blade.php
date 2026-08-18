@@ -1,5 +1,7 @@
 @php
     $hide_source_column = $hide_source_column ?? false;
+    $row_type = $type ?? 'order';
+    $is_subscription_like = in_array($row_type, ['subscription', 'pro_customer'], true);
     $use_additional_charge_name_in_breakdown = $use_additional_charge_name_in_breakdown ?? false;
     $additionalChargeLabelForAdmin = \App\CentralLogics\Helpers::get_business_data('additional_charge_name') ?? translate('messages.additional_charge');
     $breakdown_additional_charge_label = $use_additional_charge_name_in_breakdown
@@ -8,6 +10,7 @@
 @endphp
 
 @if(count($transactions) > 0)
+<div class="table-responsive datatable-custom mt-4 z-index-2">
     <table id="datatable"
         class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table text-dark"
         data-hs-datatables-options='{
@@ -35,15 +38,21 @@
                 <th class="border-0">{{ translate('messages.Date') }}</th>
                 @if(!$hide_source_column)
                     <th class="border-0">
-                        {{ ($type ?? 'order') === 'subscription' ? translate('messages.Store') : translate('messages.Source') }}
+                        @if($row_type === 'subscription')
+                            {{ translate('messages.Store') }}
+                        @elseif($row_type === 'pro_customer')
+                            {{ translate('messages.Customer') }}
+                        @else
+                            {{ translate('messages.Source') }}
+                        @endif
                     </th>
                 @endif
-                @if(($type ?? 'order') === 'subscription')
-                    <th class="border-0">{{ translate('messages.Transaction_Type') }}</th>
+                @if($is_subscription_like)
+                    <th class="border-0">{{ $row_type === 'pro_customer' ? translate('messages.Plan') : translate('messages.Transaction_Type') }}</th>
                 @endif
-                @if(($type ?? 'order') !== 'subscription')
+                @if(!$is_subscription_like)
                     <th class="border-0 text-center">
-                        @if(($type ?? 'order') === 'expense')
+                        @if($row_type === 'expense')
                             {{ translate('messages.Expense_Source') }}
                         @else
                             {{ translate('messages.Earning_Source') }}
@@ -82,7 +91,7 @@
                             @endif
                         </td>
                     @endif
-                    @if(($type ?? 'order') === 'subscription')
+                    @if($is_subscription_like)
                         <td>
                             @if(isset($t['transaction_type']))
                                 <div class="badge rounded-lg font-medium px-2" style="{{ $t['transaction_type_badge_style'] ?? 'background-color: #F4F5F7; color: #4B5563;' }}">
@@ -91,7 +100,7 @@
                             @endif
                         </td>
                     @endif
-                    @if(($type ?? 'order') !== 'subscription')
+                    @if(!$is_subscription_like)
                         <td class="text-center">
                             @if($hide_source_column)
                                 @php
@@ -162,7 +171,10 @@
                                 @if($hide_source_column)
                                     <div class="mb-2">{{ translate('messages.Order Sales') }}</div>
                                     <div class="mb-2">{{ $secondEarningLabel }}</div>
-                                    <div>{{ $breakdown_additional_charge_label }}</div>
+                                    <div @if(($t['breakdown']['express_charge'] ?? 0) > 0) class="mb-2" @endif>{{ $breakdown_additional_charge_label }}</div>
+                                    @if(($t['breakdown']['express_charge'] ?? 0) > 0)
+                                        <div>{{ translate('messages.Express Delivery Charge') }}</div>
+                                    @endif
                                 @else
                                     @if(!$hideOrderCommission)
                                         <div class="mb-2">{{ $firstEarningLabel }}</div>
@@ -170,7 +182,10 @@
                                     @if(array_key_exists('delivery_fee_comission', $t['breakdown']) || array_key_exists('tax_collected', $t['breakdown']))
                                         <div class="mb-2">{{ $secondEarningLabel }}</div>
                                     @endif
-                                    <div class="mb-2">{{ $breakdown_additional_charge_label }}</div>
+                                    <div @if(($t['breakdown']['express_charge'] ?? 0) > 0) class="mb-2" @endif>{{ $breakdown_additional_charge_label }}</div>
+                                    @if(($t['breakdown']['express_charge'] ?? 0) > 0)
+                                        <div>{{ translate('messages.Express Delivery Charge') }}</div>
+                                    @endif
                                 @endif
                             @else
                                 @if(isset($t['breakdown']['general_expense']))
@@ -190,9 +205,13 @@
                                         {{ \App\CentralLogics\Helpers::format_currency($t['breakdown']['order_commission'] ?? 0) }}</div>
                                     <div class="mb-2">+
                                         {{ \App\CentralLogics\Helpers::format_currency($secondEarningAmount) }}</div>
-                                    <div>+
+                                    <div @if(($t['breakdown']['express_charge'] ?? 0) > 0) class="mb-2" @endif>+
                                         {{ \App\CentralLogics\Helpers::format_currency($t['breakdown']['packaging_fee_collected'] ?? 0) }}
                                     </div>
+                                    @if(($t['breakdown']['express_charge'] ?? 0) > 0)
+                                        <div>+
+                                            {{ \App\CentralLogics\Helpers::format_currency($t['breakdown']['express_charge'] ?? 0) }}</div>
+                                    @endif
                                 @else
                                     @if(!$hideOrderCommission)
                                         <div class="mb-2">
@@ -204,6 +223,10 @@
                                     @endif
                                     <div class="mb-2">+
                                         {{ \App\CentralLogics\Helpers::format_currency($t['breakdown']['packaging_fee_collected'] ?? 0) }}</div>
+                                    @if(($t['breakdown']['express_charge'] ?? 0) > 0)
+                                        <div>+
+                                            {{ \App\CentralLogics\Helpers::format_currency($t['breakdown']['express_charge'] ?? 0) }}</div>
+                                    @endif
                                 @endif
                             @else
                                 @if(isset($t['breakdown']['general_expense']))
@@ -225,13 +248,11 @@
             @endforeach
         </tbody>
     </table>
-    <div class="page-area px-4 pb-3">
-        <div class="d-flex align-items-center justify-content-end">
-            <div>
-                {!! $transactions->links() !!}
-            </div>
-        </div>
-    </div>
+    
+</div>
+<div class="page-area px-4 pb-3">
+    {!! $transactions->links() !!}
+</div>
 @else
     <div class="empty--data py-5 w-100">
         <img src="{{ asset('public/assets/admin/svg/illustrations/sorry.svg') }}" alt="public">

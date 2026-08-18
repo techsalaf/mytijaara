@@ -5,6 +5,7 @@ namespace Modules\ReelsModule\Http\Controllers\Api\V1\Vendor;
 use App\CentralLogics\Helpers;
 use App\Exceptions\InvalidUploadException;
 use App\Http\Controllers\Controller;
+use App\Models\Item;
 use App\Models\Translation;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,6 +19,8 @@ use Modules\ReelsModule\Entities\Reel;
 use Modules\ReelsModule\Entities\ReelEngagement;
 use Modules\ReelsModule\Http\Requests\Api\V1\Vendor\ReelStoreRequest;
 use Modules\ReelsModule\Http\Requests\Api\V1\Vendor\ReelUpdateRequest;
+use Modules\ReelsModule\Http\Resources\ReelDetailResource;
+use Modules\ReelsModule\Http\Resources\ReelListResource;
 use Modules\ReelsModule\Support\ReelModuleConfig;
 
 class ReelController extends Controller
@@ -53,7 +56,7 @@ class ReelController extends Controller
         $storeId = $request['vendor']->stores[0]->id;
         $today = Carbon::today()->toDateString();
 
-        $query = Reel::with(['store', 'engagements'])
+        $query = Reel::with(['store.storeConfig:id,store_id,verified_seller', 'productable'])
             ->withCount([
                 'engagements as total_views' => fn (Builder $builder) => $builder->where('type', ReelEngagement::TYPE_VIEW),
                 'engagements as total_likes' => fn (Builder $builder) => $builder->where('type', ReelEngagement::TYPE_LIKE),
@@ -157,9 +160,10 @@ class ReelController extends Controller
         }
 
         $storeId = $request['vendor']->stores[0]->id;
-        $reel = Reel::where('id', $request->reel_id)
+        $reel = Reel::withoutGlobalScope('translate')
+            ->where('id', $request->reel_id)
             ->where('store_id', $storeId)
-            ->with(['store', 'engagements'])
+            ->with(['store.storeConfig:id,store_id,verified_seller', 'storage', 'productable', 'translations'])
             ->first();
 
         if (!$reel) {
@@ -170,7 +174,7 @@ class ReelController extends Controller
             ], 404);
         }
 
-        return response()->json($reel, 200);
+        return response()->json((new ReelDetailResource($reel))->resolve(), 200);
     }
 
     public function update(ReelUpdateRequest $request)
@@ -304,6 +308,10 @@ class ReelController extends Controller
             $reel->module_id = ReelModuleConfig::defaultModuleId();
             $reel->module_type = ReelModuleConfig::defaultModuleType();
         }
+        $product = $this->resolveReelProductable($request->input('product_id'), $store);
+        $reel->productable_type = $product['type'];
+        $reel->productable_id = $product['id'];
+        $reel->order_now_button = $request->boolean('order_now_button');
         $reel->description = $translations[0]['value'] ?? $request->description;
         $reel->is_always_visible = $request->boolean('is_always_visible');
         $reel->start_date = $reel->is_always_visible ? null : $startDate;
@@ -355,6 +363,39 @@ class ReelController extends Controller
 
             Translation::insert($translations);
         }
+    }
+
+    private function resolveReelProductable($productId, $store): array
+    {
+        $productId = (int) $productId;
+        $empty = ['type' => null, 'id' => null];
+
+        if (!$productId) {
+            return $empty;
+        }
+
+        $isRental = ($store->module?->module_type ?? null) === 'rental';
+
+        if ($isRental) {
+            if (!class_exists(\Modules\Rental\Entities\Vehicle::class)) {
+                return $empty;
+            }
+
+            $belongs = \Modules\Rental\Entities\Vehicle::withoutGlobalScopes()
+                ->where('id', $productId)
+                ->where('provider_id', $store->id)
+                ->exists();
+
+            return $belongs ? ['type' => \Modules\Rental\Entities\Vehicle::class, 'id' => $productId] : $empty;
+        }
+
+        $belongs = Item::withoutGlobalScopes()
+            ->where('id', $productId)
+            ->where('store_id', $store->id)
+            ->when(ReelModuleConfig::isMultiModule(), fn ($query) => $query->where('module_id', (int) $store->module_id))
+            ->exists();
+
+        return $belongs ? ['type' => Item::class, 'id' => $productId] : $empty;
     }
 
     private function prepareTranslations(Request $request): array

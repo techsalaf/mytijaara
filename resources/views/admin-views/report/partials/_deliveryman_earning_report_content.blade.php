@@ -146,9 +146,7 @@
         </div>
     </div>
 
-    <div class="table-responsive datatable-custom mt-4 z-index-2" id="transaction_table_container">
-
-    </div>
+    <div id="transaction_table_container"></div>
 </div>
 
 @push('script_2')

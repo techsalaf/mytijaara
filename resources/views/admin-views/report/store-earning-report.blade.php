@@ -34,7 +34,7 @@
                 <li class="nav-item">
                     <a class="nav-link {{ request()->tab !== 'rental' ? 'active' : '' }}"
                         href="{{ route('admin.transactions.report.store-earning-report') }}"
-                        aria-disabled="true">{{ translate('messages.All Modules') }}</a>
+                        aria-disabled="true">{{ translate('messages.Order Modules') }}</a>
                 </li>
                 @if (addon_published_status('Rental'))
                     <li class="nav-item">

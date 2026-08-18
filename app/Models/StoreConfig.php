@@ -32,6 +32,7 @@ class StoreConfig extends Model
         'extra_packaging_amount' => 'float',
         'verified_seller' => 'boolean',
         'has_seen_verified_badge_popup' => 'boolean',
+        'can_edit_order' => 'boolean',
     ];
 
     public function Store()

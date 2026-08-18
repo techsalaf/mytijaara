@@ -349,8 +349,9 @@ class VendorController extends Controller
             if ($store->module->module_type == 'ecommerce' && ! StoreSchedule::where('store_id', $store->id)->exists()) {
                 StoreLogic::insert_schedule($store->id);
             }
+            $admin_website_builder_status = Helpers::get_business_settings('admin_website_builder_status');
 
-            return view('admin-views.vendor.view.settings', compact('store'));
+            return view('admin-views.vendor.view.settings', compact('store', 'admin_website_builder_status'));
         } elseif ($tab == 'order') {
             $orders = Order::where('store_id', $store->id)->latest()
                 ->when(isset($key), function ($q) use ($key) {
@@ -909,7 +910,7 @@ class VendorController extends Controller
     public function get_stores(Request $request)
     {
         $zone_ids = isset($request->zone_ids) ? (count($request->zone_ids) > 0 ? $request->zone_ids : []) : 0;
-        $data = Store::whereHas('module', function ($q) {
+        $data = Store::with('storeConfig')->whereHas('module', function ($q) {
             $q->whereNot('module_type', 'rental');
         })->
         when($zone_ids, function ($query) use ($zone_ids) {
@@ -932,6 +933,7 @@ class VendorController extends Controller
                 return [
                     'id' => $store->id,
                     'text' => $store->name.' ('.$store->zone?->name.')',
+                    'verified' => $store->verified_seller,
                 ];
             });
 
@@ -1101,7 +1103,7 @@ class VendorController extends Controller
             $store['free_delivery'] = 0;
         }
 
-        if ($request->menu == 'halal_tag_status') {
+        if (in_array($request->menu, ['halal_tag_status', 'can_edit_order'])) {
             $conf = StoreConfig::firstOrNew(
                 ['store_id' => $store->id]
             );
@@ -1114,6 +1116,21 @@ class VendorController extends Controller
 
         $store[$request->menu] = $request->status;
         $store->save();
+        Toastr::success(translate('messages.vendor_settings_updated'));
+
+        return back();
+    }
+
+    public function website_builder_status(Store $store, Request $request)
+    {
+        $store->storeConfig()->updateOrInsert(
+            [
+                'store_id' => $store->id,
+            ],
+            [
+                'website_builder_status' => $request->status,
+            ]
+        );
         Toastr::success(translate('messages.vendor_settings_updated'));
 
         return back();

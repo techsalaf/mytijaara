@@ -18,14 +18,14 @@
     $size = $pixel ?? $ratio;
 @endphp
 
-<div class="upload-file mx-auto" data-invalid-icon="{{ dynamicAsset('assets/admin/img/invalid-icon.png') }}">
+<div class="upload-file mx-auto" data-invalid-icon="{{ asset('assets/admin/img/invalid-icon.png') }}">
     <input type="hidden" name="{{ $name }}_deleted" class="image-delete-flag" value="0">
     <input type="file" name="{{ $name }}" id="{{ $id }}" class="upload-file__input single_file_input"
         accept="{{ $imageExtension }}" {{ $isRequired && !$existingImage ? 'required' : '' }}
         data-max-size="{{ $maxSize }}">
     <label class="upload-file__wrapper {{ $aspectRatio }} mx-auto m-0">
         <div class="upload-file-textbox text-center" style="">
-            <img width="27" class="svg" src="{{dynamicAsset('assets/admin/img/image-upload.png')}}" alt="img">
+            <img width="27" class="svg" src="{{ asset('assets/admin/img/image-upload.png') }}" alt="img">
             <h6 class="mt-1 text-gray1 fw-medium fs-10 lh-base text-center text-primary">
                 {{translate('Click to upload')}}
             </h6>

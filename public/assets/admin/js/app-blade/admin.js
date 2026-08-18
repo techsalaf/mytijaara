@@ -85,6 +85,7 @@ $(document).ready(function () {
     $('.offcanvas-close, #offcanvasOverlay').on('click', function () {
         $('.custom-offcanvas').removeClass('open');
         $('#offcanvasOverlay').removeClass('show');
+        $('body').removeClass('modal-open');
     });
 });
 
@@ -303,7 +304,10 @@ $(document).on("ready", function () {
     // INITIALIZATION OF SELECT2
     // =======================================================
     $(".js-select2-custom").each(function () {
-        let select2 = $.HSCore.components.HSSelect2.init($(this));
+        let verifiedConfig = window.hsSelect2VerifiedTemplate
+            ? { templateResult: window.hsSelect2VerifiedTemplate, templateSelection: window.hsSelect2VerifiedTemplate }
+            : {};
+        let select2 = $.HSCore.components.HSSelect2.init($(this), verifiedConfig);
     });
 
     // INITIALIZATION OF DATERANGEPICKER
@@ -687,6 +691,7 @@ $(function () {
         endDate: $(this).data("endDate"),
         autoUpdateInput: false,
         locale: {
+            format: "MM/DD/YYYY",
             cancelLabel: "Clear",
         },
         alwaysShowCalendars: true,

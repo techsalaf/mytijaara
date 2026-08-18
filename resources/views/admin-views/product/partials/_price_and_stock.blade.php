@@ -105,10 +105,14 @@
                                         placeholder="{{ translate('messages.Ex:_100') }} ">
                                 </div>
                             </div>
-                            <div class="col-md-3" id="maximum_cart_quantity">
+
+
+
+
+                            <div class="col-sm-6 col-lg-3" id="maximum_cart_quantity">
                                 <div class="form-group mb-0 error-wrapper">
                                     <label class="input-label"
-                                        for="maximum_cart_quantity">{{ translate('messages.Maximum_Purchase_Quantity_Limit') }}
+                                        for="maximum_cart_quantity">{{ translate('messages.Max._Purchase_Qty_Limit') }}
                                         <span class="input-label-secondary text--title" data-toggle="tooltip"
                                             data-placement="right"
                                             data-original-title="{{ translate('If_this_limit_is_exceeded,_customers_can_not_buy_the_food_in_a_single_purchase.') }}">
@@ -128,7 +132,7 @@
                                         <label class="input-label"
                                             for="total_stock">{{ translate('messages.total_stock') }}</label>
                                         <input type="number" class="form-control" name="current_stock" min="0"
-                                            value="{{ isset($product) ? $product->stock : '' }}" id="quantity">
+                                            value="{{ isset($product) ? max((int) $product->stock, 0) : '' }}" id="quantity">
                                     </div>
                                 </div>
                             @endif

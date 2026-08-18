@@ -319,7 +319,7 @@
                                             @if (Config::get('module.current_module_type') != 'food')
                                                 <td>
                                                     <div class="d-flex align-items-center gap-2">
-                                                        <h5 class="text-hover-primary fw-medium mb-0">{{ $food->stock }}
+                                                        <h5 class="text-hover-primary fw-medium mb-0">{{ max((int) $food->stock, 0) }}
                                                         </h5>
                                                         <span data-toggle="modal" data-id="{{ $food->id }}"
                                                             data-target="#update-quantity"

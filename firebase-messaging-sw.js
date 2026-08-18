@@ -1,5 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/8.3.2/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/8.3.2/firebase-messaging.js');
+importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
 
 firebase.initializeApp({
     apiKey: "AIzaSyBJSzeiB7BoW7Q55krAeAo1zjhxQAIuVBU",
@@ -12,9 +12,46 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-messaging.setBackgroundMessageHandler(function (payload) {
-    return self.registration.showNotification(payload.data.title, {
-        body: payload.data.body ? payload.data.body : '',
-        icon: payload.data.icon ? payload.data.icon : ''
+
+messaging.onBackgroundMessage((payload) => {
+    const data = payload.data || {};
+    const title = data.title || (payload.notification && payload.notification.title) || "Notification";
+    const body  = data.body  || (payload.notification && payload.notification.body)  || "";
+    const image = data.image || (payload.notification && payload.notification.image) || undefined;
+
+    self.registration.showNotification(title, {
+        body,
+        icon: image,
+        data,
     });
 });
+
+self.addEventListener("notificationclick", (event) => {
+    event.notification.close();
+    const data = event.notification.data || {};
+    const url = resolveTargetUrl(data);
+
+    event.waitUntil(
+        self.clients
+            .matchAll({ type: "window", includeUncontrolled: true })
+            .then((windowClients) => {
+                const existing = windowClients.find((c) => c.url.startsWith(self.location.origin));
+                if (existing) {
+                    existing.focus();
+                    return existing.navigate(url);
+                }
+                return self.clients.openWindow(url);
+            }),
+    );
+});
+
+function resolveTargetUrl(data) {
+    const base = self.location.origin;
+    if (data && data.type === "order_status" && data.order_id) {
+        return base + "/profile?page=orders&orderId=" + encodeURIComponent(data.order_id);
+    }
+    if (data && data.type === "message") {
+        return base + "/profile?page=inbox";
+    }
+    return base + "/";
+}

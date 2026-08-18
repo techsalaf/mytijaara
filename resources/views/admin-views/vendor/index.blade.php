@@ -131,7 +131,7 @@
                                         <option value="" selected disabled>
                                             {{ translate('messages.select_zone') }}</option>
                                         @foreach (\App\Models\Zone::active()->get(['id', 'name']) as $zone)
-                                            @if (isset(auth('admin')->user()->zone_id))
+                                            @if (auth('admin')?->user()?->zone_id)
                                                 @if (auth('admin')->user()->zone_id == $zone->id)
                                                     <option value="{{ $zone->id }}">{{ $zone->name }}</option>
                                                 @endif
@@ -604,7 +604,7 @@
         "use strict";
 
         $(document).on('ready', function() {
-            @if (isset(auth('admin')->user()->zone_id))
+            @if (auth('admin')?->user()?->zone_id)
                 $('#choice_zones').trigger('change');
             @endif
         });

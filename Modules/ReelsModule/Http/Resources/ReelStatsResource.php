@@ -13,6 +13,8 @@ class ReelStatsResource extends JsonResource
             'total_views' => (int) $this->total_views,
             'total_likes' => (int) $this->total_likes,
             'total_store_visits' => (int) $this->total_store_visits,
+            'total_sale' => (int) ($this->order_count ?? 0),
+            'total_sale_amount' => (float) ($this->total_sale_amount ?? 0),
         ];
 
         $user = $request->user('api');

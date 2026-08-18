@@ -1161,6 +1161,7 @@ if (typeof FormValidation === 'undefined') {
                     if (!FormValidation.validateForm(form)) {
                         e.preventDefault();
                         e.stopPropagation();
+                        FormValidation.notifyFirstInvalid(form);
                     }
                 });
 
@@ -1308,6 +1309,41 @@ if (typeof FormValidation === 'undefined') {
             return isValid;
         }
 
+        static notifyFirstInvalid(form) {
+            form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(btn => {
+                btn.disabled = false;
+            });
+
+            if (typeof window.showFieldErrorToast !== 'function') return;
+
+            const invalid = form.querySelector('.is-invalid:not([type="hidden"]), input.error, textarea.error, select.error');
+            if (!invalid) return;
+
+            let message = '';
+            const name = invalid.getAttribute('name');
+            if (name) {
+                const errorByName = form.querySelector('.form-validation-error[data-for="' + name.replace(/"/g, '\\"') + '"]');
+                if (errorByName) message = errorByName.textContent.trim();
+            }
+            if (!message) {
+                const container = invalid.closest('.error-wrapper, .form-group, .input-group, .upload-file_custom');
+                const errorEl = container ? container.querySelector('.form-validation-error, label.error') : null;
+                message = errorEl ? errorEl.textContent.trim() : '';
+            }
+            if (!message) {
+                message = FormValidation.requiredMessage(invalid);
+            }
+
+            window.showFieldErrorToast(invalid, message);
+        }
+
+        static requiredMessage(input) {
+            const label = (typeof window.getFieldLabel === 'function') ? window.getFieldLabel(input) : '';
+            return label
+                ? (label.charAt(0).toUpperCase() + label.slice(1) + ' is required.')
+                : 'This field is required.';
+        }
+
         static validateInput(input) {
             if (input.type === 'hidden' || input.disabled) return true;
 
@@ -1316,9 +1352,16 @@ if (typeof FormValidation === 'undefined') {
 
             FormValidation.clearError(input);
 
-            if (input.type !== 'file' && input.hasAttribute('required') && !input.value.trim()) {
+            if (input.type === 'file') {
+                if (input.hasAttribute('required') && (!input.files || input.files.length === 0)) {
+                    isValid = false;
+                    errorMessage = FormValidation.requiredMessage(input);
+                }
+            }
+
+            else if (input.hasAttribute('required') && !input.value.trim()) {
                 isValid = false;
-                errorMessage = 'This field is required.';
+                errorMessage = FormValidation.requiredMessage(input);
             }
 
             else if (input.type === 'email' && input.value.trim()) {
@@ -1361,8 +1404,9 @@ if (typeof FormValidation === 'undefined') {
                 }
             }
 
+            const errorWrapper = input.closest('.error-wrapper');
             const formGroup = input.closest('.form-group');
-            let container = formGroup ? formGroup : targetElement.closest('div');
+            let container = errorWrapper ? errorWrapper : (formGroup ? formGroup : targetElement.closest('div'));
 
             if (!container || container === targetElement) {
                 container = targetElement.parentNode;
@@ -1402,8 +1446,9 @@ if (typeof FormValidation === 'undefined') {
         }
 
         static clearError(input) {
+            const errorWrapper = input.closest('.error-wrapper');
             const formGroup = input.closest('.form-group');
-            const container = formGroup ? formGroup : input.parentNode;
+            const container = errorWrapper ? errorWrapper : (formGroup ? formGroup : input.parentNode);
 
             const inputName = input.getAttribute('name');
             const errorDiv = container.querySelector(`.form-validation-error[data-for="${inputName}"]`);
@@ -1424,6 +1469,7 @@ $(document).on('submit', '.global-ajax-form', function (e) {
     const form = this;
 
     if (window.FormValidation && !window.FormValidation.validateForm(form)) {
+        window.FormValidation.notifyFirstInvalid(form);
         return;
     }
 
@@ -1667,6 +1713,11 @@ $(document).on('submit', '.global-ajax-form', function (e) {
             return false;
         }
 
+        isManagedByFormValidation() {
+            const form = this.input.closest('form');
+            return !!(form && (form.classList.contains('validate-form') || form.dataset.validationInitialized === 'true'));
+        }
+
         validate() {
             const parentDiv = this.input.closest('.upload-file_custom');
             if (parentDiv && parentDiv.classList.contains('is-invalid-file-upload') && (!this.input.files || this.input.files.length === 0)) {
@@ -1676,7 +1727,7 @@ $(document).on('submit', '.global-ajax-form', function (e) {
             this.clearError();
 
             if (!this.input.files || this.input.files.length === 0) {
-                if (this.config.required) {
+                if (this.config.required && !this.isManagedByFormValidation()) {
                     return this.showError('Please select a file');
                 }
                 return true;

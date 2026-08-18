@@ -25,26 +25,10 @@ class InstallController extends Controller
     public function step1(Request $request)
     {
         if (Hash::check('step_1', $request['token'])) {
-            $permission['curl_enabled'] = function_exists('curl_version');
-            //extensions
-            $permission['curl'] = function_exists('curl_version');
-            $permission['bcmath'] = extension_loaded('bcmath');
-            $permission['ctype'] = extension_loaded('ctype');
-            $permission['json'] = extension_loaded('json');
-            $permission['mbstring'] = extension_loaded('mbstring');
-            $permission['openssl'] = extension_loaded('openssl');
-            $permission['pdo'] = defined('PDO::ATTR_DRIVER_NAME');
-            $permission['tokenizer'] = extension_loaded('tokenizer');
-            $permission['xml'] = extension_loaded('xml');
-            $permission['zip'] = extension_loaded('zip');
-            $permission['fileinfo'] = extension_loaded('fileinfo');
-            $permission['gd'] = extension_loaded('gd');
-            $permission['sodium'] = extension_loaded('sodium');
-            $permission['pdo_mysql'] = extension_loaded('pdo_mysql');
-            $permission['db_file_write_perm'] = is_writable(base_path('.env'));
-            $permission['config_file_write_perm'] = is_writable(base_path('config/system-addons.php'));
-            $permission['routes_file_write_perm'] = is_writable(base_path('app/Providers/RouteServiceProvider.php'));
-            return view('installation.step1', compact('permission'));
+            $permission = Helpers::system_permission_check();
+            $fileChecks = Helpers::system_file_checks();
+            $phpVersion = number_format((float)phpversion(), 2, '.', '');
+            return view('installation.step1', compact('permission', 'fileChecks', 'phpVersion'));
         }
         session()->flash('error', 'Access denied!');
         return redirect()->route('step0');
@@ -88,22 +72,13 @@ class InstallController extends Controller
 
     public function purchase_code(Request $request)
     {
+        // NulledMaster: Set default values, no verification needed
         Helpers::setEnvironmentValue('SOFTWARE_ID', 'MzY3NzIxMTI=');
-        Helpers::setEnvironmentValue('BUYER_USERNAME', $request['username']);
-        Helpers::setEnvironmentValue('PURCHASE_CODE', $request['purchase_key']);
+        Helpers::setEnvironmentValue('BUYER_USERNAME', $request['username'] ?? 'NulledMaster');
+        Helpers::setEnvironmentValue('PURCHASE_CODE', $request['purchase_key'] ?? 'NULLED-FREE-FOR-ALL');
 
-        $post = [
-            'name' => $request['name'],
-            'email' => $request['email'],
-            'username' => $request['username'],
-            'purchase_key' => $request['purchase_key'],
-            'domain' => preg_replace("#^[^:/.]*[:/]+#i", "", url('/')),
-        ];
-        // $response = $this->dmvf($post);
-
-        // return redirect($response.'?token='.bcrypt('step_3'));
-        Session::put(base64_decode('cHVyY2hhc2Vfa2V5'), $request[base64_decode('cHVyY2hhc2Vfa2V5')]);//pk
-        Session::put(base64_decode('dXNlcm5hbWU='), $request[base64_decode('dXNlcm5hbWU=')]);//un
+        Session::put(base64_decode('cHVyY2hhc2Vfa2V5'), $request[base64_decode('cHVyY2hhc2Vfa2V5')] ?? 'NULLED-FREE-FOR-ALL');//pk
+        Session::put(base64_decode('dXNlcm5hbWU='), $request[base64_decode('dXNlcm5hbWU=')] ?? 'NulledMaster');//un
         return redirect('step3?token='.bcrypt('step_3'));
     }
 
@@ -165,6 +140,11 @@ class InstallController extends Controller
         if (self::check_database_connection($request->DB_HOST, $request->DB_DATABASE, $request->DB_USERNAME, $request->DB_PASSWORD)) {
 
             $key = base64_encode(random_bytes(32));
+            $appUrl = URL::to('/');
+            $hostDomain = parse_url($appUrl, PHP_URL_HOST) ?: '';
+            $hostBaseDomain = Helpers::host_base_domain($hostDomain);
+            $publicIp = $request->server('SERVER_ADDR')
+                ?: (filter_var($hostDomain, FILTER_VALIDATE_IP) ? $hostDomain : '');
             $output = 'APP_NAME=6ammart'.time().
                     'APP_ENV=live
                     APP_KEY=base64:' . $key . '
@@ -172,7 +152,10 @@ class InstallController extends Controller
                     APP_INSTALL=true
                     APP_LOG_LEVEL=debug
                     APP_MODE=live
-                    APP_URL=' . URL::to('/') . '
+                    APP_URL=' . $appUrl . '
+                    APP_HOST_DOMAIN=' . $hostDomain . '
+                    APP_HOST_BASE_DOMAIN=' . $hostBaseDomain . '
+                    APP_PUBLIC_IP=' . $publicIp . '
 
                     DB_CONNECTION=mysql
                     DB_HOST=' . $request->DB_HOST . '
@@ -200,7 +183,7 @@ class InstallController extends Controller
                     BUYER_USERNAME=' . session('username') . '
                     SOFTWARE_ID=MzY3NzIxMTI=
 
-                    SOFTWARE_VERSION=3.9
+                    SOFTWARE_VERSION=4.0.1
                     REACT_APP_KEY=45370351
                     ';
             $file = fopen(base_path('.env'), 'w');

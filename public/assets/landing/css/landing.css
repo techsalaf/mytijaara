@@ -209,6 +209,12 @@ body.page-scrolled .main-nav {
   color: var(--green)
 }
 
+@media (max-width: 991px) {
+  .nav-links a {
+    font-size: 0.6875rem;
+  }
+}
+
 .nav-right {
   display: flex;
   align-items: center;
@@ -316,6 +322,13 @@ body.page-scrolled .main-nav {
   text-decoration: none;
   white-space: nowrap
 }
+@media (max-width: 991px) {
+  .btn-browse-web {
+    gap: 4px;
+    padding: 4px 12px;
+    font-size: .75rem;
+  }
+}
 
 .btn-browse-web:hover {
   background: var(--primary-dark);
@@ -354,6 +367,14 @@ body.page-scrolled .main-nav {
   color: #fff;
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(var(--primary-rgb), .25)
+}
+
+@media (max-width: 991px) {
+  .btn-join {
+    gap: 4px;
+    padding: 4px 12px;
+    font-size: .75rem;
+  }
 }
 
 .join-wrap {
@@ -4898,5 +4919,15 @@ body.page-scrolled .main-nav {
 
   .phone-wrap .country-sel {
     width: 95px
+  }
+}
+
+.object-fit-contain{
+  object-fit: contain !important;
+}
+
+@media (max-width: 575px) {
+  .max-w-70px-mobile{
+    max-width: 70px !important;
   }
 }

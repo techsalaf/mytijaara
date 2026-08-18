@@ -11,6 +11,11 @@ class OrderTransaction extends Model
 {
     use HasFactory,ReportFilter;
 
+    protected $casts = [
+        'pro_discount' => 'float',
+        'pro_delivery_discount' => 'float',
+    ];
+
     protected $fillable = array('delivery_man_id');
 
     public function order()

@@ -203,7 +203,7 @@
                                                 data-placeholder="{{ translate('messages.select_zone') }}">
                                             <option value="" selected disabled>{{ translate('messages.select_zone') }}</option>
                                             @foreach ($zones as $zone)
-                                                @if (isset(auth('admin')->user()->zone_id))
+                                                @if (auth('admin')?->user()?->zone_id)
                                                     @if (auth('admin')->user()->zone_id == $zone->id)
                                                         <option value="{{ $zone->id }}" selected>{{ $zone->name }}</option>
                                                     @endif
@@ -234,7 +234,7 @@
                                                 data-placeholder="{{ translate('messages.select_zone') }}" multiple="multiple">
                                             <option value="" disabled>{{ translate('messages.select_zone') }}</option>
                                             @foreach ($zones as $zone)
-                                                @if (isset(auth('admin')->user()->zone_id))
+                                                @if (auth('admin')?->user()?->zone_id)
                                                     @if (auth('admin')->user()->zone_id == $zone->id)
                                                         <option value="{{ $zone->id }}" selected>{{ $zone->name }}</option>
                                                     @endif

@@ -21,6 +21,7 @@ use App\Models\ReactPromotionalBanner;
 use App\Models\ReactTestimonial;
 use App\Models\Setting;
 use App\Models\SocialMedia;
+use App\Models\User;
 use App\Models\Zone;
 use App\Traits\AddonHelper;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Modules\Rental\Entities\Vehicle;
+use Modules\RideShare\Entities\TripManagement\RideRequest;
 use Modules\TaxModule\Services\CalculateTaxService;
 
 class ConfigController extends Controller
@@ -55,9 +57,11 @@ class ConfigController extends Controller
             'toggle_store_registration','schedule_order_slot_duration','parcel_per_km_shipping_charge','parcel_minimum_shipping_charge','footer_text','loyalty_point_exchange_rate','loyalty_point_item_purchase_point',
             'loyalty_point_status','loyalty_point_minimum_point','wallet_status','dm_tips_status','ref_earning_status','ref_earning_exchange_rate','refund_active_status','refund','cancelation',
             'shipping_policy','prescription_order_status','icon','cookies_text','home_delivery_status','takeaway_status','additional_charge','additional_charge_status','additional_charge_name',
-            'dm_picture_upload_status','partial_payment_status','partial_payment_method','add_fund_status','offline_payment_status','websocket_url','websocket_port','websocket_status','guest_checkout_status','disbursement_type','restaurant_disbursement_waiting_time','dm_disbursement_waiting_time','min_amount_to_pay_store','min_amount_to_pay_dm','admin_commission','new_customer_discount_status','new_customer_discount_amount','new_customer_discount_amount_type','new_customer_discount_amount_validity','new_customer_discount_validity_type','store_review_reply','subscription_business_model','commission_business_model','subscription_deadline_warning_days','subscription_deadline_warning_message','subscription_free_trial_days','subscription_free_trial_type','subscription_free_trial_status','country_picker_status','firebase_otp_verification','manual_login_status','otp_login_status','social_login_status','google_login_status','facebook_login_status','apple_login_status','email_verification_status','phone_verification_status','admin_free_delivery_option','admin_free_delivery_status','free_delivery_over',
+            'dm_picture_upload_status','partial_payment_status','partial_payment_method','add_fund_status','offline_payment_status','websocket_url','websocket_port','websocket_status','guest_checkout_status','disbursement_type','restaurant_disbursement_waiting_time','dm_disbursement_waiting_time','min_amount_to_pay_store','min_amount_to_pay_dm','admin_commission','new_customer_discount_status','new_customer_discount_amount','new_customer_discount_amount_type','new_customer_discount_amount_validity','new_customer_discount_validity_type','store_review_reply','subscription_business_model','commission_business_model','subscription_deadline_warning_days','subscription_deadline_warning_message','subscription_free_trial_days','subscription_free_trial_type','subscription_free_trial_status','country_picker_status','firebase_otp_verification','manual_login_status','otp_login_status','social_login_status','google_login_status','facebook_login_status','apple_login_status','email_verification_status','phone_verification_status','send_otp_via','admin_free_delivery_option','admin_free_delivery_status','free_delivery_over',
             'parcel_cancellation_status','parcel_cancellation_basic_setup','parcel_return_time_fee','openai_config','dm_loyality_point_status','dm_loyality_point_per_order',
-            'dm_loyality_point_conversion_rate','dm_min_loyality_point_to_convert','dm_referal_status','dm_referal_amount','dm_referal_bonus',
+            'dm_loyality_point_conversion_rate','dm_min_loyality_point_to_convert','dm_referal_status','dm_referal_amount','dm_referal_bonus','pro_member_status',
+            'repeat_order_option','monthly_order_reminder','monthly_order_reminder_days_before','monthly_order_reminder_before_unit',
+            'customer_personalization_status','ai_chat_status',
 
         ];
 
@@ -207,7 +211,13 @@ class ConfigController extends Controller
         if (addon_published_status('TaxModule')) {
             $systemTax = \Modules\TaxModule\Entities\SystemTaxSetup::where('is_active', 1)->where('is_default', 1)->first();
         }
-
+        $maintenance_mode_data =  Cache::rememberForever("data_settings_maintenance_mode", function () {
+            return DataSetting::where('type', 'maintenance_mode')->whereIn('key', ['maintenance_system_setup', 'maintenance_duration_setup', 'maintenance_message_setup'])->pluck('value', 'key')
+                ->map(function ($value) {
+                    return json_decode($value, true);
+                })
+                ->toArray();
+        });
         $data = [
             'business_name' => $settings['business_name'],
             'logo' => $settings['logo'],
@@ -328,6 +338,7 @@ class ConfigController extends Controller
                 'apple_login_status' => (int)(isset($settings['apple_login_status']) ? $settings['apple_login_status'] : 0),
                 'email_verification_status' => (int)(isset($settings['email_verification_status']) ? $settings['email_verification_status'] : 0),
                 'phone_verification_status' => (int)(isset($settings['phone_verification_status']) ? $settings['phone_verification_status'] : 0),
+                'send_otp_via' => (string)(isset($settings['send_otp_via']) ? $settings['send_otp_via'] : null),
             ],
 
             'vehicle_distance_min' => (float)$vehicle_distance_min ?? 0,
@@ -365,7 +376,15 @@ class ConfigController extends Controller
                 'file_extension' => FILE_EXTENSION,
                 'max_file_size' => MAX_FILE_SIZE,
             ],
-
+            'repeat_order_option' => (int)($settings['repeat_order_option'] ?? false),
+            'monthly_order_reminder' => (int)($settings['monthly_order_reminder'] ?? false),
+            'monthly_order_reminder_days_before' => (int)($settings['monthly_order_reminder_days_before'] ?? 3),
+            'monthly_order_reminder_before_unit' => $settings['monthly_order_reminder_before_unit'] ?? 'day',
+            'maintenance_mode_data' => count($maintenance_mode_data) > 0 ? $maintenance_mode_data : null,
+            'store_category_status' => Helpers::storeCategoryStatus(),
+            'pro_member_status' => (int)(isset($settings['pro_member_status']) ? $settings['pro_member_status'] : 0),
+            'customer_personalization_status' => (int)(isset($settings['customer_personalization_status']) ? $settings['customer_personalization_status'] : 0),
+            'ai_chat_status' => (int)(($openAIStatus == 1 && (isset($settings['ai_chat_status']) ? $settings['ai_chat_status'] : 0)) ? 1 : 0),
 
         ];
 
@@ -419,6 +438,69 @@ class ConfigController extends Controller
                 'app_minimum_version_ios_rider' => (float)(isset($settings['app_minimum_version_ios_rider']) ? $settings['app_minimum_version_ios_rider'] : 0),
                 'app_url_ios_rider' => (isset($settings['app_url_ios_rider']) ? $settings['app_url_ios_rider'] : null),
 
+            ];
+
+            $rideShareRows = DataSetting::where('type', 'react_ride_share_page')->get()->keyBy('key');
+
+            $buildHeroBlock = function (string $prefix) use ($rideShareRows) {
+                $heroIntroImage = $rideShareRows->get($prefix.'hero_intro_image');
+                $points = [];
+                for ($i = 1; $i <= 3; $i++) {
+                    $pointImage = $rideShareRows->get($prefix."hero_point_image_card_$i");
+                    $points[] = [
+                        'status' => (int) ($rideShareRows->get($prefix."hero_point_status_card_$i")?->value ?? 0),
+                        'title' => $rideShareRows->get($prefix."hero_point_title_card_$i")?->value,
+                        'image_full_url' => Helpers::get_full_url(
+                            'ride_share_hero_section',
+                            $pointImage?->value,
+                            $pointImage?->storage[0]?->value ?? 'public',
+                            'aspect_1'
+                        ),
+                    ];
+                }
+                return [
+                    'status' => (int) ($rideShareRows->get($prefix.'hero_section_status')?->value ?? 0),
+                    'intro' => [
+                        'title' => $rideShareRows->get($prefix.'hero_intro_title')?->value,
+                        'sub_title' => $rideShareRows->get($prefix.'hero_intro_sub_title')?->value,
+                        'image_full_url' => Helpers::get_full_url(
+                            'ride_share_hero_section',
+                            $heroIntroImage?->value,
+                            $heroIntroImage?->storage[0]?->value ?? 'public',
+                            'aspect_1'
+                        ),
+                    ],
+                    'points' => $points,
+                ];
+            };
+
+            $topCustomerIds = RideRequest::where('current_status', COMPLETED)
+                ->selectRaw('customer_id, COUNT(*) as total_rides')
+                ->whereNotNull('customer_id')
+                ->groupBy('customer_id')
+                ->orderByDesc('total_rides')
+                ->limit(5)
+                ->pluck('total_rides', 'customer_id');
+
+            $topCustomers = User::whereIn('id', $topCustomerIds->keys())
+                ->get()
+                ->map(fn ($user) => [
+                    'name' => trim($user->f_name . ' ' . $user->l_name),
+                    'image_full_url' => $user->image_full_url,
+                    'total_rides' => (int) ($topCustomerIds[$user->id] ?? 0),
+                ])
+                ->sortByDesc('total_rides')
+                ->values();
+
+            $rideData['react_ride_share_page'] = [
+                'customer' => [
+                    'hero_section' => $buildHeroBlock(''),
+                ],
+                'rider' => [
+                    'hero_section' => $buildHeroBlock('rider_'),
+                ],
+                'top_customers' => $topCustomers,
+                'total_customers' => User::count(),
             ];
 
             $data = array_merge($data, $rideData);
@@ -496,7 +578,7 @@ class ConfigController extends Controller
         if ($validator->errors()->count() > 0) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
-        $zones = Zone::with('modules')->whereContains('coordinates', new Point($request->lat, $request->lng, POINT_SRID))
+        $zones = Zone::with(['modules', 'moduleDeliveryOptions'])->whereContains('coordinates', new Point($request->lat, $request->lng, POINT_SRID))
             ->selectRaw('zones.*, ABS(ST_Area(coordinates)) as area')->orderBy('area', 'asc')->latest()->get(['id', 'status', 'cash_on_delivery', 'digital_payment', 'offline_payment']);
         if (count($zones) < 1) {
             return response()->json([
@@ -505,6 +587,36 @@ class ConfigController extends Controller
                 ],
             ], 404);
         }
+
+        $zones->each(function ($zone) {
+            $options_by_module = $zone->moduleDeliveryOptions->groupBy('module_id');
+            foreach ($zone->modules as $module) {
+                $module->setAttribute('additional_delivery_option_status', (bool) ($module->pivot->additional_delivery_option_status ?? false));
+                if ($module->pivot) {
+                    $module->pivot->makeHidden('additional_delivery_option_status');
+                }
+
+                $module_options = ($options_by_module[$module->id] ?? collect())->map(function ($option) {
+                    $add = $option->getAttribute('add_delivery_time');
+                    $reduce = $option->getAttribute('reduce_delivery_time');
+                    return [
+                        'id'                   => (int) $option->id,
+                        'module_id'            => (int) $option->module_id,
+                        'zone_id'              => (int) $option->zone_id,
+                        'delivery_type'        => (string) $option->delivery_type,
+                        'extra_charge'         => $option->getRawOriginal('extra_charge') !== null ? (float) $option->extra_charge : null,
+                        'reduce_charge'        => $option->getRawOriginal('reduce_charge') !== null ? (float) $option->reduce_charge : null,
+                        'add_delivery_time'    => ['value' => (int) ($add['value'] ?? 0), 'unit' => (string) ($add['unit'] ?? 'min')],
+                        'reduce_delivery_time' => ['value' => (int) ($reduce['value'] ?? 0), 'unit' => (string) ($reduce['unit'] ?? 'min')],
+                        'created_at'           => $option->created_at,
+                        'updated_at'           => $option->updated_at,
+                    ];
+                })->values()->all();
+                $module->setAttribute('delivery_options', $module_options);
+            }
+            $zone->unsetRelation('moduleDeliveryOptions');
+        });
+
         $data = array_filter($zones->toArray(), function ($zone) {
             if ($zone['status'] == 1) {
                 return $zone;

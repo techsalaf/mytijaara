@@ -478,7 +478,59 @@
                 </div>
             </div>
         @endif
-        <div class="card mb-3">
+        @if(addon_published_status('Builder') && $admin_website_builder_status == 1)
+
+            <div class="card mt-3" id="admin_website_builder_section">
+                <div class="card-body">
+                    <div class="mb-20">
+                        <div class="row g-1 align-items-center">
+                            <div class="col-xxl-9 col-lg-8 col-md-7 col-sm-6">
+                                <div>
+                                    <h4 class="mb-1">
+                                        {{ translate('Vendor Website Builder') }}
+                                    </h4>
+                                    <p class="mb-0 fs-12">
+                                        {{ translate('Enable this option to allow vendors to set up and manage their own website.') }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-xxl-3 col-lg-4 col-md-5 col-sm-6">
+                                <div class="">
+                                    <div class="form-group mb-0">
+                                        <label
+                                            class="toggle-switch h--45px toggle-switch-sm d-flex justify-content-between border rounded px-3 py-0 form-control">
+                                            <span class="pr-1 d-flex align-items-center switch--label">
+                                                <span class="line--limit-1">
+                                                    {{translate('Status') }}
+                                                </span>
+                                            </span>
+                                            <input type="checkbox"
+                                                data-id="website_builder_status"
+                                                data-type="toggle"
+                                                data-image-on="{{ asset('/public/assets/admin/img/modal/store-reg-on.png') }}"
+                                                data-image-off="{{ asset('/public/assets/admin/img/modal/store-reg-off.png') }}"
+                                                data-title-on="<strong>{{translate('Are you sure to enable vendor Website setup?')}}</strong>"
+                                                data-title-off="<strong>{{translate('Are you sure to disable vendor Website setup?')}}</strong>"
+                                                data-text-on="<p>{{ translate('If enabled, vendors will have the freedom to create, edit, and manage their own websites independently.') }}</p>"
+                                                data-text-off="<p>{{ translate('If disabled, vendors will not be able to create or manage their own websites.') }}</p>"
+                                                class="status toggle-switch-input dynamic-checkbox"
+                                                value="1"
+                                                name="website_builder_status" id="website_builder_status"
+                                                {{ $store->storeConfig?->website_builder_status == 1?'checked':'' }}>
+                                            <span class="toggle-switch-label text">
+                                                <span class="toggle-switch-indicator"></span>
+                                            </span>
+                                                </label>
+                                                <form action="{{route('vendor.business-settings.website-builder-status',[$store->id,$store->storeConfig?->website_builder_status?0:1])}}"  method="get"  id="website_builder_status_form"></form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            @endif
+        <div class="card mb-3 mt-3">
             <div class="card-header">
                 <h5 class="card-title">
                     <span class="card-header-icon">

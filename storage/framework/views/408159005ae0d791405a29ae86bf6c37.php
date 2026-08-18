@@ -183,7 +183,6 @@
       <div class="modal-body">
         <div class="forget-pass-content">
             <img src="<?php echo e(asset('/public/assets/admin/img/send-mail.svg')); ?>" alt="">
-            <!-- After Succeed -->
             <h4>
                 <?php echo e(translate('Send_Mail_to_Your_Email')); ?> ?
             </h4>
@@ -191,10 +190,13 @@
                 <?php echo e(translate('A mail will be send to your registered email')); ?> <?php echo e(isset($role) && $role == 'admin'  ? \App\Models\Admin::where('role_id',1)->first()?->masked_email : ''); ?> <?php echo e(translate('with a  link to change passowrd')); ?>
 
             </p>
-            <a class="btn btn-lg btn-block btn--primary mt-3" href="<?php echo e(route('reset-password')); ?>">
-                <?php echo e(translate('Send Mail')); ?>
+            <form action="<?php echo e(route('reset-password')); ?>" method="post">
+                <?php echo csrf_field(); ?>
+                <button type="submit" class="btn btn-lg btn-block btn--primary mt-3">
+                    <?php echo e(translate('Send Mail')); ?>
 
-            </a>
+                </button>
+            </form>
         </div>
       </div>
     </div>
@@ -412,10 +414,6 @@
     </script>
 <?php endif; ?>
 
-<!-- IE Support -->
-<script>
-    if (/MSIE \d|Trident.*rv:/.test(navigator.userAgent)) document.write('<script src="<?php echo e(asset('public//assets/admin')); ?>/vendor/babel-polyfill/polyfill.min.js"><\/script>');
-</script>
 </body>
 </html>
 <?php /**PATH C:\xampp\htdocs\mytijaara\resources\views/auth/login.blade.php ENDPATH**/ ?>

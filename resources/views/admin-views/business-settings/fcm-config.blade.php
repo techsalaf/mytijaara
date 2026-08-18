@@ -140,6 +140,19 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="col-lg-8 col-sm-12">
+                                    <div class="form-group">
+                                        <label class="input-label" for="vapidKey">{{translate('Web Push VAPID Key')}}
+                                            <i class="tio-info cursor-pointer" data-toggle="tooltip" data-placement="top"
+                                               title="{{ translate('Firebase Console → Project Settings → Cloud Messaging → Web configuration → Web Push certificates → Key pair') }}">
+                                            </i>
+                                        </label>
+                                        <div class="d-flex">
+                                            <input id="vapidKey" type="text" value="{{$fcm_credentials['vapidKey']??''}}"
+                                                name="vapidKey" class="form-control" placeholder="{{ translate('Required for storefront web push (e.g. BIYqKZ2ZlXRJ...)') }}">
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="btn--container justify-content-end">

@@ -227,18 +227,20 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="px-4 max-w--220px">
-                                    <div class="">
+                                <td class="px-4">
+                                    <div class="line--limit-3 min-w-220 max-w--220px">
                                         {!! $product['description'] !!}
                                     </div>
                                 </td>
                                 @if (in_array($product->module->module_type, ['food', 'grocery']))
                                     <td class="px-4">
-                                        @if ($product->nutritions)
-                                            @foreach ($product->nutritions as $nutrition)
-                                                {{ $nutrition->nutrition }}{{ !$loop->last ? ',' : '.' }}
-                                            @endforeach
-                                        @endif
+                                        <div class="min-w-135px">
+                                            @if ($product->nutritions)
+                                                @foreach ($product->nutritions as $nutrition)
+                                                    {{ $nutrition->nutrition }}{{ !$loop->last ? ',' : '.' }}
+                                                @endforeach
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="px-4">
                                         @if ($product->allergies)
@@ -249,7 +251,7 @@
                                     </td>
                                 @endif
                                 @if (Config::get('module.current_module_type') != 'food')
-                                    <td class="px-4">{{ $product->stock }}</td>
+                                    <td class="px-4">{{ max((int) $product->stock, 0) }}</td>
                                 @endif
                                 @if (in_array($product->module->module_type, ['pharmacy']))
                                     <td class="px-4">
@@ -458,13 +460,11 @@
                                     @if ($review->customer)
                                         <a class="d-flex align-items-center"
                                             href="{{ route('admin.customer.view', [$review['user_id']]) }}">
-                                            <div class="avatar avatar-circle">
-                                                <img class="avatar-img onerror-image"
-                                                    data-onerror-image="{{ asset('public/assets/admin/img/160x160/img1.jpg') }}"
-                                                    width="75" height="75"
-                                                    src="{{ $review->customer->image_full_url ?? asset('public/assets/admin/img/160x160/img1.jpg') }}"
-                                                    alt="Image Description">
-                                            </div>
+                                            @include('partials._user-avatar', [
+                                                'imageUrl'  => $review->customer->image_full_url,
+                                                'proStatus' => $review->customer->pro_status ?? false,
+                                                'size'      => 75,
+                                            ])
                                             <div class="ml-3">
                                                 <span
                                                     class="d-block h5 text-hover-primary mb-0">{{ $review->customer['f_name'] . ' ' . $review->customer['l_name'] }}

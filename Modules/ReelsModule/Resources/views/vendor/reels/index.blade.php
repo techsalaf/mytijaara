@@ -6,6 +6,10 @@
 
 @push('css_or_js')
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        .reel-overview-card { transition: transform .2s ease, box-shadow .2s ease; }
+        .reel-overview-card:hover { transform: translateY(-4px); box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .12); }
+    </style>
 @endpush
 
 @php
@@ -62,10 +66,28 @@
             <div class="card card-body">
                 <h4 class="mb-3">{{ translate('messages.Reels_Overview') }}</h4>
                 <div class="row g-3">
-                    <div class="col-sm-6 col-xl-3"><div class="p-3 rounded-10 border h-100"><div class="bg-purple bg-opacity-10 p-2 rounded-10 lh--1 w-max-content mb-3"><i class="tio-video-camera-outlined text-purple fs-20"></i></div><h3 class="fs-20 mb-1">{{ $overview['total_reels'] }}</h3><p class="text-muted mb-0">{{ translate('messages.Total_Reels') }}</p></div></div>
-                    <div class="col-sm-6 col-xl-3"><div class="p-3 rounded-10 border h-100"><div class="bg-info bg-opacity-10 p-2 rounded-10 lh--1 w-max-content mb-3"><i class="tio-invisible text-info fs-20"></i></div><h3 class="fs-20 mb-1">{{ $overview['total_views'] }}</h3><p class="text-muted mb-0">{{ translate('messages.Total_Views') }}</p></div></div>
-                    <div class="col-sm-6 col-xl-3"><div class="p-3 rounded-10 border h-100"><div class="bg-danger bg-opacity-10 p-2 rounded-10 lh--1 w-max-content mb-3"><i class="tio-heart-outlined text-danger fs-20"></i></div><h3 class="fs-20 mb-1">{{ $overview['total_likes'] }}</h3><p class="text-muted mb-0">{{ translate('messages.Total_Likes') }}</p></div></div>
-                    <div class="col-sm-6 col-xl-3"><div class="p-3 rounded-10 border h-100"><div class="bg-success bg-opacity-10 p-2 rounded-10 lh--1 w-max-content mb-3"><i class="tio-home-vs-2-outlined text-success fs-20"></i></div><h3 class="fs-20 mb-1">{{ $overview['total_store_visits'] }}</h3><p class="text-muted mb-0">{{ translate('messages.Store_Visits') }}</p></div></div>
+                    @foreach ($overviewCards as $card)
+                        <div class="col-sm-6 col-lg-4">
+                            <a href="javascript:;" class="reel-overview-card h-100 d-block text-reset text-decoration-none">
+                                <div class="p-3 rounded-10 border overflow-wrap-anywhere h-100 d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                    <div>
+                                        <h3 class="fs-20 mb-1">{{ $card['value'] }}</h3>
+                                        <p class="text-muted mb-0 d-flex align-items-center gap-1">
+                                            {{ $card['label'] }}
+                                            @if (!empty($card['tooltip']))
+                                                <span class="form-label-secondary text-dark" data-toggle="tooltip" data-placement="top" data-title="{{ $card['tooltip'] }}">
+                                                    <i class="tio-info"></i>
+                                                </span>
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <div class="{{ $card['bg'] }} p-2 rounded-10 lh--1 w-max-content">
+                                        <i class="{{ $card['icon'] }} {{ $card['color'] }} fs-20"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>
@@ -262,11 +284,12 @@
 
                     <div class="bg-light p-3 rounded mb-3">
                         <h4 class="mb-2">{{ translate('messages.Reel_Validity') }}</h4>
-                        <div class="d-flex gap-2 align-items-center justify-content-between flex-wrap">
-                            <div>
+                        <div class="d-flex align-items-stretch">
+                            <div class="w-50 pe-3">
                                 {{ translate('messages.Upload_Date') }}: <span class="text-title">{{ optional($reel->created_at)->format('d M Y') }}</span>
                             </div>
-                            <div>
+                            <div class="border-start"></div>
+                            <div class="w-50 ps-3">
                                 {{ translate('messages.Expired_Date') }}:
                                 <span class="text-title">
                                     {{ $reel->is_always_visible ? translate('messages.Always_Visible') : optional($reel->end_date)->format('d M Y') }}
@@ -275,19 +298,54 @@
                         </div>
                     </div>
 
+                    <div class="bg-light p-3 rounded mb-3">
+                        <h4 class="mb-2">{{ translate('messages.Reel_Earning') }}</h4>
+                        <div class="d-flex gap-2 align-items-center justify-content-between flex-wrap">
+                            <div>{{ translate('messages.Product') }}: <span class="text-title fw-medium">{{ $reel->productable?->name ?? translate('messages.N/A') }}</span></div>
+                            <div>{{ translate('messages.Order_Now') }}: <span class="text-title fw-medium">{{ $reel->order_now_button ? translate('messages.on') : translate('messages.off') }}</span></div>
+                        </div>
+                    </div>
 
-                    <div class="stats-wrapper border-top pt-3">
-                        <div class="flex-grow-1 text-center stat-item">
-                            <div class="fs-12"><i class="tio-invisible fs-16"></i> {{ translate('messages.Views') }}</div>
-                            <h5 class="text-info">{{ $reel->total_views }}</h5>
+                    <div class="row g-2 border-top pt-3">
+                        <div class="col-sm-4">
+                            <div class="bg-light rounded p-2 text-center">
+                                <div class="d-flex gap-1 justify-content-center align-items-center fs-12">
+                                    <i class="tio-visible-outlined fs-16"></i> {{ translate('messages.Views') }}
+                                </div>
+                                <h5 class="text-info">{{ $reel->total_views }}</h5>
+                            </div>
                         </div>
-                        <div class="flex-grow-1 text-center stat-item">
-                            <div class="fs-12"><i class="tio-thumbs-up fs-16"></i> {{ translate('messages.Likes') }}</div>
-                            <h5 class="text-info">{{ $reel->total_likes }}</h5>
+                        <div class="col-sm-4">
+                            <div class="bg-light rounded p-2 text-center">
+                                <div class="d-flex gap-1 justify-content-center align-items-center fs-12">
+                                    <i class="tio-thumbs-up fs-16"></i> {{ translate('messages.Likes') }}
+                                </div>
+                                <h5 class="text-info">{{ $reel->total_likes }}</h5>
+                            </div>
                         </div>
-                        <div class="flex-grow-1 text-center stat-item">
-                            <div class="fs-12"><i class="tio-shop-outlined fs-16"></i> {{ translate('messages.Store_Visits') }}</div>
-                            <h5 class="text-info">{{ $reel->total_store_visits }}</h5>
+                        <div class="col-sm-4">
+                            <div class="bg-light rounded p-2 text-center">
+                                <div class="d-flex gap-1 justify-content-center align-items-center fs-12">
+                                    <i class="tio-shop-outlined fs-16"></i> {{ translate('messages.Store_Visits') }}
+                                </div>
+                                <h5 class="text-info">{{ $reel->total_store_visits }}</h5>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="bg-light rounded p-2 text-center">
+                                <div class="d-flex gap-1 justify-content-center align-items-center fs-12">
+                                    <i class="tio-shopping-cart fs-16"></i> {{ translate('messages.Total_Sale') }}
+                                </div>
+                                <h5 class="text-info">{{ $reel->order_count ?? 0 }}</h5>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="bg-light rounded p-2 text-center">
+                                <div class="d-flex gap-1 justify-content-center align-items-center fs-12">
+                                    <i class="tio-money fs-16"></i> {{ translate('messages.Total_Sale_Amount') }}
+                                </div>
+                                <h5 class="text-info">{{ \App\CentralLogics\Helpers::format_currency($reel->total_sale_amount ?? 0) }}</h5>
+                            </div>
                         </div>
                     </div>
                 </div>

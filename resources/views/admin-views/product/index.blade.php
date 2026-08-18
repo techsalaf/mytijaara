@@ -204,7 +204,40 @@
             let route = '{{ url('/') }}/admin/store/get-addons?data[]=0&store_id=' + $(this).val();
             let id = 'add_on';
             getRestaurantData(route, id);
+
+            loadStoreCategories($(this).val());
         });
+
+        function loadStoreCategories(storeId) {
+            let $select = $('#store_category_id');
+            if (!$select.length) return;
+            let $col = $('#store_category_col');
+            $select.empty().append(
+                '<option value="">{{ translate('messages.Select_Store_Category') }}</option>'
+            );
+            if (!storeId) {
+                // No store selected → no asterisk, not required.
+                $select.prop('required', false);
+                $('.store-category-required-mark').hide();
+                $col.hide();
+                return;
+            }
+            let url = $select.data('url');
+            if (!url) return;
+            $.get(url, { store_id: storeId }, function(data) {
+                const categories = (data && data.categories) ? data.categories : (Array.isArray(data) ? data : []);
+                categories.forEach(function(cat) {
+                    $select.append($('<option>', { value: cat.id, text: cat.name }));
+                });
+                $select.trigger('change');
+                // Toggle the "*" mark + required attribute based on whether
+                // the selected store has any of its own categories.
+                const required = !!(data && data.has_categories);
+                $select.prop('required', required);
+                $('.store-category-required-mark').toggle(required);
+                $col.toggle(required);
+            });
+        }
 
         function modulChange(id) {
             $.get({
@@ -460,10 +493,37 @@
                     $('#variant_combination').html(data.view);
                     if (data.length < 1) {
                         $('input[name="current_stock"]').attr("readonly", false);
+                        $('input[name="current_stock"]').val(0);
                     }
+                    update_qty();
                 }
             });
         }
+
+        update_qty();
+
+        function update_qty() {
+            let total_qty = 0;
+            let qty_elements = $('input[name^="stock_"]');
+            for (let i = 0; i < qty_elements.length; i++) {
+                total_qty += parseInt(qty_elements.eq(i).val() || 0);
+            }
+            if (qty_elements.length > 0) {
+                $('input[name="current_stock"]').attr("readonly", true);
+                $('input[name="current_stock"]').val(total_qty);
+            } else {
+                $('input[name="current_stock"]').attr("readonly", false);
+            }
+        }
+
+        $(document).on('keyup', 'input[name^="stock_"]', function() {
+            let total_qty = 0;
+            let qty_elements = $('input[name^="stock_"]');
+            for (let i = 0; i < qty_elements.length; i++) {
+                total_qty += parseInt(qty_elements.eq(i).val() || 0);
+            }
+            $('input[name="current_stock"]').val(total_qty);
+        });
 
         // $('#item_form').on('keydown', function(e) {
         //     if (e.key === 'Enter') {

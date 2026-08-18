@@ -17,7 +17,7 @@ active
             <h1 class="page-header-title"><i class="tio-filter-list"></i> {{translate('messages.denied_stores')}}</h1>
             <div class="page-header-select-wrapper">
 
-                @if(!isset(auth('admin')->user()->zone_id))
+                @if(!auth('admin')?->user()?->zone_id)
                 <div class="select-item">
                     <select name="zone_id" class="form-control js-select2-custom set-filter" data-url="{{url()->full()}}" data-filter="zone_id">
                         <option value="" {{!request('zone_id')?'selected':''}}>{{ translate('messages.All_Zones') }}</option>

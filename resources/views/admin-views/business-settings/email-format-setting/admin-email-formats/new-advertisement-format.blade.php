@@ -10,17 +10,7 @@
     <div class="content container-fluid">
         <!-- Page Header -->
         <div class="page-header">
-            <div class="d-flex flex-wrap justify-content-between align-items-center __gap-15px">
-                <h1 class="page-header-title mr-3 mb-0">
-                    <span class="page-header-icon">
-                        <img src="{{ asset('public/assets/admin/img/email-setting.png') }}" class="w--26" alt="">
-                    </span>
-                    <span>
-                        {{ translate('messages.Email_Templates') }}
-                    </span>
-                </h1>
-                @include('admin-views.business-settings.email-format-setting.partials.email-template-options')
-            </div>
+            @include('admin-views.business-settings.email-format-setting.partials.email-template-header')
             @include('admin-views.business-settings.email-format-setting.partials.admin-email-template-setting-links')
         </div>
 
@@ -352,7 +342,7 @@
                                                                     <i class="tio-info-outined"></i>
                                                                 </span>
                                                             </label>
-                                                            <input type="text" maxlength="50" data-id="mail-copyright" name="copyright_text[]"  placeholder="{{ translate('Ex:_Copyright_2023_Stackfood._All_right_reserved')}}" class="form-control" value="{{ $data?->getRawOriginal('copyright_text') }}">
+                                                            <input type="text" maxlength="50" data-id="mail-copyright" name="copyright_text[]"  placeholder="{{ \App\CentralLogics\Helpers::copyright_placeholder()}}" class="form-control" value="{{ $data?->getRawOriginal('copyright_text') }}">
                                                         </div>
                                                     @foreach(json_decode($language) as $lang)
                                                     <?php
@@ -373,7 +363,7 @@
                                                                     <i class="tio-info-outined"></i>
                                                                 </span>
                                                             </label>
-                                                            <input type="text" maxlength="50" name="copyright_text[]"  placeholder="{{ translate('Ex:_Copyright_2023_Stackfood._All_right_reserved')}}" class="form-control" value="{{ $translate[$lang]['copyright_text']??'' }}">
+                                                            <input type="text" maxlength="50" name="copyright_text[]"  placeholder="{{ \App\CentralLogics\Helpers::copyright_placeholder()}}" class="form-control" value="{{ $translate[$lang]['copyright_text']??'' }}">
                                                         </div>
                                                     @endforeach
                                                 @else
@@ -384,7 +374,7 @@
                                                             <i class="tio-info-outined"></i>
                                                         </span>
                                                     </label>
-                                                    <input type="text" maxlength="50"  placeholder="{{ translate('Ex:_Copyright_2023_Stackfood._All_right_reserved')}}"class="form-control" name="copyright_text[]" value="">
+                                                    <input type="text" maxlength="50"  placeholder="{{ \App\CentralLogics\Helpers::copyright_placeholder()}}"class="form-control" name="copyright_text[]" value="">
                                                 </div>
                                                 @endif
                                             </div>

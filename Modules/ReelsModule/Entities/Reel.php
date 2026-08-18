@@ -23,6 +23,10 @@ class Reel extends Model
     protected $casts = [
         'store_id' => 'integer',
         'module_id' => 'integer',
+        'productable_id' => 'integer',
+        'order_now_button' => 'boolean',
+        'order_count' => 'integer',
+        'total_sale_amount' => 'decimal:4',
         'is_always_visible' => 'boolean',
         'status' => 'boolean',
         'total_views' => 'integer',
@@ -43,6 +47,11 @@ class Reel extends Model
     public function store()
     {
         return $this->belongsTo(Store::class, 'store_id');
+    }
+
+    public function productable()
+    {
+        return $this->morphTo();
     }
 
     public function storage()

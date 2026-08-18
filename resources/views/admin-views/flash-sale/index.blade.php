@@ -46,11 +46,11 @@
                                                 <div class="form-group">
                                                     <label class="input-label"
                                                         for="default_title">{{ translate('messages.title') }}
-                                                        ({{translate('messages.default')}})
+                                                        ({{translate('messages.default')}}) <span class="text-danger">*</span>
                                                     </label>
                                                     <input type="text" name="title[]" id="default_title"
                                                         class="form-control" maxlength="100" placeholder="{{ translate('messages.ex_:_new_flash_sale') }}"
-                                                    >
+                                                        required>
                                                 </div>
                                                 <input type="hidden" name="lang[]" value="default">
                                             </div>
@@ -69,7 +69,7 @@
                                             </div>
                                         @endforeach
                                         </div>
-                                        <div class="col-6">
+                                        <div class="col-xl-6">
                                             <div class="form-group">
                                                 <label class="input-label"
                                                     for="default_title">{{ translate('messages.discount_Bearer') }}
@@ -79,15 +79,15 @@
                                                 </label>
                                             </div>
                                             <div class="row g-3 __bg-F8F9FC-card">
-                                                <div class="col-sm-6">
-                                                    <label class="form-label">{{ translate('admin') }}(%)</label>
+                                                <div class="col-lg-6">
+                                                    <label class="form-label">{{ translate('admin') }}(%) <span class="text-danger">*</span></label>
                                                 <input type="number"  min="{{\App\CentralLogics\Helpers::getDecimalPlaces() }}" step="{{\App\CentralLogics\Helpers::getDecimalPlaces() }}" max="100" name="admin_discount_percentage"
                                                         value=""
                                                         class="form-control" id="adminDiscount"
                                                         placeholder="{{ translate('Ex_:_50') }}" required>
                                                 </div>
-                                                <div class="col-sm-6">
-                                                    <label class="form-label">{{ translate('messages.store_owner') }}(%)</label>
+                                                <div class="col-lg-6">
+                                                    <label class="form-label">{{ translate('messages.store_owner') }}(%) <span class="text-danger">*</span></label>
                                                 <input type="number"  min="{{ \App\CentralLogics\Helpers::getDecimalPlaces() }}" step="{{ \App\CentralLogics\Helpers::getDecimalPlaces() }}" max="100" name="vendor_discount_percentage"
                                                         value=""
                                                         class="form-control" id="storeDiscount"
@@ -95,22 +95,22 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-6">
+                                        <div class="col-xl-6">
                                             <div class="form-group">
                                                 <label class="input-label"
                                                     for="default_title">{{ translate('messages.validity') }}
                                                 </label>
                                             </div>
                                             <div class="row g-3 __bg-F8F9FC-card">
-                                                <div class="col-6">
+                                                <div class="col-lg-6">
                                                     <div>
-                                                        <label class="input-label" for="title">{{translate('messages.start_date')}}</label>
+                                                        <label class="input-label" for="title">{{translate('messages.start_date')}} <span class="text-danger">*</span></label>
                                                         <input type="datetime-local" id="from" class="form-control" required="" name="start_date">
                                                     </div>
                                                 </div>
-                                                <div class="col-6">
+                                                <div class="col-lg-6">
                                                     <div>
-                                                        <label class="input-label" for="title">{{translate('messages.end_date')}}</label>
+                                                        <label class="input-label" for="title">{{translate('messages.end_date')}} <span class="text-danger">*</span></label>
                                                         <input type="datetime-local" id="to" class="form-control" required="" name="end_date">
                                                     </div>
                                                 </div>
@@ -144,7 +144,7 @@
                                 </div>
                                 <!-- End Search -->
                             </form>
-                            @if(request()->get('search'))
+                            @if(request()->input('search'))
                             <button type="reset" class="btn btn--primary ml-2 location-reload-to-base" data-url="{{url()->full()}}">{{translate('messages.reset')}}</button>
                             @endif
 

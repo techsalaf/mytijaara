@@ -64,6 +64,7 @@ class ReelController extends Controller
         return response()->json((new ReelDetailResource($reel->fresh([
             'store.storeConfig:id,store_id,verified_seller',
             'storage',
+            'productable',
         ])))->resolve(), 200);
     }
 

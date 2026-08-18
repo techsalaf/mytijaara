@@ -10,6 +10,8 @@ use App\Models\Contact;
 use App\Models\DataSetting;
 use App\Models\AdminFeature;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use App\CentralLogics\Helpers;
 use App\Models\BusinessSetting;
 use App\Models\AdminTestimonial;
@@ -24,6 +26,7 @@ use App\Models\DeliverymanLoyaltyPointHistory;
 use App\Models\DeliverymanReferralHistory;
 use App\Models\SubscriptionTransaction;
 use App\Traits\ActivationClass;
+use FontLib\Table\Type\name;
 use Illuminate\Support\Facades\Session;
 
 class HomeController extends Controller
@@ -432,6 +435,26 @@ class HomeController extends Controller
     }
 
 
+    public function maintenanceMode()
+    {
+        if (!Helpers::is_vendor_panel_maintenance_active()) {
+            return to_route('home');
+        }
+
+        $maintenance_mode_data = DataSetting::where('type', 'maintenance_mode')
+            ->whereIn('key', ['maintenance_message_setup'])
+            ->pluck('value', 'key')
+            ->map(fn ($value) => json_decode($value, true))
+            ->toArray();
+
+        $selectedMaintenanceMessage = data_get($maintenance_mode_data, 'maintenance_message_setup', []);
+
+        $email = Helpers::get_business_settings('email_address');
+        $phone = Helpers::get_business_settings('phone');
+
+        return view('maintenance-mode', compact('email', 'phone', 'selectedMaintenanceMessage'));
+    }
+
     public function subscription_invoice($id)
     {
         $id = base64_decode($id);
@@ -524,6 +547,8 @@ class HomeController extends Controller
     public function activationCheck(Request $request)
     {
         $response = $this->getRequestConfig(
+            name: $request['name'],
+            email: $request['email'],
             username: $request['username'],
             purchaseKey: $request['purchase_key'],
             softwareType: $request->get('software_type', base64_decode('cHJvZHVjdA=='))

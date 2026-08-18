@@ -56,7 +56,10 @@ $(document).on("ready", function () {
     // INITIALIZATION OF SELECT2
     // =======================================================
     $(".js-select2-custom").each(function () {
-        let select2 = $.HSCore.components.HSSelect2.init($(this));
+        let verifiedConfig = window.hsSelect2VerifiedTemplate
+            ? { templateResult: window.hsSelect2VerifiedTemplate, templateSelection: window.hsSelect2VerifiedTemplate }
+            : {};
+        let select2 = $.HSCore.components.HSSelect2.init($(this), verifiedConfig);
     });
 
     // INITIALIZATION OF DATERANGEPICKER

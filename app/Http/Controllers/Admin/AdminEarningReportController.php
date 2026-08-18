@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\OrderTransaction;
+use App\Models\ProCustomerTransaction;
 use App\Models\SubscriptionTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,6 +34,11 @@ class AdminEarningReportController extends Controller
         return !in_array('parcel', $order_types, true);
     }
 
+    private function shouldIncludeProCustomer(array $order_types, $module_id): bool
+    {
+        return $this->shouldIncludeSubscription($order_types) && !$this->hasModuleFilter($module_id);
+    }
+
     public function getAdminEarningReport(Request $request)
     {
         return view('admin-views.report.admin-earning-report');
@@ -44,6 +50,7 @@ class AdminEarningReportController extends Controller
         $module_id = $this->resolveModuleId($request);
         $order_types = $this->normalizeOrderTypes($request->query('order_types', $request->query('order_type', ['take_away', 'delivery'])));
         $include_subscription = $this->shouldIncludeSubscription($order_types);
+        $include_pro_customer = $this->shouldIncludeProCustomer($order_types, $module_id);
 
         $summary = $this->buildAdminEarningSummary(
             filter: $filter,
@@ -51,7 +58,8 @@ class AdminEarningReportController extends Controller
             to: $to,
             module_id: $module_id,
             order_types: $order_types,
-            include_subscription: $include_subscription
+            include_subscription: $include_subscription,
+            include_pro_customer: $include_pro_customer
         );
         $html = view('admin-views.report.partials._admin-earning-summary', compact('summary'))->render();
         return response()->json(['view' => $html]);
@@ -63,6 +71,7 @@ class AdminEarningReportController extends Controller
         $module_id = $this->resolveModuleId($request);
         $order_types = $this->normalizeOrderTypes($request->query('order_types', $request->query('order_type', ['take_away', 'delivery'])));
         $include_subscription = $this->shouldIncludeSubscription($order_types);
+        $include_pro_customer = $this->shouldIncludeProCustomer($order_types, $module_id);
 
         $summary = $this->buildAdminEarningSummary(
             filter: $filter,
@@ -70,7 +79,8 @@ class AdminEarningReportController extends Controller
             to: $to,
             module_id: $module_id,
             order_types: $order_types,
-            include_subscription: $include_subscription
+            include_subscription: $include_subscription,
+            include_pro_customer: $include_pro_customer
         );
         $earnings = $this->buildEarningBreakdown(
             filter: $filter,
@@ -84,8 +94,11 @@ class AdminEarningReportController extends Controller
         $earnings['subscription_earning'] = $include_subscription ? $summary['subscription_earning'] : 0;
         $earnings['subscription_percentage'] = $include_subscription ? $summary['subscription_percentage'] : 0;
 
+        $earnings['pro_customer_subscription'] = $include_pro_customer ? $summary['pro_customer_subscription'] : 0;
+        $earnings['pro_customer_subscription_percentage'] = $include_pro_customer ? $summary['pro_customer_subscription_percentage'] : 0;
 
-        $html = view('admin-views.report.partials._admin-earning-breakdown', compact('earnings', 'include_subscription'))->render();
+
+        $html = view('admin-views.report.partials._admin-earning-breakdown', compact('earnings', 'include_subscription', 'include_pro_customer'))->render();
         return response()->json(['view' => $html, 'earnings' => $earnings]);
     }
 
@@ -125,6 +138,7 @@ class AdminEarningReportController extends Controller
         $module_id = $this->resolveModuleId($request);
         $order_types = $this->normalizeOrderTypes($request->query('order_types', $request->query('order_type', ['take_away', 'delivery'])));
         $include_subscription = $this->shouldIncludeSubscription($order_types);
+        $include_pro_customer = $this->shouldIncludeProCustomer($order_types, $module_id);
 
         $today = Carbon::now();
         $months = collect();
@@ -230,8 +244,21 @@ class AdminEarningReportController extends Controller
                 ->pluck('total_sub_earning', 'month');
         }
 
+        // pro customer subscriptions
+        $proCustomerQuery = collect();
+        if ($include_pro_customer) {
+            $proCustomerQuery = ProCustomerTransaction::where('payment_status', 'success')
+                ->where('plan_type', 'paid')
+                ->applyDateFilter($filter, $from, $to, 'pro_customer_transactions.created_at')
+                ->selectRaw("DATE_FORMAT(pro_customer_transactions.created_at, '$dateFormat') as month")
+                ->selectRaw("SUM(amount) as total_pro_customer_earning")
+                ->groupBy('month')
+                ->orderBy('month')
+                ->pluck('total_pro_customer_earning', 'month');
+        }
 
-        $expenseBaseQuery = Expense::where('created_by', 'admin')->whereNull('trip_id');
+
+        $expenseBaseQuery = Expense::withoutAddon()->where('created_by', 'admin');
         $expenseBaseQuery = $this->moduleAndOrderTypeFilter(
             query: $expenseBaseQuery,
             module_id: $module_id,
@@ -250,10 +277,11 @@ class AdminEarningReportController extends Controller
 
 
 
-        $earningSeries = $months->map(function ($m) use ($earnings, $subscriptionQuery, $include_subscription) {
+        $earningSeries = $months->map(function ($m) use ($earnings, $subscriptionQuery, $include_subscription, $proCustomerQuery, $include_pro_customer) {
                 $orderEarning = $earnings[$m] ?? 0;
                 $subscriptionEarning = $include_subscription ? ($subscriptionQuery[$m] ?? 0) : 0;
-                return round($orderEarning + $subscriptionEarning, 2);
+                $proCustomerEarning = $include_pro_customer ? ($proCustomerQuery[$m] ?? 0) : 0;
+                return round($orderEarning + $subscriptionEarning + $proCustomerEarning, 2);
             });
         $expenseSeries = $months->map(fn($m) => round($expenses[$m] ?? 0, 2));
 
@@ -530,7 +558,8 @@ class AdminEarningReportController extends Controller
         $module_id = $this->resolveModuleId($request);
         $order_types = $this->normalizeOrderTypes($request->query('order_types', $request->query('order_type', ['take_away', 'delivery'])));
         $include_subscription = $this->shouldIncludeSubscription($order_types);
-        $type = $request->query('type', 'order'); // 'order', 'subscription', 'expense'
+        $include_pro_customer = $this->shouldIncludeProCustomer($order_types, $module_id);
+        $type = $request->query('type', 'order'); // 'order', 'subscription', 'pro_customer', 'expense'
 
         if ($type === 'subscription' && !$include_subscription) {
             $transactions = collect();
@@ -542,6 +571,16 @@ class AdminEarningReportController extends Controller
                 to: $to,
                 nopaginate: false,
                 module_id: $module_id
+            );
+        } elseif ($type === 'pro_customer' && !$include_pro_customer) {
+            $transactions = collect();
+        } elseif ($type === 'pro_customer') {
+            $transactions = $this->get_pro_customer_subscription_transactions(
+                request: $request,
+                filter: $filter,
+                from: $from,
+                to: $to,
+                nopaginate: false
             );
         } elseif ($type === 'expense') {
             $transactions = $this->get_expense_transactions(
@@ -607,7 +646,8 @@ class AdminEarningReportController extends Controller
         $module_id = $this->resolveModuleId($request);
         $order_types = $this->normalizeOrderTypes($request->query('order_types', $request->query('order_type', ['take_away', 'delivery'])));
         $include_subscription = $this->shouldIncludeSubscription($order_types);
-        $type = $request->query('type', 'order'); // 'order', 'subscription', 'expense'
+        $include_pro_customer = $this->shouldIncludeProCustomer($order_types, $module_id);
+        $type = $request->query('type', 'order'); // 'order', 'subscription', 'pro_customer', 'expense'
         $export_type = $request->query('export_type', 'excel');
 
         if ($type === 'subscription' && !$include_subscription) {
@@ -623,6 +663,18 @@ class AdminEarningReportController extends Controller
                 module_id: $module_id
             );
             $title = 'Subscription_Earning_Report';
+        } elseif ($type === 'pro_customer' && !$include_pro_customer) {
+            $transactions = collect();
+            $title = 'Pro_Customer_Subscription_Report';
+        } elseif ($type === 'pro_customer') {
+            $transactions = $this->get_pro_customer_subscription_transactions(
+                request: $request,
+                filter: $filter,
+                from: $from,
+                to: $to,
+                nopaginate: true
+            );
+            $title = 'Pro_Customer_Subscription_Report';
         } elseif ($type === 'expense') {
             $transactions = $this->get_expense_transactions(
                 request: $request,

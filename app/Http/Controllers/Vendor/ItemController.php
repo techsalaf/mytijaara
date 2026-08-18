@@ -6,6 +6,7 @@ use App\Models\ItemSeoData;
 use Carbon\Carbon;
 use App\Models\Tag;
 use App\Models\Item;
+use App\Models\ItemCampaign;
 use App\Models\Brand;
 use App\Models\Review;
 use App\Models\Allergy;
@@ -53,7 +54,11 @@ class ItemController extends Controller
         $productWiseTax = $taxData['productWiseTax'];
         $taxVats = $taxData['taxVats'];
 
-        return view('vendor-views.product.index', compact('categories', 'module_data', 'conditions', 'brands', 'productWiseTax', 'taxVats'));
+        $store_categories = Helpers::storeCategoryStatus()
+            ? \App\Models\StoreCategory::active()->where('store_id', Helpers::get_store_id())->orderBy('priority', 'desc')->get(['id', 'name'])
+            : collect();
+
+        return view('vendor-views.product.index', compact('categories', 'module_data', 'conditions', 'brands', 'productWiseTax', 'taxVats', 'store_categories'));
     }
 
 
@@ -90,11 +95,23 @@ class ItemController extends Controller
                 ]
             ]);
         }
+
+        // Conditional required: store_category_id is required when the vendor
+        // has at least one of their own categories. Optional otherwise.
+        $storeId = Helpers::get_store_id();
+        $storeCategoryRule = Helpers::hasAnyStoreCategory($storeId) ? 'required' : 'nullable';
+
         $validator = Validator::make($request->all(), array_merge([
             'name' => 'array',
             'name.0' => 'required',
             'name.*' => 'max:191',
             'category_id' => 'required',
+            'store_category_id' => [
+                $storeCategoryRule,
+                Rule::exists('store_categories', 'id')->where(function ($query) use ($storeId) {
+                    return $query->where('store_id', $storeId);
+                }),
+            ],
             'image' => [
                 Rule::requiredIf(function () use ($request) {
                     return (Helpers::get_store_data()->module->module_type != 'food' && $request?->product_gellary == null);
@@ -108,6 +125,7 @@ class ItemController extends Controller
             'name.0.required' => translate('messages.item_default_name_required'),
             'description.0.required' => translate('messages.item_default_description_required'),
             'category_id.required' => translate('messages.category_required'),
+            'store_category_id.required' => translate('messages.store_category_required'),
             'description.*.max' => translate('messages.Description_must_be_in_1000_char'),
         ]);
 
@@ -402,6 +420,7 @@ class ItemController extends Controller
         $food->attributes = $request->has('attribute_id') ? json_encode($request->attribute_id) : json_encode([]);
         $food->add_ons = $request->has('addon_ids') ? json_encode($request->addon_ids) : json_encode([]);
         $food->store_id = Helpers::get_store_id();
+        $food->store_category_id = $request->filled('store_category_id') ? (int) $request->store_category_id : null;
         $food->module_id = Helpers::get_store_data()->module_id;
         $food->images = $images;
         $food->stock = $request->current_stock ?? 0;
@@ -423,10 +442,12 @@ class ItemController extends Controller
             $item_details->common_condition_id = $request->condition_id;
             $item_details->is_basic = $request->basic ?? 0;
             $item_details->is_prescription_required = $request->is_prescription_required ?? 0;
+            $item_details->unit_value = $request->unit_value;
+            $item_details->manufacturer = $request->manufacturer;
             $item_details->save();
         }
 
-        if ($module_type == 'ecommerce') {
+        if (in_array($module_type, ['ecommerce', 'grocery'])) {
             $item_details = new EcommerceItemDetails();
             $item_details->item_id = $food->id;
             $item_details->brand_id = $request->brand_id;
@@ -514,7 +535,11 @@ class ItemController extends Controller
         $taxVats = $taxData['taxVats'];
         $taxVatIds =  $productWiseTax ? $product->taxVats()->pluck('tax_id')->toArray(): [];
 
-        return view('vendor-views.product.edit', compact('product', 'product_category', 'categories', 'module_data', 'temp_product', 'conditions', 'brands', 'productWiseTax', 'taxVats', 'taxVatIds'));
+        $store_categories = Helpers::storeCategoryStatus()
+            ? \App\Models\StoreCategory::active()->where('store_id', Helpers::get_store_id())->orderBy('priority', 'desc')->get(['id', 'name'])
+            : collect();
+
+        return view('vendor-views.product.edit', compact('product', 'product_category', 'categories', 'module_data', 'temp_product', 'conditions', 'brands', 'productWiseTax', 'taxVats', 'taxVatIds', 'store_categories'));
     }
 
     public function status(Request $request)
@@ -562,11 +587,22 @@ class ItemController extends Controller
         }
 
 
+        // Conditional required: required when the vendor has at least one of
+        // their own store categories; optional otherwise.
+        $storeId = Helpers::get_store_id();
+        $storeCategoryRule = Helpers::hasAnyStoreCategory($storeId) ? 'required' : 'nullable';
+
         $validator = Validator::make($request->all(), array_merge([
             'name' => 'array',
             'name.0' => 'required',
             'name.*' => 'max:191',
             'category_id' => 'required',
+            'store_category_id' => [
+                $storeCategoryRule,
+                Rule::exists('store_categories', 'id')->where(function ($query) use ($storeId) {
+                    return $query->where('store_id', $storeId);
+                }),
+            ],
             'price' => 'required|numeric|between:' . $minimumPrice . ',999999999999.999',
             'description.*' => 'max:1000',
             'description.0' => 'required',
@@ -575,6 +611,7 @@ class ItemController extends Controller
             'name.0.required' => translate('messages.item_default_name_required'),
             'description.0.required' => translate('messages.item_default_description_required'),
             'category_id.required' => translate('messages.category_required'),
+            'store_category_id.required' => translate('messages.store_category_required'),
             'description.*.max' => translate('messages.Description_must_be_in_1000_char'),
         ]);
 
@@ -670,6 +707,7 @@ class ItemController extends Controller
 
         $p->category_id = $request->sub_category_id ? $request->sub_category_id : $request->category_id;
         $p->category_ids = json_encode($category);
+        $p->store_category_id = $request->filled('store_category_id') ? (int) $request->store_category_id : null;
         $p->description = $request->description[array_search('default', $request->lang)];
 
         $choice_options = [];
@@ -825,11 +863,13 @@ class ItemController extends Controller
                         'common_condition_id' => $request->condition_id,
                         'is_basic' => $request->basic ?? 0,
                         'is_prescription_required' => $request->is_prescription_required ?? 0,
+                        'unit_value' => $request->unit_value,
+                        'manufacturer' => $request->manufacturer,
                     ]
                 );
         }
 
-        if ($p->module->module_type == 'ecommerce') {
+        if (in_array($p->module->module_type, ['ecommerce', 'grocery'])) {
 
             DB::table('ecommerce_item_details')
                 ->updateOrInsert(
@@ -972,6 +1012,62 @@ class ItemController extends Controller
         ]);
     }
 
+    public function variant_price(Request $request)
+    {
+        if ($request->item_type == 'item') {
+            $product = Item::withoutGlobalScope(StoreScope::class)->find($request->id);
+        } else {
+            $product = ItemCampaign::find($request->id);
+        }
+        if (isset($product->module_id) && $product->module->module_type == 'food' && $product->food_variations) {
+            $price = $product->price;
+            $addon_price = 0;
+            if ($request['addon_id']) {
+                foreach ($request['addon_id'] as $id) {
+                    $addon_price += $request['addon-price' . $id] * $request['addon-quantity' . $id];
+                }
+            }
+            $product_variations = json_decode($product->food_variations, true);
+            if ($request->variations && $product_variations && count($product_variations)) {
+                $price += Helpers::food_variation_price($product_variations, $request->variations);
+            } else {
+                $price = $product->price - Helpers::product_discount_calculate($product, $product->price, $product->store)['discount_amount'];
+            }
+        } else {
+            $str = '';
+            $price = 0;
+            $addon_price = 0;
+
+            foreach (json_decode($product->choice_options) ?? [] as $key => $choice) {
+                if ($str != null) {
+                    $str .= '-' . str_replace(' ', '', $request[$choice->name] ?? '');
+                } else {
+                    $str .= str_replace(' ', '', $request[$choice->name] ?? '');
+                }
+            }
+
+            if ($request['addon_id']) {
+                foreach ($request['addon_id'] as $id) {
+                    $addon_price += $request['addon-price' . $id] * $request['addon-quantity' . $id];
+                }
+            }
+
+            if ($str != null) {
+                $variations = json_decode($product->variations);
+                $count = is_array($variations) ? count($variations) : 0;
+                for ($i = 0; $i < $count; $i++) {
+                    if ($variations[$i]->type == $str) {
+                        $price = $variations[$i]->price - Helpers::product_discount_calculate($product, $variations[$i]->price, $product->store)['discount_amount'];
+                    }
+                }
+            } else {
+                $price = $product->price - Helpers::product_discount_calculate($product, $product->price, $product->store)['discount_amount'];
+            }
+        }
+
+        return ['price' => Helpers::format_currency(($price * $request->quantity) + $addon_price)];
+    }
+
     public function get_categories(Request $request)
     {
         $cat = Category::where(['parent_id' => $request->parent_id])->get();
@@ -993,6 +1089,7 @@ class ItemController extends Controller
         $category_id = $request->query('category_id', 'all');
         $type = $request->query('type', 'all');
         $sub_category_id = $request->query('sub_category_id', 'all');
+        $store_category_id = $request->query('store_category_id', 'all');
         $key = explode(' ', $request['search']);
         $items = Item::when(is_numeric($category_id), function ($query) use ($category_id) {
                 return $query->whereHas('category', function ($q) use ($category_id) {
@@ -1001,6 +1098,9 @@ class ItemController extends Controller
             })
             ->when(is_numeric($sub_category_id), function ($query) use ($sub_category_id) {
                 return $query->where('category_id', $sub_category_id);
+            })
+            ->when(is_numeric($store_category_id), function ($query) use ($store_category_id) {
+                return $query->where('store_category_id', $store_category_id);
             })
             ->where('is_approved', 1)
             ->when(isset($key), function ($q) use ($key) {
@@ -1017,9 +1117,12 @@ class ItemController extends Controller
         $taxData = Helpers::getTaxSystemType();
         $productWiseTax = $taxData['productWiseTax'];
 
+        $store_categories = Helpers::storeCategoryStatus()
+            ? \App\Models\StoreCategory::active()->where('store_id', Helpers::get_store_id())->orderBy('priority', 'desc')->get(['id', 'name'])
+            : collect();
 
         $category = $category_id != 'all' ? Category::findOrFail($category_id) : null;
-        return view('vendor-views.product.list', compact('items', 'category', 'type', 'sub_categories','productWiseTax'));
+        return view('vendor-views.product.list', compact('items', 'category', 'type', 'sub_categories','productWiseTax', 'store_categories', 'store_category_id'));
     }
 
     // public function search(Request $request)
@@ -1734,6 +1837,7 @@ class ItemController extends Controller
 
         $temp_item->category_id = $data->category_id;
         $temp_item->category_ids = $data->category_ids;
+        $temp_item->store_category_id = $data->store_category_id;
         $temp_item->slug = $data->slug;
 
         $temp_item->choice_options = $data->choice_options;
@@ -1766,7 +1870,7 @@ class ItemController extends Controller
             $temp_item->common_condition_id =  $request->condition_id ?? 0;
             $temp_item->basic =  $request->basic ?? 0;
         }
-        if ($module_type == 'ecommerce') {
+        if (in_array($module_type, ['ecommerce', 'grocery'])) {
             $temp_item->brand_id =  $request->brand_id ?? 0;
         }
 
@@ -1865,11 +1969,13 @@ class ItemController extends Controller
                         'common_condition_id' => $request->condition_id,
                         'is_basic' => $request->basic ?? 0,
                         'is_prescription_required' => $request->is_prescription_required ?? 0,
+                        'unit_value' => $request->unit_value,
+                        'manufacturer' => $request->manufacturer,
                         'item_id' => null
                     ]
                 );
         }
-        if ($module_type == 'ecommerce') {
+        if (in_array($module_type, ['ecommerce', 'grocery'])) {
             DB::table('ecommerce_item_details')
                 ->updateOrInsert(
                     ['temp_product_id' => $temp_item->id],
@@ -1878,6 +1984,8 @@ class ItemController extends Controller
                         'item_id' => null
                     ]
                 );
+        }
+        if ($module_type == 'ecommerce') {
             $this->addOrUpdateMetaData($request,$temp_item->id,temp:true);
         }
 

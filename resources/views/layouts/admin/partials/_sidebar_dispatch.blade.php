@@ -177,7 +177,9 @@
 
 @push('script_2')
 
+@if(addon_published_status('Rental'))
 <script src="{{ asset('Modules/Rental/public/assets/js/admin/view-pages/rental-sidebar.js') }}"></script>
+@endif
 
 
 @endpush

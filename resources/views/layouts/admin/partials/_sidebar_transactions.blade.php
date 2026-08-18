@@ -378,6 +378,22 @@
                                 </a>
                             </li>
 
+                            <li class="navbar-vertical-aside-has-menu @yield('ride_report')">
+                                <a class="nav-link " href="{{ route('admin.transactions.ride-share.report.ride-report') }}"
+                                    title="{{ translate('Ride_Report') }}">
+                                    <span class="tio-chart-bar-4 nav-icon"></span>
+                                    <span class="text-truncate text-capitalize">{{ translate('Ride_Report') }}</span>
+                                </a>
+                            </li>
+
+                            <li class="navbar-vertical-aside-has-menu @yield('ride_tax_report')">
+                                <a class="nav-link " href="{{ route('admin.transactions.ride-share.report.ride-wise-taxes') }}"
+                                    title="{{ translate('Ride_Tax_Report') }}">
+                                    <span class="tio-american-express nav-icon"></span>
+                                    <span class="text-truncate text-capitalize">{{ translate('Ride_Tax_Report') }}</span>
+                                </a>
+                            </li>
+
                             {{-- <li
                                 class="navbar-vertical-aside-has-menu {{ Request::is('admin/transactions/ride-share/report*') ? 'active' : '' }}">
                                 <a class="nav-link " href="{{ route('admin.transactions.ride-share.report.earning') }}"
@@ -407,7 +423,9 @@
 
 @push('script_2')
 
+@if(addon_published_status('Rental'))
 <script src="{{ asset('Modules/Rental/public/assets/js/admin/view-pages/rental-sidebar.js') }}"></script>
+@endif
 
 
 @endpush

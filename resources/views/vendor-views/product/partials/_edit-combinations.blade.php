@@ -23,14 +23,14 @@
                     <label class="control-label m-0">{{ $combination['type'] }}</label>
                     <input value="{{ $combination['type'] }}" name="type[]" type="hidden">
                 </td>
-                <td>
+                <td class="error-wrapper">
                     <input type="number" name="price_{{ $combination['type'] }}"
                            value="{{$combination['price']}}" min="0"
                            step="{{ \App\CentralLogics\Helpers::getDecimalPlaces() }}" max="999999999999.999"
                            class="form-control" required>
                 </td>
                 @if ($stock)
-                    <td>
+                    <td class="error-wrapper">
                         <input type="number" onkeyup="update_qty()" name="stock_{{ $combination['type'] }}" value="{{$combination['stock']??0}}" min="0"
                                 class="form-control" required>
                     </td>

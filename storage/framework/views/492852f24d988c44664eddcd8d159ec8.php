@@ -3,9 +3,9 @@
     <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
 
     <input type="hidden" name="set_default_captcha" id="set_default_captcha_value" value="0">
-    <div class="row g-2 py-2 d-none" id="reload-captcha">
+    <div class="row g-2 py-2 d-none mb-2" id="reload-captcha">
         <div class="col-sm-6 pr-0">
-            <input type="text" class="form-control form-control-lg" name="custome_recaptcha" id="custome_recaptcha"
+            <input type="text" class="form-control form-control-lg input-lg mb-2" name="custome_recaptcha" id="custome_recaptcha"
                 placeholder="<?php echo e(translate('Enter recaptcha value')); ?>" autocomplete="off"
                 value="<?php echo e(getEnvMode() == 'dev' ? session('six_captcha') : ''); ?>">
         </div>
@@ -23,9 +23,9 @@
     </div>
 
 <?php else: ?>
-    <div class="row g-2" id="reload-captcha">
+    <div class="row g-2 mb-2"  id="reload-captcha">
         <div class="col-sm-6 pr-0">
-            <input type="text" class="form-control form-control-lg" name="custome_recaptcha" id="custome_recaptcha"
+            <input type="text" class="form-control form-control-lg input-lg mb-2" name="custome_recaptcha" id="custome_recaptcha"
                 placeholder="<?php echo e(translate('Enter recaptcha value')); ?>" autocomplete="off"
                 value="<?php echo e(getEnvMode() == 'dev' ? session('six_captcha') : ''); ?>">
         </div>

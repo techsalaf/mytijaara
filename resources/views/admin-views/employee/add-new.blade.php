@@ -67,7 +67,7 @@
                                             </span>
                                         </label>
                                         <select name="zone_id" id="zone_id" class="form-control js-select2-custom">
-                                            @if (!isset(auth('admin')->user()->zone_id))
+                                            @if (!auth('admin')?->user()?->zone_id)
                                                 <option value="" {{ !isset($e->zone_id) ? 'selected' : '' }}>
                                                     {{ translate('messages.all') }}</option>
                                             @endif

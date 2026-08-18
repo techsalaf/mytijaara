@@ -7,6 +7,7 @@ use App\CentralLogics\OrderLogic;
 use App\Models\Expense;
 use App\Models\Module;
 use App\Models\OrderTransaction;
+use App\Models\ProCustomerTransaction;
 use App\Models\SubscriptionTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ trait ReportGeneratorTrait
                 COALESCE(order_transactions.admin_commission, 0)
                 + COALESCE(order_transactions.admin_expense, 0)
                 - COALESCE(orders.flash_admin_discount_amount, 0)
+                + (CASE WHEN orders.delivery_type = 'express' THEN COALESCE(orders.delivery_type_charge, 0) ELSE 0 END)
             )
         ";
     }
@@ -94,16 +96,17 @@ trait ReportGeneratorTrait
         $module_ids = $this->normalizeModuleIds($module_id);
         $order_types = $this->normalizeOrderTypes($order_types);
 
-        if (!empty($module_ids)) {
-            if(count($module_ids) === 1){
+        if (! empty($module_ids)) {
+            if (count($module_ids) === 1) {
                 return $query->where($moduleColumn, $module_ids[0]);
-            } else{
+            } else {
                 return $query->whereIn($moduleColumn, $module_ids);
             }
 
-        } elseif( in_array('parcel',$order_types) &&  count($module_ids) == 0){
-            $module_ids=Module::where('module_type','parcel')->pluck('id')->toArray();
-                return $query->whereIn($moduleColumn, $module_ids);
+        } elseif (in_array('parcel', $order_types) && count($module_ids) == 0) {
+            $module_ids = Module::where('module_type', 'parcel')->pluck('id')->toArray();
+
+            return $query->whereIn($moduleColumn, $module_ids);
         }
 
         return $this->applyOrderTypeFilter($query, $order_types, $orderTypeColumn);
@@ -144,14 +147,14 @@ trait ReportGeneratorTrait
         }
 
         return Module::whereIn('id', $module_ids)->exists()
-            && !Module::whereIn('id', $module_ids)->where('module_type', '!=', 'parcel')->exists();
+            && ! Module::whereIn('id', $module_ids)->where('module_type', '!=', 'parcel')->exists();
     }
 
     private function moduleAndOrderTypeFilter($query, $module_id = 'all', $order_types = null, bool $keepStandaloneForModule = false, bool $keepStandaloneForOrderType = false, array $moduleRelations = ['order'], string $orderTypeColumn = 'order_type')
     {
         $module_ids = $this->normalizeModuleIds($module_id);
 
-        if (!empty($module_ids)) {
+        if (! empty($module_ids)) {
             $query->where(function ($query) use ($module_ids, $moduleRelations, $keepStandaloneForModule) {
                 if ($keepStandaloneForModule) {
                     $query->whereNull('order_id');
@@ -159,16 +162,17 @@ trait ReportGeneratorTrait
 
                 foreach ($moduleRelations as $index => $relation) {
                     $relationMethod = $keepStandaloneForModule || $index > 0 ? 'orWhereHas' : 'whereHas';
-                $query->{$relationMethod}($relation, function ($relatedQuery) use ($module_ids) {
-                    if (count($module_ids) === 1) {
-                        $relatedQuery->where('module_id', $module_ids[0]);
-                        return;
-                    }
+                    $query->{$relationMethod}($relation, function ($relatedQuery) use ($module_ids) {
+                        if (count($module_ids) === 1) {
+                            $relatedQuery->where('module_id', $module_ids[0]);
 
-                    $relatedQuery->whereIn('module_id', $module_ids);
-                });
-            }
-        });
+                            return;
+                        }
+
+                        $relatedQuery->whereIn('module_id', $module_ids);
+                    });
+                }
+            });
 
             return $query;
         }
@@ -194,21 +198,26 @@ trait ReportGeneratorTrait
             if ($current == 0) {
                 return [0, false];
             }
+
             return [100, true];
         }
 
         $percentage = (($current - $previous) / abs($previous)) * 100;
-        $percentage =round($percentage ,2);
+        $percentage = round($percentage, 2);
+
         return [$percentage, $percentage >= 0];
     }
 
     private function calculatePercentage($part, $total)
     {
-        if ($total == 0) return [0, false];
+        if ($total == 0) {
+            return [0, false];
+        }
 
         $percentage = ($part / $total) * 100;
 
-        $percentage =round($percentage ,2);
+        $percentage = round($percentage, 2);
+
         return [$percentage, true];
     }
 
@@ -218,11 +227,13 @@ trait ReportGeneratorTrait
             if ($current == 0) {
                 return [0, false];
             }
+
             return [100, true];
         }
 
         $percentage = (($current - $previous) / abs($previous)) * 100;
         $percentage = round($percentage, 2);
+
         return [abs($percentage), $percentage >= 0];
     }
 
@@ -243,7 +254,7 @@ trait ReportGeneratorTrait
 
     // Admin Calculations
 
-    public function buildAdminEarningSummary($filter, $from, $to, $module_id = 'all', $order_types = null, bool $include_subscription = true)
+    public function buildAdminEarningSummary($filter, $from, $to, $module_id = 'all', $order_types = null, bool $include_subscription = true, bool $include_pro_customer = false)
     {
         $earningFormula = $this->getAdminTotalEarningQuery();
         $previousPeriodRange = $this->getPreviousPeriodRange($filter, $from, $to);
@@ -261,29 +272,27 @@ trait ReportGeneratorTrait
         // current & previous earnings
         $admin_earning = (clone $baseTransactionQuery)
             ->applyDateFilter($filter, $from, $to, 'order_transactions.created_at')
-            ->selectRaw($earningFormula . " as admin_earning")
+            ->selectRaw($earningFormula.' as admin_earning')
             ->value('admin_earning') ?? 0;
 
         $admin_previous_earning = 0;
         if ($previousPeriodRange) {
             $admin_previous_earning = (clone $baseTransactionQuery)
                 ->whereBetween('order_transactions.created_at', $previousPeriodRange)
-                ->selectRaw($earningFormula . " as admin_earning")
+                ->selectRaw($earningFormula.' as admin_earning')
                 ->value('admin_earning') ?? 0;
         }
 
         $parcel = in_array('parcel', $order_types);
         // expenses
-        $expenseQuery = Expense::withoutAddon()->where('created_by', 'admin')->whereNot('type','referrer');
+        $expenseQuery = Expense::withoutAddon()->where('created_by', 'admin')->whereNot('type', 'referrer');
         $expenseQuery = $this->moduleAndOrderTypeFilter(
             query: $expenseQuery,
             module_id: $module_id,
             order_types: $order_types,
-            keepStandaloneForModule: !$parcel,
-            keepStandaloneForOrderType: !$parcel
+            keepStandaloneForModule: ! $parcel,
+            keepStandaloneForOrderType: ! $parcel
         );
-
-
 
         $admin_expense = (float) (clone $expenseQuery)
             ->applyDateFilter($filter, $from, $to, 'expenses.created_at')
@@ -317,6 +326,26 @@ trait ReportGeneratorTrait
             $admin_previous_earning += $subscription_previous_earning;
         }
 
+        $pro_customer_subscription = 0;
+        $pro_customer_subscription_previous = 0;
+        if ($include_pro_customer) {
+            $proCustomerQuery = ProCustomerTransaction::where('payment_status', 'success')
+                ->where('plan_type', 'paid');
+
+            $pro_customer_subscription = (clone $proCustomerQuery)
+                ->applyDateFilter($filter, $from, $to, 'pro_customer_transactions.created_at')
+                ->sum('amount');
+
+            if ($previousPeriodRange) {
+                $pro_customer_subscription_previous = (clone $proCustomerQuery)
+                    ->whereBetween('pro_customer_transactions.created_at', $previousPeriodRange)
+                    ->sum('amount');
+            }
+
+            $admin_earning += $pro_customer_subscription;
+            $admin_previous_earning += $pro_customer_subscription_previous;
+        }
+
         $net_profit = $admin_earning - $admin_expense;
         $previous_net_profit = $admin_previous_earning - $admin_previous_expense;
 
@@ -331,6 +360,10 @@ trait ReportGeneratorTrait
 
         [$subscription_percentage, $subscription_positive] = $include_subscription
             ? $this->calculatePercentage($subscription_earning, $admin_earning)
+            : [0, true];
+
+        [$pro_customer_subscription_percentage, $pro_customer_subscription_positive] = $include_pro_customer
+            ? $this->calculatePercentage($pro_customer_subscription, $admin_earning)
             : [0, true];
 
         return [
@@ -353,6 +386,11 @@ trait ReportGeneratorTrait
             'subscription_previous_earning' => $subscription_previous_earning,
             'subscription_percentage' => $subscription_percentage,
             'subscription_positive' => $subscription_positive,
+
+            'pro_customer_subscription' => $pro_customer_subscription,
+            'pro_customer_subscription_previous' => $pro_customer_subscription_previous,
+            'pro_customer_subscription_percentage' => $pro_customer_subscription_percentage,
+            'pro_customer_subscription_positive' => $pro_customer_subscription_positive,
         ];
     }
 
@@ -370,7 +408,7 @@ trait ReportGeneratorTrait
         );
 
         $earning_data = (clone $baseTransactionQuery)
-            ->applyDateFilter($filter, $from, $to,'order_transactions.created_at')
+            ->applyDateFilter($filter, $from, $to, 'order_transactions.created_at')
             ->selectRaw("
             SUM(
                 (
@@ -382,12 +420,14 @@ trait ReportGeneratorTrait
                 )
             ) as admin_earning,
             SUM(order_transactions.delivery_fee_comission) as delivery_fee_comission,
-            SUM(order_transactions.additional_charge) as additional_charge")
+            SUM(order_transactions.additional_charge) as additional_charge,
+            SUM(CASE WHEN orders.delivery_type = 'express' THEN COALESCE(orders.delivery_type_charge, 0) ELSE 0 END) as express_charge")
             ->first();
 
         $order_commission = (float) ($earning_data->admin_earning ?? 0);
         $delivery_fee_comission = (float) ($earning_data->delivery_fee_comission ?? 0);
         $additional_charge = (float) ($earning_data->additional_charge ?? 0);
+        $express_charge = (float) ($earning_data->express_charge ?? 0);
 
         if ($is_parcel) {
             $delivery_fee_comission += $order_commission;
@@ -403,15 +443,21 @@ trait ReportGeneratorTrait
         [$additional_charge_percentage, $additional_charge_positive] =
             $this->calculatePercentage($additional_charge, $admin_earning);
 
+        [$express_charge_percentage, $express_charge_positive] =
+            $this->calculatePercentage($express_charge, $admin_earning);
+
         $additional_charge_name = Helpers::get_business_settings('additional_charge_name') ?? translate('Additional Charge');
+
         return [
             'order_commission' => round($order_commission, config('round_up_to_digit')),
-            'order_commission_percentage' =>  $order_commission_percentage,
+            'order_commission_percentage' => $order_commission_percentage,
             'delivery_fee_comission' => round($delivery_fee_comission, config('round_up_to_digit')),
             'delivery_fee_comission_percentage' => $delivery_fee_comission_percentage,
             'additional_charge' => round($additional_charge, config('round_up_to_digit')),
             'additional_charge_percentage' => $additional_charge_percentage,
             'additional_charge_name' => $additional_charge_name,
+            'express_charge' => round($express_charge, config('round_up_to_digit')),
+            'express_charge_percentage' => $express_charge_percentage,
             'is_parcel' => $is_parcel,
         ];
     }
@@ -428,9 +474,10 @@ trait ReportGeneratorTrait
         );
 
         $all_expense = (clone $expenseQuery)
-            ->applyDateFilter($filter, $from, $to,'expenses.created_at')
+            ->applyDateFilter($filter, $from, $to, 'expenses.created_at')
             ->selectRaw("
             SUM(CASE WHEN expenses.type = 'free_delivery' THEN expenses.amount ELSE 0 END) as free_delivery,
+            SUM(CASE WHEN expenses.type = 'partial_free_delivery' THEN expenses.amount ELSE 0 END) as partial_free_delivery,
             SUM(CASE WHEN expenses.type = 'coupon_discount' THEN expenses.amount ELSE 0 END) as coupon_discount,
             SUM(
                     CASE
@@ -440,17 +487,24 @@ trait ReportGeneratorTrait
                     END
                 ) AS discount_on_item,
             SUM(CASE WHEN expenses.type = 'flash_sale_discount' THEN expenses.amount ELSE 0 END) as flash_sale_discount,
+            SUM(CASE WHEN expenses.type = 'pro_discount_on_product' THEN expenses.amount ELSE 0 END) as pro_discount_on_product,
             SUM(CASE WHEN expenses.type = 'add_fund_bonus' THEN expenses.amount ELSE 0 END) as add_fund_bonus,
             SUM(CASE WHEN expenses.type = 'dm_admin_bonus' THEN expenses.amount ELSE 0 END) as dm_admin_bonus,
             SUM(CASE WHEN expenses.type = 'CashBack' THEN expenses.amount ELSE 0 END) as cashback,
+            SUM(CASE WHEN expenses.type = 'slightly_delay_delivery_charge' THEN expenses.amount ELSE 0 END) as slightly_delay,
             SUM(CASE WHEN expenses.type = 'referral_discount' THEN expenses.amount ELSE 0 END) as referral_discount")
             ->first();
 
-
-        $total_free_delivery = $all_expense->free_delivery ;
+        $total_free_delivery = ($all_expense->free_delivery ?? 0) + ($all_expense->partial_free_delivery ?? 0);
 
         [$free_delivery_percentage, $free_delivery_positive] =
             $this->calculatePercentage($total_free_delivery, $admin_expense);
+
+        [$partial_free_delivery_percentage, $partial_free_delivery_positive] =
+            $this->calculatePercentage($all_expense->partial_free_delivery ?? 0, $admin_expense);
+
+        [$pro_discount_on_product_percentage, $pro_discount_on_product_positive] =
+            $this->calculatePercentage($all_expense->pro_discount_on_product ?? 0, $admin_expense);
 
         [$coupon_discount_percentage, $coupon_discount_positive] =
             $this->calculatePercentage($all_expense->coupon_discount, $admin_expense);
@@ -464,6 +518,9 @@ trait ReportGeneratorTrait
         [$cashback_percentage, $cashback_positive] =
             $this->calculatePercentage($all_expense->cashback, $admin_expense);
 
+        [$slightly_delay_percentage, $slightly_delay_positive] =
+            $this->calculatePercentage($all_expense->slightly_delay ?? 0, $admin_expense);
+
         [$other_percentage, $other_positive] =
             $this->calculatePercentage(
                 $all_expense->dm_admin_bonus + $all_expense->referral_discount,
@@ -471,20 +528,26 @@ trait ReportGeneratorTrait
             );
 
         return [
-            'free_delivery'=> $all_expense->free_delivery,
-            'free_delivery_percentage'=> $free_delivery_percentage,
-            'discount_on_item'=> $all_expense->discount_on_item,
-            'discount_on_item_percentage'=> $discount_on_item_percentage,
-            'coupon_discount'=> $all_expense->coupon_discount,
-            'coupon_discount_percentage'=> $coupon_discount_percentage,
-            'add_fund_bonus'=> $all_expense->add_fund_bonus,
-            'add_fund_bonus_percentage'=> $add_fund_bonus_percentage,
-            'cashback'=> $all_expense->cashback,
-            'cashback_percentage'=> $cashback_percentage,
-            'other'=> $all_expense->dm_admin_bonus + $all_expense->referral_discount,
-            'other_percentage'=> $other_percentage,
-            'module_id'=> $module_id,
-            'order_types'=> $order_types,
+            'free_delivery' => $total_free_delivery,
+            'free_delivery_percentage' => $free_delivery_percentage,
+            'partial_free_delivery' => $all_expense->partial_free_delivery ?? 0,
+            'partial_free_delivery_percentage' => $partial_free_delivery_percentage,
+            'discount_on_item' => $all_expense->discount_on_item,
+            'discount_on_item_percentage' => $discount_on_item_percentage,
+            'pro_discount_on_product' => $all_expense->pro_discount_on_product ?? 0,
+            'pro_discount_on_product_percentage' => $pro_discount_on_product_percentage,
+            'coupon_discount' => $all_expense->coupon_discount,
+            'coupon_discount_percentage' => $coupon_discount_percentage,
+            'add_fund_bonus' => $all_expense->add_fund_bonus,
+            'add_fund_bonus_percentage' => $add_fund_bonus_percentage,
+            'cashback' => $all_expense->cashback,
+            'cashback_percentage' => $cashback_percentage,
+            'slightly_delay' => $all_expense->slightly_delay ?? 0,
+            'slightly_delay_percentage' => $slightly_delay_percentage,
+            'other' => $all_expense->dm_admin_bonus + $all_expense->referral_discount,
+            'other_percentage' => $other_percentage,
+            'module_id' => $module_id,
+            'order_types' => $order_types,
         ];
     }
 
@@ -530,15 +593,16 @@ trait ReportGeneratorTrait
             $isParcel = $transaction->order?->order_type == 'parcel';
             $order_commission = $isParcel ? 0 : $admin_commission;
             $delivery_fee_comission = $transaction->delivery_fee_comission + ($isParcel ? $admin_commission : 0);
-            $amount = $admin_commission + $transaction->delivery_fee_comission + $transaction->additional_charge;
+            $express_charge = $transaction->order?->delivery_type === 'express' ? (float) ($transaction->order?->delivery_type_charge ?? 0) : 0;
+            $amount = $admin_commission + $transaction->delivery_fee_comission + $transaction->additional_charge + $express_charge;
             $store_name = $transaction->order?->store?->name;
 
             return [
-                'transaction_id' => '#TXN ' . $transaction->id,
+                'transaction_id' => '#TXN '.$transaction->id,
                 'date' => $transaction->created_at,
-                'source' => $store_name ?? ($transaction->delivery_man_id ? ($transaction->delivery_man ? $transaction->delivery_man->f_name . ' ' . $transaction->delivery_man->l_name : 'Delivery Man') : 'Admin'),
+                'source' => $store_name ?? ($transaction->delivery_man_id ? ($transaction->delivery_man ? $transaction->delivery_man->f_name.' '.$transaction->delivery_man->l_name : 'Delivery Man') : 'Admin'),
                 'source_type' => $store_name ? 'Store' : ($transaction->delivery_man_id ? 'Delivery Man' : 'Admin'),
-                'earning_from' => '#ORD ' . $transaction->order_id,
+                'earning_from' => '#ORD '.$transaction->order_id,
                 'order_id' => $transaction->order_id,
                 'earning_from_badge' => $transaction->delivery_man_id ? 'Delivery Commission' : null,
                 'amount' => $amount,
@@ -546,9 +610,10 @@ trait ReportGeneratorTrait
                     'order_commission' => $order_commission,
                     'delivery_fee_comission' => $delivery_fee_comission,
                     'packaging_fee_collected' => $transaction->additional_charge,
+                    'express_charge' => $express_charge,
                     'is_parcel' => $isParcel,
                     'hide_order_commission' => $isParcel,
-                ]
+                ],
             ];
         });
 
@@ -606,12 +671,50 @@ trait ReportGeneratorTrait
         return $transactions;
     }
 
+    public function get_pro_customer_subscription_transactions($request, $filter, $from, $to, $nopaginate = false)
+    {
+        $search = $request->search ?? null;
+
+        $query = ProCustomerTransaction::with(['user'])
+            ->where('payment_status', 'success')
+            ->where('plan_type', 'paid')
+            ->where('amount', '>', 0)
+            ->applyDateFilter($filter, $from, $to, 'created_at')
+            ->search($search, ['user' => 'f_name'], ['id'])
+            ->latest();
+
+        if ($nopaginate) {
+            $transactions = $query->get();
+        } else {
+            $transactions = $query->paginate(config('default_pagination', 25))->withQueryString();
+        }
+
+        $collection = $nopaginate ? $transactions : $transactions->getCollection();
+
+        $collection->transform(function ($transaction) {
+            $customer = $transaction->user
+                ? trim($transaction->user->f_name.' '.$transaction->user->l_name)
+                : translate('messages.Customer');
+
+            return [
+                'transaction_id' => $transaction->id,
+                'date' => $transaction->created_at,
+                'store' => $customer,
+                'transaction_type' => $transaction->plan_name,
+                'transaction_type_badge_style' => 'background-color: #F3E8FF; color: #6B21A8;',
+                'amount' => $transaction->amount,
+            ];
+        });
+
+        return $transactions;
+    }
+
     public function get_expense_transactions($request, $filter, $from, $to, $nopaginate = false, $module_id = 'all', $order_types = null)
     {
         $search = $request->search ?? null;
-        $expenseQuery = Expense::withoutAddon()->with(['store', 'delivery_man', 'user','order'])
+        $expenseQuery = Expense::withoutAddon()->with(['store', 'delivery_man', 'user', 'order'])
             ->where('created_by', 'admin')
-            ->whereNot('type','referrer')
+            ->whereNot('type', 'referrer')
             ->when($search, function ($query) use ($search) {
                 $search = str_replace(['#ORD', '#TXN', '#'], '', $search);
                 $query->where('order_id', 'like', "%{$search}%");
@@ -639,20 +742,20 @@ trait ReportGeneratorTrait
             $source = 'Admin';
             $source_type = 'Admin';
             $expense_source_store = ['discount_on_product', 'flash_sale_discount'];
-            $transaction_type_badge = ucwords(str_replace('_', ' ', $transaction->type == 'discount_on_product' ? 'Discount On Item': $transaction->type ));
+            $transaction_type_badge = ucwords(str_replace('_', ' ', $transaction->type == 'discount_on_product' ? 'Discount On Item' : $transaction->type));
 
             if ($transaction->order && (in_array($transaction->type, $expense_source_store))) {
                 $source = $transaction->order->store->name;
                 $module = $transaction?->order?->store?->module?->module_type;
                 $source_type = $module == 'food' ? 'Restaurant' : 'Store';
             } elseif ($transaction->delivery_man) {
-                $source = $transaction->delivery_man->f_name . ' ' . $transaction->delivery_man->l_name;
+                $source = $transaction->delivery_man->f_name.' '.$transaction->delivery_man->l_name;
                 $source_type = 'Delivery Man';
             } elseif ($transaction->user) {
-                $source = $transaction->user->f_name . ' ' . $transaction->user->l_name;
+                $source = $transaction->user->f_name.' '.$transaction->user->l_name;
                 $source_type = 'Customer';
             } elseif ($transaction->order->customer) {
-                $source = $transaction->order->customer->f_name . ' ' . $transaction->order->customer->l_name;
+                $source = $transaction->order->customer->f_name.' '.$transaction->order->customer->l_name;
                 $source_type = 'Customer';
 
             } elseif ($transaction->type === 'tax') {
@@ -661,15 +764,15 @@ trait ReportGeneratorTrait
             }
 
             return [
-                'transaction_id' => '#TXN ' . $transaction->id,
+                'transaction_id' => '#TXN '.$transaction->id,
                 'date' => $transaction->created_at,
                 'source' => $source,
                 'source_type' => $source_type,
-                'expense_source' => $transaction->order_id ? '#ORD ' . $transaction->order_id : '',
+                'expense_source' => $transaction->order_id ? '#ORD '.$transaction->order_id : '',
                 'order_id' => $transaction->order_id,
                 'expense_source_badge' => $transaction_type_badge,
                 'amount' => $transaction->amount,
-                'breakdown' => []
+                'breakdown' => [],
             ];
         });
 
@@ -678,6 +781,7 @@ trait ReportGeneratorTrait
         }
 
         $results->setCollection($formattedData);
+
         return $results;
     }
 
@@ -699,7 +803,7 @@ trait ReportGeneratorTrait
             orderTypeColumn: 'orders.order_type'
         );
 
-        $earningFormula = "
+        $earningFormula = '
             SUM(
                 orders.order_amount
                 - orders.dm_tips
@@ -710,6 +814,7 @@ trait ReportGeneratorTrait
                 + orders.coupon_discount_amount
                 + orders.store_discount_amount
                 + orders.ref_bonus_amount
+                + order_transactions.pro_discount
                 + orders.flash_admin_discount_amount
                 + orders.flash_store_discount_amount
                 + COALESCE(orders.extra_discount_amount, 0)
@@ -737,7 +842,7 @@ trait ReportGeneratorTrait
 
 
                         COUNT(DISTINCT order_transactions.id) as total_orders
-        ";
+        ';
 
         $current_data = (clone $baseQuery)
             ->applyDateFilter($filter, $from, $to, 'order_transactions.created_at')
@@ -777,8 +882,8 @@ trait ReportGeneratorTrait
         if ($previousPeriodRange) {
             $previous_expense_breakdown = (clone $storeExpenseQuery)
                 ->whereBetween('created_at', $previousPeriodRange)
-                        ->selectRaw("COUNT(DISTINCT id) as total_expense,
-                        SUM(amount) as total_expense_amount ")
+                ->selectRaw('COUNT(DISTINCT id) as total_expense,
+                        SUM(amount) as total_expense_amount ')
                 ->first();
         }
         $previous_expense_breakdown = $previous_expense_breakdown ?? (object) [];
@@ -800,14 +905,14 @@ trait ReportGeneratorTrait
 
         $current_subs_data = (clone $subQuery)
             ->applyDateFilter($filter, $from, $to, 'created_at')
-            ->selectRaw("SUM(paid_amount) as total_amount, COUNT(id) as total_count")
+            ->selectRaw('SUM(paid_amount) as total_amount, COUNT(id) as total_count')
             ->first();
 
         $previous_subs_data = null;
         if ($previousPeriodRange) {
             $previous_subs_data = (clone $subQuery)
                 ->whereBetween('created_at', $previousPeriodRange)
-                ->selectRaw("SUM(paid_amount) as total_amount, COUNT(id) as total_count")
+                ->selectRaw('SUM(paid_amount) as total_amount, COUNT(id) as total_count')
                 ->first();
         }
         $previous_subs_data = $previous_subs_data ?? (object) [];
@@ -842,7 +947,6 @@ trait ReportGeneratorTrait
 
         $previous_expenses = ($previous_expense_breakdown->total_expense_amount ?? 0) + $previous_subscription_fee + $previous_admin_commission;
         $previous_net_profit = $previous_earnings - $previous_expenses;
-
 
         [$earning_percentage, $earning_positive] = $this->calculate_percentage_info($current_earnings, $previous_earnings);
         [$expense_percentage, $expense_positive] = $this->calculate_percentage_info($current_expenses, $previous_expenses);
@@ -886,9 +990,8 @@ trait ReportGeneratorTrait
             'net_profit_positive' => $profit_positive,
 
             'total_transaction_earning_count' => $current_data->total_orders ?? 0,
-            'total_transaction_expense_count' =>  ($current_expense_breakdown->total_expense ?? 0) + $current_commission_expense_count,
+            'total_transaction_expense_count' => ($current_expense_breakdown->total_expense ?? 0) + $current_commission_expense_count,
             'total_transaction_subscription_count' => $current_subs_data->total_count ?? 0,
-
 
             'breakdown' => [
                 'order_sales' => $current_data->order_sales ?? 0,
@@ -917,7 +1020,7 @@ trait ReportGeneratorTrait
                 'free_delivery_percentage' => $free_delivery_percentage,
                 'free_delivery_positive' => $free_delivery_positive,
                 // 'store_expense' => $current_data->store_expense ?? 0,
-            ]
+            ],
         ];
     }
 
@@ -994,7 +1097,7 @@ trait ReportGeneratorTrait
         );
         $baseTransactionQuery = $baseTransactionQuery->applyDateFilter($filter, $from, $to, 'order_transactions.created_at');
 
-        $earningFormula = "
+        $earningFormula = '
             SUM(
                 orders.order_amount
                 - orders.dm_tips
@@ -1004,6 +1107,7 @@ trait ReportGeneratorTrait
                 + orders.coupon_discount_amount
                 + orders.store_discount_amount
                 + orders.ref_bonus_amount
+                + order_transactions.pro_discount
                 + orders.flash_admin_discount_amount
                 + orders.flash_store_discount_amount
                 + COALESCE(orders.extra_discount_amount, 0)
@@ -1017,10 +1121,9 @@ trait ReportGeneratorTrait
                 + order_transactions.admin_expense
                 - order_transactions.delivery_fee_comission
                 - order_transactions.additional_charge
-                
-            )
-        ";
 
+            )
+        ';
 
         $earnings = (clone $baseTransactionQuery)
             ->selectRaw("DATE_FORMAT(order_transactions.created_at, '$dateFormat') as month")
@@ -1035,7 +1138,7 @@ trait ReportGeneratorTrait
             })
             ->applyDateFilter($filter, $from, $to, 'created_at');
 
-        if (!in_array($module_id, [null, '', 'all'], true)) {
+        if (! in_array($module_id, [null, '', 'all'], true)) {
             $expenseQuery = $expenseQuery->whereHas('store', function ($query) use ($module_id) {
                 $query->where('module_id', $module_id);
             });
@@ -1056,7 +1159,7 @@ trait ReportGeneratorTrait
 
         $expenses = (clone $expenseQuery)
             ->selectRaw("DATE_FORMAT(created_at, '$dateFormat') as month")
-            ->selectRaw("SUM(amount) as total_expense")
+            ->selectRaw('SUM(amount) as total_expense')
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('total_expense', 'month');
@@ -1065,19 +1168,19 @@ trait ReportGeneratorTrait
             SubscriptionTransaction::where('payment_status', 'success'),
             $store_id
         )->applyDateFilter($filter, $from, $to, 'created_at');
-        if (!in_array($module_id, [null, '', 'all'], true)) {
+        if (! in_array($module_id, [null, '', 'all'], true)) {
             $subQuery = $this->applyStoreModuleFilter($subQuery, $module_id);
         }
 
         $subExpenses = (clone $subQuery)
             ->selectRaw("DATE_FORMAT(created_at, '$dateFormat') as month")
-            ->selectRaw("SUM(paid_amount) as total_sub")
+            ->selectRaw('SUM(paid_amount) as total_sub')
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('total_sub', 'month');
 
-        $earningSeries = $months->map(fn($m) => round($earnings[$m] ?? 0, 2));
-        $expenseSeries = $months->map(fn($m) => round(($expenses[$m] ?? 0) + ($subExpenses[$m] ?? 0), 2));
+        $earningSeries = $months->map(fn ($m) => round($earnings[$m] ?? 0, 2));
+        $expenseSeries = $months->map(fn ($m) => round(($expenses[$m] ?? 0) + ($subExpenses[$m] ?? 0), 2));
 
         return [
             'categories' => $months->map(function ($m) use ($filter, $dateFormat, $singleDayCustom) {
@@ -1091,17 +1194,21 @@ trait ReportGeneratorTrait
                     if ($singleDayCustom) {
                         return Carbon::parse($m)->format('d M Y');
                     }
-                    if ($dateFormat === '%Y')
+                    if ($dateFormat === '%Y') {
                         return $m;
-                    if ($dateFormat === '%Y-%m')
-                        return Carbon::parse($m . '-01')->format('M');
-                    if ($dateFormat === '%Y-%m-%d')
+                    }
+                    if ($dateFormat === '%Y-%m') {
+                        return Carbon::parse($m.'-01')->format('M');
+                    }
+                    if ($dateFormat === '%Y-%m-%d') {
                         return Carbon::parse($m)->format('j');
+                    }
                 }
-                return Carbon::parse($m . '-01')->format('M');
+
+                return Carbon::parse($m.'-01')->format('M');
             }),
             'earning_series' => $earningSeries,
-            'expense_series' => $expenseSeries
+            'expense_series' => $expenseSeries,
         ];
     }
 
@@ -1114,6 +1221,7 @@ trait ReportGeneratorTrait
             ->NotRefunded()
             ->when($search, function ($query) use ($search) {
                 $search = str_replace(['#ORD', '#TXN', '#'], '', $search);
+
                 return $query->where('order_transactions.order_id', 'like', "%{$search}%");
             })
             ->applyDateFilter($filter, $from, $to, 'order_transactions.created_at')
@@ -1137,25 +1245,24 @@ trait ReportGeneratorTrait
             $transactions = $query->paginate($perPage, ['*'], 'page', $page)->withQueryString();
         }
 
-
         $collection = ($nopaginate ? $transactions : $transactions->getCollection())->map(function ($transaction) {
-        $order_sales =  OrderLogic::get_original_admin_commission_details($transaction)['item_price_after_admin_commission'];
+            $order_sales = OrderLogic::get_original_admin_commission_details($transaction)['item_price_after_admin_commission'];
 
-        $total_earning = $order_sales + $transaction->tax + $transaction->extra_packaging_amount;
+            $total_earning = $order_sales + $transaction->tax + $transaction->extra_packaging_amount;
 
             return [
-                'transaction_id' => '#TXN ' . $transaction->id,
+                'transaction_id' => '#TXN '.$transaction->id,
                 'date' => $transaction->created_at,
-                'source' => $transaction->store ? $transaction->store->name :  'Parcel',
+                'source' => $transaction->store ? $transaction->store->name : 'Parcel',
                 'source_type' => 'Store',
-                'earning_from' => '#ORD ' . $transaction->order_id,
+                'earning_from' => '#ORD '.$transaction->order_id,
                 'order_id' => $transaction->order_id,
                 'amount' => $total_earning,
                 'breakdown' => [
                     'order_commission' => $order_sales,
                     'tax_collected' => $transaction->tax,
                     'packaging_fee_collected' => $transaction->extra_packaging_amount,
-                ]
+                ],
             ];
         });
 
@@ -1164,6 +1271,7 @@ trait ReportGeneratorTrait
         }
 
         $transactions->setCollection($collection);
+
         return $transactions;
 
     }
@@ -1182,7 +1290,7 @@ trait ReportGeneratorTrait
             ->applyDateFilter($filter, $from, $to, 'created_at')
             ->latest('created_at');
 
-        if (!in_array($module_id, [null, '', 'all'], true)) {
+        if (! in_array($module_id, [null, '', 'all'], true)) {
             $expenseQuery->whereHas('store', function ($query) use ($module_id) {
                 $query->where('module_id', $module_id);
             });
@@ -1249,11 +1357,11 @@ trait ReportGeneratorTrait
             $source = $row->store?->name ?? ($row->order?->store?->name ?? 'Store');
 
             return [
-                'transaction_id' => '#TXN ' . $row->id,
+                'transaction_id' => '#TXN '.$row->id,
                 'date' => $date,
                 'source' => $source,
                 'source_type' => 'Store',
-                'expense_source' => $row->order_id ? '#ORD ' . $row->order_id : '',
+                'expense_source' => $row->order_id ? '#ORD '.$row->order_id : '',
                 'order_id' => $row->order_id,
                 'expense_source_badge' => translate($row->type == 'discount_on_product' ? 'Discount on Item' : $row->type),
                 'amount' => $row->amount,
@@ -1275,11 +1383,11 @@ trait ReportGeneratorTrait
                 }
 
                 return [
-                    'transaction_id' => '#TXN ' . $transaction->id,
+                    'transaction_id' => '#TXN '.$transaction->id,
                     'date' => $transaction->created_at,
                     'source' => $transaction->order?->store?->name ?? 'Store',
                     'source_type' => 'Store',
-                    'expense_source' => '#ORD ' . $transaction->order_id,
+                    'expense_source' => '#ORD '.$transaction->order_id,
                     'order_id' => $transaction->order_id,
                     'expense_source_badge' => 'Commission Paid',
                     'amount' => round($commissionAmount, 2),
@@ -1295,6 +1403,7 @@ trait ReportGeneratorTrait
             ->values()
             ->map(function ($item) {
                 unset($item['_sort_at']);
+
                 return $item;
             });
 
@@ -1369,6 +1478,7 @@ trait ReportGeneratorTrait
         }
 
         $subsData->setCollection($subscriptionTransactions);
+
         return $subsData;
     }
 
@@ -1393,7 +1503,7 @@ trait ReportGeneratorTrait
                 return $query->where('order_transactions.delivery_man_id', $delivery_man_id);
             });
 
-            $earningFormula = "
+        $earningFormula = "
                 SUM(order_transactions.original_delivery_charge) as delivery_charge,
                 SUM(order_transactions.dm_tips) as dm_tips,
                 SUM(
@@ -1456,16 +1566,16 @@ trait ReportGeneratorTrait
             'net_profit_positive' => $profit_positive,
 
             'breakdown' => [
-                'delivery_charge' => (float)(($current_data->delivery_charge ?? 0)),
+                'delivery_charge' => (float) (($current_data->delivery_charge ?? 0)),
                 'delivery_charge_percentage' => $delivery_charge_percentage,
                 'delivery_charge_positive' => $delivery_charge_positive,
-                'dm_tips' => (float)($current_data->dm_tips ?? 0),
+                'dm_tips' => (float) ($current_data->dm_tips ?? 0),
                 'dm_tips_percentage' => $dm_tips_percentage,
                 'dm_tips_positive' => $dm_tips_positive,
-                'admin_commission' => (float)($current_data->admin_commission ?? 0),
+                'admin_commission' => (float) ($current_data->admin_commission ?? 0),
                 'admin_commission_percentage' => $admin_commission_percentage,
                 'admin_commission_positive' => $admin_commission_positive,
-            ]
+            ],
         ];
     }
 
@@ -1541,9 +1651,9 @@ trait ReportGeneratorTrait
             })
             ->applyDateFilter($filter, $from, $to, 'order_transactions.created_at');
 
-            $earningFormula = "SUM(order_transactions.original_delivery_charge + order_transactions.dm_tips)";
+        $earningFormula = 'SUM(order_transactions.original_delivery_charge + order_transactions.dm_tips)';
 
-            $expenseFormula = "
+        $expenseFormula = "
                 SUM(
                     CASE
                         WHEN orders.order_type != 'parcel' THEN order_transactions.delivery_fee_comission
@@ -1570,7 +1680,7 @@ trait ReportGeneratorTrait
         $earningSeries = $months->map(function ($m) use ($earnings) {
             return round($earnings[$m] ?? 0, 2);
         });
-        $expenseSeries = $months->map(fn($m) => round($expenses[$m] ?? 0, 2));
+        $expenseSeries = $months->map(fn ($m) => round($expenses[$m] ?? 0, 2));
 
         return [
             'categories' => $months->map(function ($m) use ($filter, $dateFormat, $singleDayCustom) {
@@ -1584,17 +1694,21 @@ trait ReportGeneratorTrait
                     if ($singleDayCustom) {
                         return Carbon::parse($m)->format('d M Y');
                     }
-                    if ($dateFormat === '%Y')
+                    if ($dateFormat === '%Y') {
                         return $m;
-                    if ($dateFormat === '%Y-%m')
-                        return Carbon::parse($m . '-01')->format('M');
-                    if ($dateFormat === '%Y-%m-%d')
+                    }
+                    if ($dateFormat === '%Y-%m') {
+                        return Carbon::parse($m.'-01')->format('M');
+                    }
+                    if ($dateFormat === '%Y-%m-%d') {
                         return Carbon::parse($m)->format('j');
+                    }
                 }
-                return Carbon::parse($m . '-01')->format('M');
+
+                return Carbon::parse($m.'-01')->format('M');
             }),
             'earning_series' => $earningSeries,
-            'expense_series' => $expenseSeries
+            'expense_series' => $expenseSeries,
         ];
     }
 
@@ -1621,38 +1735,38 @@ trait ReportGeneratorTrait
         if ($nopaginate) {
             $transactions = $query->get();
         } else {
-                if($limit && $offset){
-                    $transactions = $query->paginate($limit, ['*'], 'page', $offset);
-                }else{
-                    $transactions = $query->paginate(config('default_pagination', 25))->withQueryString();
-                }
+            if ($limit && $offset) {
+                $transactions = $query->paginate($limit, ['*'], 'page', $offset);
+            } else {
+                $transactions = $query->paginate(config('default_pagination', 25))->withQueryString();
+            }
         }
 
         $collection = $nopaginate ? $transactions : $transactions->getCollection();
 
         $collection->transform(function ($transaction) {
             return [
-                'order_id' => '#' . $transaction->order_id,
+                'order_id' => '#'.$transaction->order_id,
                 'raw_order_id' => $transaction->order_id,
                 'order_date' => $transaction->created_at,
-                'delivery_man' => $transaction->delivery_man ? $transaction->delivery_man->f_name . ' ' . $transaction->delivery_man->l_name : 'Delivery Man',
-                'delivery_charge' => $transaction->order->original_delivery_charge?? 0,
+                'delivery_man' => $transaction->delivery_man ? $transaction->delivery_man->f_name.' '.$transaction->delivery_man->l_name : 'Delivery Man',
+                'delivery_charge' => $transaction->order->original_delivery_charge ?? 0,
                 'tips' => $transaction->dm_tips,
-                'commission_paid' => $transaction->order->order_type !=  'parcel' ? $transaction->delivery_fee_comission : ($transaction->admin_commission - $transaction->additional_charge),
+                'commission_paid' => $transaction->order->order_type != 'parcel' ? $transaction->delivery_fee_comission : ($transaction->admin_commission - $transaction->additional_charge),
                 'net_profit' => $transaction->original_delivery_charge + $transaction->dm_tips,
                 'date' => $transaction->created_at,
             ];
         });
 
-        if($limit && $offset){
+        if ($limit && $offset) {
             return [
                 'total_size' => $transactions->total(),
                 'limit' => (int) $limit,
                 'offset' => (int) $offset,
-                'data' => $collection->values()->all()
+                'data' => $collection->values()->all(),
             ];
         }
+
         return $transactions;
     }
-
 }

@@ -160,7 +160,7 @@ class SocialAuthController extends Controller
                     $otp_interval_time= 60; //seconds
                     $phone_verification_data= DB::table('phone_verifications')->where('phone', $request['phone'])->first();
                     if(isset($phone_verification_data) &&  Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds() < $otp_interval_time){
-                        $time= $otp_interval_time - Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds();
+                        $time= round($otp_interval_time - Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds());
                         $errors = [];
                         array_push($errors, ['code' => 'otp', 'message' =>  translate('messages.please_try_again_after_').$time.' '.translate('messages.seconds')]);
                         return response()->json([
@@ -357,7 +357,7 @@ class SocialAuthController extends Controller
                     $otp_interval_time= 60; //seconds
                     $phone_verification_data= DB::table('phone_verifications')->where('phone', $request['phone'])->first();
                     if(isset($phone_verification_data) &&  Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds() < $otp_interval_time){
-                        $time= $otp_interval_time - Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds();
+                        $time= round($otp_interval_time - Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds());
                         $errors = [];
                         array_push($errors, ['code' => 'otp', 'message' =>  translate('messages.please_try_again_after_').$time.' '.translate('messages.seconds')]);
                         return response()->json([
@@ -568,7 +568,7 @@ class SocialAuthController extends Controller
                 $otp_interval_time= 60; //seconds
                 $phone_verification_data= DB::table('phone_verifications')->where('phone', $request['phone'])->first();
                 if(isset($phone_verification_data) &&  Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds() < $otp_interval_time){
-                    $time= $otp_interval_time - Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds();
+                    $time= round($otp_interval_time - Carbon::parse($phone_verification_data->updated_at)->DiffInSeconds());
                     $errors = [];
                     array_push($errors, ['code' => 'otp', 'message' =>  translate('messages.please_try_again_after_').$time.' '.translate('messages.seconds')]);
                     return response()->json([

@@ -25,6 +25,7 @@ use App\Models\ExternalConfiguration;
 use App\Models\FlashSaleItem;
 use App\Models\GenericName;
 use App\Models\Item;
+use App\Models\ItemCampaign;
 use App\Models\Module;
 use App\Models\NotificationMessage;
 use App\Models\NotificationSetting;
@@ -90,7 +91,7 @@ class Helpers
         return $err_keeper;
     }
 
-    protected static function decodeJsonToArray($value, $default = [])
+    public static function decodeJsonToArray($value, $default = [])
     {
         if (is_array($value)) {
             return $value;
@@ -109,11 +110,18 @@ class Helpers
         return is_array($decoded) ? $decoded : $default;
     }
 
-    protected static function formatCategoryIds($categoryIds, $withName = false)
+    public static function formatCategoryIds($categoryIds, $withName = false)
     {
-        $categories = [];
+        $decoded = self::decodeJsonToArray($categoryIds);
 
-        foreach (self::decodeJsonToArray($categoryIds) as $value) {
+        $names = collect();
+        if ($withName) {
+            $ids = collect($decoded)->map(fn($value) => (string) data_get($value, 'id'))->filter()->values();
+            $names = Category::whereIn('id', $ids)->pluck('name', 'id');
+        }
+
+        $categories = [];
+        foreach ($decoded as $value) {
             $categoryId = (string) data_get($value, 'id');
             $category = [
                 'id' => $categoryId,
@@ -121,8 +129,7 @@ class Helpers
             ];
 
             if ($withName) {
-                $categoryName = Category::where('id', $categoryId)->pluck('name');
-                $category['name'] = data_get($categoryName, '0', 'NA');
+                $category['name'] = $names->get($categoryId, 'NA');
             }
 
             $categories[] = $category;
@@ -192,123 +199,22 @@ class Helpers
         $trans = false,
         $local = 'en'
     ) {
-        $variations = [];
-        $categories = [];
-        $category_ids = gettype($data['category_ids']) == 'array' ? $data['category_ids'] : json_decode($data['category_ids'], true);
-        foreach ($category_ids as $value) {
-            $category_name = Category::where('id', $value['id'])->pluck('name');
-            $categories[] = ['id' => (string) $value['id'], 'position' => $value['position'], 'name' => data_get($category_name, '0', 'NA')];
-        }
-        $data['category_ids'] = $categories;
-        $attributes = gettype($data['attributes']) == 'array' ? $data['attributes'] : json_decode($data['attributes'], true);
-        $data['attributes'] = $attributes;
-        $choice_options = gettype($data['choice_options']) == 'array' ? $data['choice_options'] : json_decode($data['choice_options'], true);
-        $data['choice_options'] = $choice_options;
-        $add_ons = gettype($data['add_ons']) == 'array' ? $data['add_ons'] : json_decode($data['add_ons'], true);
-        $data_addons = self::addon_data_formatting(AddOn::whereIn('id', $add_ons)->active()->get(), true, $trans, $local);
-        $selected_data = array_combine($selected_addons, $selected_addon_quantity);
-        foreach ($data_addons as $addon) {
-            $addon_id = $addon['id'];
-            if (in_array($addon_id, $selected_addons)) {
-                $addon['isChecked'] = true;
-                $addon['quantity'] = $selected_data[$addon_id];
-            } else {
-                $addon['isChecked'] = false;
-                $addon['quantity'] = 0;
-            }
-        }
-        $data['addons'] = $data_addons;
-        $data_variations = gettype($data['variations']) == 'array' ? $data['variations'] : json_decode($data['variations'], true);
-        foreach ($data_variations as $var) {
-            array_push($variations, [
-                'type' => $var['type'],
-                'price' => (float) $var['price'],
-                'stock' => (int) ($var['stock'] ?? 0)
-            ]);
-        }
-        if ($data->title) {
-            $data['name'] = $data->title;
-            unset($data['title']);
-        }
-        if ($data->start_time) {
-            $data['available_time_starts'] = $data->start_time->format('H:i');
-            unset($data['start_time']);
-        }
-        if ($data->end_time) {
-            $data['available_time_ends'] = $data->end_time->format('H:i');
-            unset($data['end_time']);
-        }
-        if ($data->start_date) {
-            $data['available_date_starts'] = $data->start_date->format('Y-m-d');
-            unset($data['start_date']);
-        }
-        if ($data->end_date) {
-            $data['available_date_ends'] = $data->end_date->format('Y-m-d');
-            unset($data['end_date']);
-        }
-        $data['variations'] = $variations;
-        $data_variation = $data['food_variations'] ? (gettype($data['food_variations']) == 'array' ? $data['food_variations'] : json_decode($data['food_variations'], true)) : [];
-        if ($data->module->module_type == 'food') {
-            foreach ($selected_variation as $selected_item) {
-                foreach ($data_variation as &$all_item) {
-                    if ($selected_item["name"] === $all_item["name"]) {
-                        foreach ($all_item["values"] as &$value) {
-                            if (in_array($value["label"], $selected_item["values"]["label"])) {
-                                $value["isSelected"] = true;
-                            } else {
-                                $value["isSelected"] = false;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        $data['food_variations'] = $data_variation;
-        $data['store_name'] = $data->store->name;
-        $data['store_slug'] = $data->store->slug;
-        $data['is_campaign'] = $data->store?->campaigns_count > 0 ? 1 : 0;
-        $data['module_type'] = $data->module->module_type;
-        $data['zone_id'] = $data->store->zone_id;
-        $running_flash_sale = FlashSaleItem::Active()->whereHas('flashSale', function ($query) {
-            $query->Active()->Running();
-        })
-            ->where(['item_id' => $data['id']])->first();
-        $data['flash_sale'] = (int) (($running_flash_sale) ? 1 : 0);
-        $data['stock'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->available_stock : $data['stock'];
+        $running_flash_sale = self::getRunningFlashSale($data['id']);
 
-        $discount_data = self::product_discount_calculate($data, $data['price'], $data->store, true);
-
-        $data['discount'] = $discount_data['discount_percentage'];
-        $data['discount_type'] = $discount_data['original_discount_type'];
-
-
-        $data['store_discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? 0 : (self::get_store_discount($data->store) ? $data->store?->discount->discount : 0);
-        $data['schedule_order'] = $data->store->schedule_order;
-        $data['rating_count'] = (int) ($data->rating ? array_sum(json_decode($data->rating, true)) : 0);
-        $data['avg_rating'] = (float) ($data->avg_rating ? $data->avg_rating : 0);
-        $data['min_delivery_time'] = (int) explode('-', $data->store->delivery_time)[0] ?? 0;
-        $data['max_delivery_time'] = (int) explode('-', $data->store->delivery_time)[1] ?? 0;
-        $data['common_condition_id'] = (int) $data->pharmacy_item_details?->common_condition_id ?? 0;
-        $data['brand_id'] = (int) $data->ecommerce_item_details?->brand_id ?? 0;
-        $data['is_basic'] = (int) $data->pharmacy_item_details?->is_basic ?? 0;
-        $data['is_prescription_required'] = (int) $data->pharmacy_item_details?->is_prescription_required ?? 0;
-        $data['halal_tag_status'] = (int) $data->store->storeConfig?->halal_tag_status ?? 0;
-        $data['verified_seller'] = self::get_verified_seller_status($data->store, $data->store?->storeConfig);
-
-        $data['nutritions_name'] = $data?->nutritions ? Nutrition::whereIn('id', $data?->nutritions->pluck('id'))->pluck('nutrition') : null;
-        $data['allergies_name'] = $data?->allergies ? Allergy::whereIn('id', $data?->allergies->pluck('id'))->pluck('allergy') : null;
-        $data['generic_name'] = $data?->generic ? GenericName::whereIn('id', $data?->generic->pluck('id'))->pluck('generic_name') : null;
-
-        unset($data['nutritions']);
-        unset($data['allergies']);
-        unset($data['generic']);
-
-        unset($data['pharmacy_item_details']);
-        unset($data['store']);
-        unset($data['rating']);
-
-
-        return $data;
+        return self::format_product_item(
+            item: $data,
+            running_flash_sale: $running_flash_sale,
+            trans: $trans,
+            local: $local,
+            temp_product: false,
+            single: true,
+            translate: false,
+            cart: [
+                'selected_variation' => $selected_variation,
+                'selected_addons' => $selected_addons,
+                'selected_addon_quantity' => $selected_addon_quantity,
+            ]
+        );
     }
 
     public static function productListDataFormatting($data)
@@ -345,6 +251,9 @@ class Helpers
                 'halal_tag_status' => (int) $item->store->storeConfig?->halal_tag_status ?? 0,
                 'store_name' => $item->store?->name,
                 'store_id' => $item->store?->id,
+                'store_logo_full_url' => $item->store?->logo_full_url,
+                'store_category_id' => (int) $item->store_category_id,
+                'store_category_name' => $item?->storeCategory?->name,
                 'module_type' => $module_type,
                 'free_delivery' => $item->store?->free_delivery,
                 'verified_seller' => self::get_verified_seller_status($item->store, $item->store?->storeConfig),
@@ -354,495 +263,341 @@ class Helpers
 
     public static function product_data_formatting($data, $multi_data = false, $trans = false, $local = 'en', $temp_product = false)
     {
-        $storage = [];
         if ($multi_data == true) {
+            $running_flash_sales = self::runningFlashSaleQuery()->whereIn('item_id', collect($data)->pluck('id'))->get()->keyBy('item_id');
+
+            $storage = [];
             foreach ($data as $item) {
-                $variations = [];
-                if ($item->title) {
-                    $item['name'] = $item->title;
-                    unset($item['title']);
-                }
-                if ($item->start_time) {
-                    $item['available_time_starts'] = $item->start_time->format('H:i');
-                    unset($item['start_time']);
-                }
-                if ($item->end_time) {
-                    $item['available_time_ends'] = $item->end_time->format('H:i');
-                    unset($item['end_time']);
-                }
-
-                if ($item->start_date) {
-                    $item['available_date_starts'] = $item->start_date->format('Y-m-d');
-                    unset($item['start_date']);
-                }
-                if ($item->end_date) {
-                    $item['available_date_ends'] = $item->end_date->format('Y-m-d');
-                    unset($item['end_date']);
-                }
-                $item['recommended'] = (int) $item->recommended;
-                $item['category_ids'] = self::formatCategoryIds($item['category_ids'], true);
-                $item['attributes'] = self::decodeJsonToArray($item['attributes']);
-                $item['choice_options'] = self::decodeJsonToArray($item['choice_options']);
-                $item['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', self::decodeJsonToArray($item['add_ons']))->active()->get(), true, $trans, $local);
-                foreach (self::decodeJsonToArray($item['variations']) as $var) {
-                    array_push($variations, [
-                        'type' => $var['type'],
-                        'price' => (float) $var['price'],
-                        'stock' => (int) ($var['stock'] ?? 0)
-                    ]);
-                }
-                $item['variations'] = $variations;
-                $item['food_variations'] = $item['food_variations'] ? self::decodeJsonToArray($item['food_variations']) : '';
-                $item['module_type'] = $item->module->module_type;
-                $item['store_name'] = $item->store?->name;
-                $item['is_campaign'] = $item->store?->campaigns_count > 0 ? 1 : 0;
-                $item['zone_id'] = $item->store?->zone_id;
-                $running_flash_sale = FlashSaleItem::Active()->whereHas('flashSale', function ($query) {
-                    $query->Active()->Running();
-                })
-                    ->where(['item_id' => $item['id']])->first();
-                $item['flash_sale'] = (int) ((($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? 1 : 0));
-                $item['stock'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->available_stock : $item['stock'];
-                $discount_data = self::product_discount_calculate($item, $item['price'], $item->store, true);
-
-                $item['discount'] = $discount_data['discount_percentage'];
-                $item['discount_type'] = $discount_data['original_discount_type'];
-
-                $item['store_discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? 0 : (self::get_store_discount($item->store) ? $item->store?->discount->discount : 0);
-                $item['schedule_order'] = $item->store?->schedule_order;
-                $item['delivery_time'] = $item->store?->delivery_time;
-                $item['free_delivery'] = $item->store?->free_delivery;
-                $item['tax'] = 0;
-                $item['unit'] = $item->unit;
-
-
-                try {
-                    $reviewsInfo = $item->rating()->where('status', 1)->first();
-                } catch (\Exception $e) {
-                    $reviewsInfo = null;
-                }
-                $item['rating_count'] =  (int) $reviewsInfo?->rating_count ?? 0;
-                $item['avg_rating'] = (float) $reviewsInfo?->average ?? 0;
-
-
-
-                $item['recommended'] = (int) $item->recommended;
-                $item['min_delivery_time'] = (int) explode('-', $item?->store?->delivery_time)[0] ?? 0;
-                $item['max_delivery_time'] = (int) explode('-', $item?->store?->delivery_time)[1] ?? 0;
-                $item['common_condition_id'] = (int) $item->pharmacy_item_details?->common_condition_id ?? 0;
-                $item['brand_id'] = (int) $item->ecommerce_item_details?->brand_id ?? 0;
-                $item['is_basic'] = (int) $item->pharmacy_item_details?->is_basic ?? 0;
-                $item['is_prescription_required'] = (int) $item->pharmacy_item_details?->is_prescription_required ?? 0;
-                $item['halal_tag_status'] = (int) $item->store->storeConfig?->halal_tag_status ?? 0;
-                $item['verified_seller'] = self::get_verified_seller_status($item->store, $item->store?->storeConfig);
-
-
-                $item->store['self_delivery_system'] = (int) $item->store->sub_self_delivery;
-
-                $item['nutritions_name'] = $item?->nutritions ? Nutrition::whereIn('id', $item?->nutritions->pluck('id'))->pluck('nutrition') : null;
-                $item['allergies_name'] = $item?->allergies ? Allergy::whereIn('id', $item?->allergies->pluck('id'))->pluck('allergy') : null;
-                $item['generic_name'] = $item?->generic ? GenericName::whereIn('id', $item?->generic->pluck('id'))->pluck('generic_name') : null;
-
-
-                $item['tax_data'] = $item?->taxVats ? $item?->taxVats()->pluck('tax_id')->toArray() : [];
-
-                $item['tax_data'] = \Modules\TaxModule\Entities\Tax::whereIn('id', $item['tax_data'])->get(['id', 'name', 'tax_rate']);
-                if($item->module->module_type == 'ecommerce') {
-                    $item['meta_title'] = $item?->seoData?->title;
-                    $item['meta_description'] = $item?->seoData?->description;
-                    $item['meta_image'] = $item?->seoData?->imageFullUrl;
-                    $item['meta_data'] = $item?->seoData?->meta_data;
-                }
-                foreach (self::product_video_data_formatting($item) as $videoKey => $videoValue) {
-                    $item[$videoKey] = $videoValue;
-                }
-
-                unset($item['taxVats']);
-
-
-                unset($item['nutritions']);
-                unset($item['allergies']);
-                unset($item['generic']);
-                unset($item['pharmacy_item_details']);
-                unset($item['store']);
-                unset($item['rating']);
-                array_push($storage, $item);
+                $running_flash_sale = $running_flash_sales[$item['id']] ?? null;
+                $storage[] = self::format_product_item(item: $item, running_flash_sale: $running_flash_sale, trans: $trans, local: $local, temp_product: $temp_product, single: false);
             }
-            $data = $storage;
+
+            return $storage;
+        }
+
+        $running_flash_sale = self::getRunningFlashSale($data['id']);
+
+        return self::format_product_item(item: $data, running_flash_sale: $running_flash_sale, trans: $trans, local: $local, temp_product: $temp_product, single: true);
+    }
+
+    private static function format_product_item($item, $running_flash_sale, $trans, $local, $temp_product = false, $single = false, $translate = false, $cart = false)
+    {
+        $item = self::applyScheduleFields($item);
+        $item['category_ids'] = $translate ? self::formatCategoryIds($item['category_ids']) : self::formatCategoryIds($item['category_ids'], true);
+        $original_add_ons = $cart ? $item['add_ons'] : null;
+        $add_on_ids = self::decodeJsonToArray($item['add_ons']);
+        $item['add_ons'] = empty($add_on_ids)
+            ? self::addon_data_formatting(collect(), true, $trans, $local)
+            : self::addon_data_formatting(AddOn::whereIn('id', $add_on_ids)->active()->get(), true, $trans, $local);
+        $item = self::applyDecodedJsonFields($item);
+        $item['module_type'] = $item->module?->module_type;
+        $item['store_name'] = $item->store?->name;
+        if (!$translate) {
+            $item['store_image_full_url'] = $item->store?->logo_full_url;
+            $item['is_campaign'] = $item->store?->campaigns_count > 0 ? 1 : 0;
+        }
+        $item['zone_id'] = $item->store?->zone_id;
+
+        if ($cart) {
+            $selected_addons = $cart['selected_addons'] ?? [];
+            $selected_addon_quantity = [];
+            foreach ($selected_addons as $selected_index => $selected_addon_id) {
+                $selected_addon_quantity[$selected_addon_id] = $cart['selected_addon_quantity'][$selected_index] ?? 1;
+            }
+            foreach ($item['add_ons'] as $addon) {
+                $is_checked = in_array($addon['id'], $selected_addons);
+                $addon['isChecked'] = $is_checked;
+                $addon['quantity'] = $is_checked ? $selected_addon_quantity[$addon['id']] : 0;
+            }
+            $item['addons'] = $item['add_ons'];
+            $item['add_ons'] = $original_add_ons;
+            $item['store_slug'] = $item->store?->slug;
+
+            $food_variations = is_array($item['food_variations']) ? $item['food_variations'] : [];
+            if (($item['module_type'] ?? null) == 'food') {
+                foreach (($cart['selected_variation'] ?? []) as $selected_item) {
+                    $selected_labels = $selected_item['values']['label'] ?? [];
+                    foreach ($food_variations as &$all_item) {
+                        if (($selected_item['name'] ?? null) === ($all_item['name'] ?? null)) {
+                            foreach ($all_item['values'] as &$value) {
+                                $value['isSelected'] = isset($value['label']) && in_array($value['label'], $selected_labels);
+                            }
+                            unset($value);
+                        }
+                    }
+                    unset($all_item);
+                }
+            }
+            $item['food_variations'] = $food_variations;
+        }
+
+        $has_flash_stock = $running_flash_sale && $running_flash_sale->available_stock > 0;
+        $item['flash_sale'] = (int) (($translate ? (bool) $running_flash_sale : $has_flash_stock) ? 1 : 0);
+        $item['stock'] = $has_flash_stock ? $running_flash_sale->available_stock : $item['stock'];
+
+        if ($translate) {
+            $item['discount'] = $has_flash_stock ? $running_flash_sale->discount : $item['discount'];
+            $item['discount_type'] = $has_flash_stock ? $running_flash_sale->discount_type : $item['discount_type'];
         } else {
-            $variations = [];
-            $data['category_ids'] = self::formatCategoryIds($data['category_ids'], true);
+            $item = self::applyDiscount($item);
+        }
+        $item['store_discount'] = $has_flash_stock ? 0 : (self::get_store_discount($item->store) ? $item->store?->discount->discount : 0);
+        $item['schedule_order'] = $item->store?->schedule_order;
 
-            $data['attributes'] = self::decodeJsonToArray($data['attributes']);
-            $data['choice_options'] = self::decodeJsonToArray($data['choice_options']);
-            $data['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', self::decodeJsonToArray($data['add_ons']))->active()->get(), true, $trans, $local);
-            foreach (self::decodeJsonToArray($data['variations']) as $var) {
-                array_push($variations, [
-                    'type' => $var['type'],
-                    'price' => (float) $var['price'],
-                    'stock' => (int) ($var['stock'] ?? 0)
-                ]);
-            }
-            if ($data->title) {
-                $data['name'] = $data->title;
-                unset($data['title']);
-            }
-            if ($data->start_time) {
-                $data['available_time_starts'] = $data->start_time->format('H:i');
-                unset($data['start_time']);
-            }
-            if ($data->end_time) {
-                $data['available_time_ends'] = $data->end_time->format('H:i');
-                unset($data['end_time']);
-            }
-            if ($data->start_date) {
-                $data['available_date_starts'] = $data->start_date->format('Y-m-d');
-                unset($data['start_date']);
-            }
-            if ($data->end_date) {
-                $data['available_date_ends'] = $data->end_date->format('Y-m-d');
-                unset($data['end_date']);
-            }
-            $data['variations'] = $variations;
-            $data['food_variations'] = $data['food_variations'] ? self::decodeJsonToArray($data['food_variations']) : '';
-            $data['store_name'] = $data->store->name;
-            $data['is_campaign'] = $data->store?->campaigns_count > 0 ? 1 : 0;
-            $data['module_type'] = $data->module->module_type;
-            $data['zone_id'] = $data->store->zone_id;
-            $running_flash_sale = FlashSaleItem::Active()->whereHas('flashSale', function ($query) {
-                $query->Active()->Running();
-            })
-                ->where(['item_id' => $data['id']])->first();
-            $data['flash_sale'] = (int) (($running_flash_sale) ? 1 : 0);
-            $data['stock'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->available_stock : $data['stock'];
+        if (!$single) {
+            $item['delivery_time'] = $item->store?->delivery_time;
+            $item['free_delivery'] = $item->store?->free_delivery;
+            $item['tax'] = 0;
+            $item['unit'] = $item->unit;
+            $item['recommended'] = (int) $item->recommended;
+        }
 
-
-            // $data['discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->discount : $data['discount'];
-            // $data['discount_type'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->discount_type : $data['discount_type'];
-            $discount_data = self::product_discount_calculate($data, $data['price'], $data->store, true);
-            $data['discount'] = $discount_data['discount_percentage'];
-            $data['discount_type'] = $discount_data['original_discount_type'];
-
-
-            $data['store_discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? 0 : (self::get_store_discount($data->store) ? $data->store?->discount->discount : 0);
-            $data['schedule_order'] = $data->store->schedule_order;
-
+        if ($translate) {
+            $item = self::applyJsonRating($item);
+        } else {
             try {
-                $reviewsInfo = $data->rating()->where('status', 1)->first();
+                $reviewsInfo = $item->rating()->where('status', 1)->first();
             } catch (\Exception $e) {
                 $reviewsInfo = null;
             }
-            $data['rating_count'] = (int) $reviewsInfo?->rating_count ?? 0;
-            $data['review_count'] = (int) $reviewsInfo?->review_count ?? 0;
-            $data['avg_rating'] = (float) $reviewsInfo?->average ?? 0;
-
-
-            $data['min_delivery_time'] = (int) explode('-', $data->store->delivery_time)[0] ?? 0;
-            $data['max_delivery_time'] = (int) explode('-', $data->store->delivery_time)[1] ?? 0;
-            $data['common_condition_id'] = (int) $data->pharmacy_item_details?->common_condition_id ?? 0;
-            $data['brand_id'] = (int) $data->ecommerce_item_details?->brand_id ?? 0;
-            $data['is_basic'] = (int) $data->pharmacy_item_details?->is_basic ?? 0;
-            $data['is_prescription_required'] = (int) $data->pharmacy_item_details?->is_prescription_required ?? 0;
-            $data['halal_tag_status'] = (int) $data->store->storeConfig?->halal_tag_status ?? 0;
-            $data['verified_seller'] = self::get_verified_seller_status($data->store, $data->store?->storeConfig);
-
-            $data['nutritions_name'] = $data?->nutritions ? Nutrition::whereIn('id', $data?->nutritions->pluck('id'))->pluck('nutrition') : null;
-            $data['allergies_name'] = $data?->allergies ? Allergy::whereIn('id', $data?->allergies->pluck('id'))->pluck('allergy') : null;
-            $data['generic_name'] = $data?->generic ? GenericName::whereIn('id', $data?->generic->pluck('id'))->pluck('generic_name') : null;
-
-            if ($temp_product == true) {
-                $data['tags'] = Tag::whereIn('id', json_decode($data?->tag_ids))->get(['tag', 'id']);
-                $data['nutritions_data'] = Nutrition::whereIn('id', json_decode($data?->nutrition_ids))->get(['nutrition', 'id']);
-                $data['allergies_data'] = Allergy::whereIn('id', json_decode($data?->allergy_ids))->get(['allergy', 'id']);
-                $data['generic_name_data'] = GenericName::whereIn('id', json_decode($data?->generic_ids))->get(['generic_name', 'id']);
+            $item['rating_count'] = (int) $reviewsInfo?->rating_count ?? 0;
+            if ($single) {
+                $item['review_count'] = (int) $reviewsInfo?->review_count ?? 0;
             }
-
-            $data->store['self_delivery_system'] = (int) $data->store->sub_self_delivery;
-            $data['tax_data'] = $data?->taxVats ? $data?->taxVats()->pluck('tax_id')->toArray() : [];
-
-            $data['tax_data'] = \Modules\TaxModule\Entities\Tax::whereIn('id', $data['tax_data'])->get(['id', 'name', 'tax_rate']);
-            if($data->module->module_type == 'ecommerce') {
-                    $data['meta_title'] = $data?->seoData?->title;
-                    $data['meta_description'] = $data?->seoData?->description;
-                    $data['meta_image'] = $data?->seoData?->imageFullUrl;
-                    $data['meta_data'] = $data?->seoData?->meta_data;
-                }
-            foreach (self::product_video_data_formatting($data) as $videoKey => $videoValue) {
-                $data[$videoKey] = $videoValue;
-            }
-            unset($data['taxVats']);
-
-
-            unset($data['pharmacy_item_details']);
-            unset($data['store']);
-            unset($data['rating']);
-            unset($data['nutritions']);
-            unset($data['allergies']);
-            unset($data['generic']);
-
+            $item['avg_rating'] = (float) $reviewsInfo?->average ?? 0;
         }
 
-        return $data;
+        if (!$translate) {
+            $delivery_time = explode('-', (string) ($item?->store?->delivery_time ?? ''));
+            $item['min_delivery_time'] = (int) ($delivery_time[0] ?? 0);
+            $item['max_delivery_time'] = (int) ($delivery_time[1] ?? 0);
+        }
+        $item = self::applyItemDetailAttributes($item, $temp_product);
+        if (!$translate) {
+            $item = self::applyStoreCategory($item);
+        }
+        $item = self::applyTaxonomyNames($item);
+
+        if ($temp_product == true) {
+            $item['tags'] = Tag::whereIn('id', json_decode($item?->tag_ids))->get(['tag', 'id']);
+            $item['nutritions_data'] = Nutrition::whereIn('id', json_decode($item?->nutrition_ids))->get(['nutrition', 'id']);
+            $item['allergies_data'] = Allergy::whereIn('id', json_decode($item?->allergy_ids))->get(['allergy', 'id']);
+            $item['generic_name_data'] = GenericName::whereIn('id', json_decode($item?->generic_ids))->get(['generic_name', 'id']);
+        }
+
+        if ($translate) {
+            $item = self::applyTranslations($item, $trans, $local);
+            $item['tax_ids'] = $item?->taxVats ? $item?->taxVats()->pluck('tax_id')->toArray() : [];
+        } else {
+            $item['tax_data'] = $item?->taxVats ? $item?->taxVats()->pluck('tax_id')->toArray() : [];
+            $item['tax_data'] = \Modules\TaxModule\Entities\Tax::whereIn('id', $item['tax_data'])->get(['id', 'name', 'tax_rate']);
+        }
+
+        $item = self::applyEcommerceMeta($item);
+        $item = self::applyVideoData($item);
+
+        if ($translate) {
+            if (!$trans) {
+                unset($item['translations']);
+            }
+            unset($item['ecommerce_item_details']);
+        }
+        $item = self::cleanupItemRelations($item);
+
+        return $item;
     }
 
-    public static function product_data_formatting_translate($data, $multi_data = false, $trans = false, $local = 'en')
+    private static function applyTranslations($item, $trans, $local)
     {
-        $storage = [];
-        if ($multi_data == true) {
-            foreach ($data as $item) {
-                $variations = [];
-                if ($item->title) {
-                    $item['name'] = $item->title;
-                    unset($item['title']);
-                }
-                if ($item->start_time) {
-                    $item['available_time_starts'] = $item->start_time->format('H:i');
-                    unset($item['start_time']);
-                }
-                if ($item->end_time) {
-                    $item['available_time_ends'] = $item->end_time->format('H:i');
-                    unset($item['end_time']);
-                }
+        if ($trans) {
+            $item['translations'][] = [
+                'translationable_type' => 'App\Models\Item',
+                'translationable_id' => $item->id,
+                'locale' => 'en',
+                'key' => 'name',
+                'value' => $item->name
+            ];
 
-                if ($item->start_date) {
-                    $item['available_date_starts'] = $item->start_date->format('Y-m-d');
-                    unset($item['start_date']);
-                }
-                if ($item->end_date) {
-                    $item['available_date_ends'] = $item->end_date->format('Y-m-d');
-                    unset($item['end_date']);
-                }
-                $item['recommended'] = (int) $item->recommended;
-                $item['category_ids'] = self::formatCategoryIds($item['category_ids']);
-                $item['attributes'] = self::decodeJsonToArray($item['attributes']);
-                $item['choice_options'] = self::decodeJsonToArray($item['choice_options']);
-                $item['add_ons'] = self::addon_data_formatting(AddOn::withoutGlobalScope('translate')->whereIn('id', self::decodeJsonToArray($item['add_ons']))->active()->get(), true, $trans, $local);
-                foreach (self::decodeJsonToArray($item['variations']) as $var) {
-                    array_push($variations, [
-                        'type' => $var['type'],
-                        'price' => (float) $var['price'],
-                        'stock' => (int) ($var['stock'] ?? 0)
-                    ]);
-                }
-                $item['variations'] = $variations;
-                $item['food_variations'] = $item['food_variations'] ? self::decodeJsonToArray($item['food_variations']) : '';
-                $item['module_type'] = $item->module->module_type;
-                $item['store_name'] = $item->store->name;
-                $item['zone_id'] = $item->store->zone_id;
-                $running_flash_sale = FlashSaleItem::Active()->whereHas('flashSale', function ($query) {
-                    $query->Active()->Running();
-                })
-                    ->where(['item_id' => $item['id']])->first();
-                $item['flash_sale'] = (int) (($running_flash_sale) ? 1 : 0);
-                $item['stock'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->available_stock : $item['stock'];
-                $item['discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->discount : $item['discount'];
-                $item['discount_type'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->discount_type : $item['discount_type'];
-                $item['store_discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? 0 : (self::get_store_discount($item->store) ? $item->store?->discount->discount : 0);
-                $item['schedule_order'] = $item->store->schedule_order;
-                $item['tax'] = 0;
-                $item['rating_count'] = (int) ($item->rating ? array_sum(json_decode($item->rating, true)) : 0);
-                $item['avg_rating'] = (float) ($item->avg_rating ? $item->avg_rating : 0);
-                $item['recommended'] = (int) $item->recommended;
-
-                $item['common_condition_id'] = (int) $item->pharmacy_item_details?->common_condition_id ?? 0;
-                $item['brand_id'] = (int) $item->ecommerce_item_details?->brand_id ?? 0;
-                $item['is_basic'] = (int) $item->pharmacy_item_details?->is_basic ?? 0;
-                $item['is_prescription_required'] = (int) $item->pharmacy_item_details?->is_prescription_required ?? 0;
-                $item['halal_tag_status'] = (int) $item->store->storeConfig?->halal_tag_status ?? 0;
-                $item['verified_seller'] = self::get_verified_seller_status($item->store, $item->store?->storeConfig);
-
-
-                if ($trans) {
-                    $item['translations'][] = [
-                        'translationable_type' => 'App\Models\Item',
-                        'translationable_id' => $item->id,
-                        'locale' => 'en',
-                        'key' => 'name',
-                        'value' => $item->name
-                    ];
-
-                    $item['translations'][] = [
-                        'translationable_type' => 'App\Models\Item',
-                        'translationable_id' => $item->id,
-                        'locale' => 'en',
-                        'key' => 'description',
-                        'value' => $item->description
-                    ];
-                }
-
-                if (count($item['translations']) > 0) {
-                    foreach ($item['translations'] as $translation) {
-                        if ($translation['locale'] == $local) {
-                            if ($translation['key'] == 'name') {
-                                $item['name'] = $translation['value'];
-                            }
-
-                            if ($translation['key'] == 'title') {
-                                $item['name'] = $translation['value'];
-                            }
-
-                            if ($translation['key'] == 'description') {
-                                $item['description'] = $translation['value'];
-                            }
-                        }
-                    }
-                }
-                if (!$trans) {
-                    unset($item['translations']);
-                }
-
-                $item['nutritions_name'] = $item?->nutritions ? Nutrition::whereIn('id', $item?->nutritions->pluck('id'))->pluck('nutrition') : null;
-                $item['allergies_name'] = $item?->allergies ? Allergy::whereIn('id', $item?->allergies->pluck('id'))->pluck('allergy') : null;
-                $item['generic_name'] = $item?->generic ? GenericName::whereIn('id', $item?->generic->pluck('id'))->pluck('generic_name') : null;
-                $item['tax_ids'] = $item?->taxVats ? $item?->taxVats()->pluck('tax_id')->toArray() : [];
-
-                if($item->module->module_type == 'ecommerce') {
-                    $item['meta_title'] = $item?->seoData?->title;
-                    $item['meta_description'] = $item?->seoData?->description;
-                    $item['meta_image'] = $item?->seoData?->imageFullUrl;
-                    $item['meta_data'] = $item?->seoData?->meta_data;
-                }
-                foreach (self::product_video_data_formatting($item) as $videoKey => $videoValue) {
-                    $item[$videoKey] = $videoValue;
-                }
-                unset($item['taxVats']);
-                unset($item['nutritions']);
-                unset($item['allergies']);
-                unset($item['generic']);
-                unset($item['ecommerce_item_details']);
-                unset($item['pharmacy_item_details']);
-                unset($item['store']);
-                unset($item['rating']);
-                array_push($storage, $item);
-            }
-            $data = $storage;
-        } else {
-            $variations = [];
-            $data['category_ids'] = self::formatCategoryIds($data['category_ids']);
-
-            $data['attributes'] = self::decodeJsonToArray($data['attributes']);
-            $data['choice_options'] = self::decodeJsonToArray($data['choice_options']);
-            $data['add_ons'] = self::addon_data_formatting(AddOn::whereIn('id', self::decodeJsonToArray($data['add_ons']))->active()->get(), true, $trans, $local);
-            foreach (self::decodeJsonToArray($data['variations']) as $var) {
-                array_push($variations, [
-                    'type' => $var['type'],
-                    'price' => (float) $var['price'],
-                    'stock' => (int) ($var['stock'] ?? 0)
-                ]);
-            }
-            if ($data->title) {
-                $data['name'] = $data->title;
-                unset($data['title']);
-            }
-            if ($data->start_time) {
-                $data['available_time_starts'] = $data->start_time->format('H:i');
-                unset($data['start_time']);
-            }
-            if ($data->end_time) {
-                $data['available_time_ends'] = $data->end_time->format('H:i');
-                unset($data['end_time']);
-            }
-            if ($data->start_date) {
-                $data['available_date_starts'] = $data->start_date->format('Y-m-d');
-                unset($data['start_date']);
-            }
-            if ($data->end_date) {
-                $data['available_date_ends'] = $data->end_date->format('Y-m-d');
-                unset($data['end_date']);
-            }
-            $data['variations'] = $variations;
-            $data['food_variations'] = $data['food_variations'] ? self::decodeJsonToArray($data['food_variations']) : '';
-            $data['store_name'] = $data->store->name;
-            $data['module_type'] = $data->module->module_type;
-            $data['zone_id'] = $data->store->zone_id;
-            $running_flash_sale = FlashSaleItem::Active()->whereHas('flashSale', function ($query) {
-                $query->Active()->Running();
-            })
-                ->where(['item_id' => $data['id']])->first();
-            $data['flash_sale'] = (int) (($running_flash_sale) ? 1 : 0);
-            $data['stock'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->available_stock : $data['stock'];
-            $data['discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->discount : $data['discount'];
-            $data['discount_type'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? $running_flash_sale->discount_type : $data['discount_type'];
-            $data['store_discount'] = ($running_flash_sale && ($running_flash_sale->available_stock > 0)) ? 0 : (self::get_store_discount($data->store) ? $data->store?->discount->discount : 0);
-            $data['schedule_order'] = $data->store->schedule_order;
-            $data['rating_count'] = (int) ($data->rating ? array_sum(json_decode($data->rating, true)) : 0);
-            $data['avg_rating'] = (float) ($data->avg_rating ? $data->avg_rating : 0);
-
-            $data['common_condition_id'] = (int) $data->pharmacy_item_details?->common_condition_id ?? 0;
-            $data['brand_id'] = (int) $data->ecommerce_item_details?->brand_id ?? 0;
-            $data['is_basic'] = (int) $data->pharmacy_item_details?->is_basic ?? 0;
-            $data['is_prescription_required'] = (int) $data->pharmacy_item_details?->is_prescription_required ?? 0;
-            $data['halal_tag_status'] = (int) $data->store->storeConfig?->halal_tag_status ?? 0;
-            $data['verified_seller'] = self::get_verified_seller_status($data->store, $data->store?->storeConfig);
-
-
-            if ($trans) {
-                $data['translations'][] = [
-                    'translationable_type' => 'App\Models\Item',
-                    'translationable_id' => $data->id,
-                    'locale' => 'en',
-                    'key' => 'name',
-                    'value' => $data->name
-                ];
-
-                $data['translations'][] = [
-                    'translationable_type' => 'App\Models\Item',
-                    'translationable_id' => $data->id,
-                    'locale' => 'en',
-                    'key' => 'description',
-                    'value' => $data->description
-                ];
-            }
-
-            if (count($data['translations']) > 0) {
-                foreach ($data['translations'] as $translation) {
-                    if ($translation['locale'] == $local) {
-                        if ($translation['key'] == 'name') {
-                            $data['name'] = $translation['value'];
-                        }
-
-                        if ($translation['key'] == 'title') {
-                            $item['name'] = $translation['value'];
-                        }
-
-                        if ($translation['key'] == 'description') {
-                            $data['description'] = $translation['value'];
-                        }
-                    }
-                }
-            }
-
-            $data['nutritions_name'] = $data?->nutritions ? Nutrition::whereIn('id', $data?->nutritions->pluck('id'))->pluck('nutrition') : null;
-            $data['allergies_name'] = $data?->allergies ? Allergy::whereIn('id', $data?->allergies->pluck('id'))->pluck('allergy') : null;
-            $data['generic_name'] = $data?->generic ? GenericName::whereIn('id', $data?->generic->pluck('id'))->pluck('generic_name') : null;
-
-            $data['tax_ids'] = $data?->taxVats ? $data?->taxVats()->pluck('tax_id')->toArray() : [];
-
-            if($data->module->module_type == 'ecommerce') {
-                $data['meta_title'] = $data?->seoData?->title;
-                $data['meta_description'] = $data?->seoData?->description;
-                $data['meta_image'] = $data?->seoData?->imageFullUrl;
-                $data['meta_data'] = $data?->seoData?->meta_data;
-            }
-            foreach (self::product_video_data_formatting($data) as $videoKey => $videoValue) {
-                $data[$videoKey] = $videoValue;
-            }
-
-            unset($data['taxVats']);
-
-            if (!$trans) {
-                unset($data['translations']);
-            }
-            unset($data['nutritions']);
-            unset($data['allergies']);
-            unset($data['generic']);
-            unset($data['ecommerce_item_details']);
-            unset($data['pharmacy_item_details']);
-            unset($data['store']);
-            unset($data['rating']);
+            $item['translations'][] = [
+                'translationable_type' => 'App\Models\Item',
+                'translationable_id' => $item->id,
+                'locale' => 'en',
+                'key' => 'description',
+                'value' => $item->description
+            ];
         }
 
-        return $data;
+        if (count($item['translations']) > 0) {
+            foreach ($item['translations'] as $translation) {
+                if ($translation['locale'] == $local) {
+                    if ($translation['key'] == 'name') {
+                        $item['name'] = $translation['value'];
+                    }
+
+                    if ($translation['key'] == 'title') {
+                        $item['name'] = $translation['value'];
+                    }
+
+                    if ($translation['key'] == 'description') {
+                        $item['description'] = $translation['value'];
+                    }
+                }
+            }
+        }
+
+        return $item;
+    }
+
+    public static function product_data_formatting_translate($data, $trans = false, $local = 'en')
+    {
+        $running_flash_sale = self::getRunningFlashSale($data['id']);
+
+        return self::format_product_item(item: $data, running_flash_sale: $running_flash_sale, trans: $trans, local: $local, temp_product: false, single: true, translate: true);
+    }
+
+    private static function runningFlashSaleQuery()
+    {
+        return FlashSaleItem::Active()->whereHas('flashSale', function ($query) {
+            $query->Active()->Running();
+        });
+    }
+
+    private static function getRunningFlashSale($itemId)
+    {
+        return self::runningFlashSaleQuery()->where(['item_id' => $itemId])->first();
+    }
+
+    private static function applyScheduleFields($item)
+    {
+        if ($item->title) {
+            $item['name'] = $item->title;
+            unset($item['title']);
+        }
+        if ($item->start_time) {
+            $item['available_time_starts'] = $item->start_time->format('H:i');
+            unset($item['start_time']);
+        }
+        if ($item->end_time) {
+            $item['available_time_ends'] = $item->end_time->format('H:i');
+            unset($item['end_time']);
+        }
+        if ($item->start_date) {
+            $item['available_date_starts'] = $item->start_date->format('Y-m-d');
+            unset($item['start_date']);
+        }
+        if ($item->end_date) {
+            $item['available_date_ends'] = $item->end_date->format('Y-m-d');
+            unset($item['end_date']);
+        }
+
+        return $item;
+    }
+
+    private static function formatVariations($item)
+    {
+        $variations = [];
+        foreach (self::decodeJsonToArray($item['variations']) as $var) {
+            $variations[] = [
+                'type' => $var['type'],
+                'price' => (float) $var['price'],
+                'stock' => (int) ($var['stock'] ?? 0),
+            ];
+        }
+
+        return $variations;
+    }
+
+    private static function applyDecodedJsonFields($item)
+    {
+        $item['attributes'] = self::decodeJsonToArray($item['attributes']);
+        $item['choice_options'] = self::decodeJsonToArray($item['choice_options']);
+        $item['variations'] = self::formatVariations($item);
+        $item['food_variations'] = $item['food_variations'] ? self::decodeJsonToArray($item['food_variations']) : '';
+
+        return $item;
+    }
+
+    private static function applyTaxonomyNames($item)
+    {
+        $item['nutritions_name'] = $item?->nutritions ? Nutrition::whereIn('id', $item?->nutritions->pluck('id'))->pluck('nutrition') : null;
+        $item['allergies_name'] = $item?->allergies ? Allergy::whereIn('id', $item?->allergies->pluck('id'))->pluck('allergy') : null;
+        $item['generic_name'] = $item?->generic ? GenericName::whereIn('id', $item?->generic->pluck('id'))->pluck('generic_name') : null;
+
+        return $item;
+    }
+
+    private static function applyEcommerceMeta($item)
+    {
+        if ($item->module?->module_type == 'ecommerce') {
+            $item['meta_title'] = $item?->seoData?->title;
+            $item['meta_description'] = $item?->seoData?->description;
+            $item['meta_image'] = $item?->seoData?->imageFullUrl;
+            $item['meta_data'] = $item?->seoData?->meta_data;
+        }
+
+        return $item;
+    }
+
+    private static function applyItemDetailAttributes($item, $temp_product = false)
+    {
+        $item['common_condition_id'] = (int) $item->pharmacy_item_details?->common_condition_id ?? 0;
+        $item['brand_id'] = (int) $item->ecommerce_item_details?->brand_id ?? 0;
+        $item['brand_name'] = $item->ecommerce_item_details?->brand?->name;
+        $item['is_basic'] = (int) $item->pharmacy_item_details?->is_basic ?? 0;
+        $item['is_prescription_required'] = (int) $item->pharmacy_item_details?->is_prescription_required ?? 0;
+        $item['unit_value'] = $temp_product == true ? ($item->unit_value ?? null) : $item->pharmacy_item_details?->unit_value;
+        $item['manufacturer'] = $temp_product == true ? ($item->manufacturer ?? null) : $item->pharmacy_item_details?->manufacturer;
+        $item['halal_tag_status'] = (int) $item->store?->storeConfig?->halal_tag_status ?? 0;
+        $item['verified_seller'] = self::get_verified_seller_status($item->store, $item->store?->storeConfig);
+
+        return $item;
+    }
+
+    private static function applyDiscount($item)
+    {
+        $discount_data = self::product_discount_calculate($item, $item['price'], $item->store, true);
+        $item['discount'] = $discount_data['discount_percentage'];
+        $item['discount_type'] = $discount_data['original_discount_type'];
+
+        return $item;
+    }
+
+    private static function applyStoreCategory($item)
+    {
+        $item['store_category_id'] = (int) $item->store_category_id;
+        $item['store_category_name'] = $item?->storeCategory?->name;
+
+        return $item;
+    }
+
+    private static function applyJsonRating($item)
+    {
+        $item['rating_count'] = (int) ($item->rating ? array_sum(json_decode($item->rating, true)) : 0);
+        $item['avg_rating'] = (float) ($item->avg_rating ? $item->avg_rating : 0);
+
+        return $item;
+    }
+
+    private static function applyVideoData($item)
+    {
+        foreach (self::product_video_data_formatting($item) as $videoKey => $videoValue) {
+            $item[$videoKey] = $videoValue;
+        }
+
+        return $item;
+    }
+
+    private static function cleanupItemRelations($item)
+    {
+        unset($item['taxVats']);
+        unset($item['nutritions']);
+        unset($item['allergies']);
+        unset($item['generic']);
+        unset($item['pharmacy_item_details']);
+        unset($item['store']);
+        unset($item['rating']);
+
+        return $item;
     }
 
     public static function product_video_data_formatting($item): array
@@ -1001,91 +756,61 @@ class Helpers
 
     public static function store_data_formatting($data, $multi_data = false)
     {
-        $storage = [];
         if ($multi_data == true) {
+            $storage = [];
             foreach ($data as $item) {
-
-                $item->load('storeConfig');
-                $ratings = StoreLogic::calculate_store_rating($item['rating']);
-                $item['ratings'] = $item?->rating ?? [];
-                unset($item['rating']);
-                $item['avg_rating'] = $ratings['rating'];
-
-                $reviewsInfo = $item->reviews()->where('reviews.status', 1)
-                    ->selectRaw('avg(reviews.rating) as average_rating, count(reviews.id) as total_reviews, items.store_id')
-                    ->groupBy('items.store_id')
-                    ->first();
-
-                $item['rating_count'] = (int) $reviewsInfo?->total_reviews ?? 0;
-                $item['positive_rating'] = $ratings['positive_rating'];
-                $item['total_items'] = $item['items_count']??$item?->items()->approved()->count();
-                $item['total_campaigns'] = $item['campaigns_count'];
-                $item['min'] = (float) $item->items()->active()->min('price');
-                $item['max'] = (float) $item->items()->active()->max('price');
-                $item['is_recommended'] = false;
-                $item['halal_tag_status'] = (bool) $item?->storeConfig?->halal_tag_status;
-                $item['verified_seller'] = self::get_verified_seller_status($item, $item?->storeConfig);
-                $extra_packaging_data = self::get_business_settings('extra_packaging_data');
-
-                $item['extra_packaging_status'] = (bool) (!empty($extra_packaging_data) && data_get($extra_packaging_data, $item->module->module_type) == '1') ? $item?->storeConfig?->extra_packaging_status : false;
-                $item['extra_packaging_amount'] = (float) (!empty($extra_packaging_data) && (data_get($extra_packaging_data, $item->module->module_type) == '1') && ($item?->storeConfig?->extra_packaging_status == '1')) ? $item?->storeConfig?->extra_packaging_amount : 0;
-                if ($item->storeConfig && $item->storeConfig->is_recommended_deleted == 0) {
-                    $item['is_recommended'] = $item->storeConfig->is_recommended;
-                }
-                $item['self_delivery_system'] = (int) $item->sub_self_delivery;
-                $item['current_opening_time'] = self::getNextOpeningTime($item['schedules']) ?? 'closed';
-                $item['show_low_stock_count'] = (int) $item?->storeConfig?->show_low_stock_count;
-                $item['minimum_stock_for_warning'] = (int) $item?->storeConfig?->minimum_stock_for_warning ?? 0;
-                unset($item['items_count']);
-                unset($item['campaigns_count']);
-                unset($item['storeConfig']);
-                unset($item['campaigns']);
-                unset($item['pivot']);
-                array_push($storage, $item);
+                $storage[] = self::format_store_item($item);
             }
-            $data = $storage;
-        } else {
-            $data->load('storeConfig');
-            $data['is_recommended'] = false;
-            $data['show_low_stock_count'] = (int) $data?->storeConfig?->show_low_stock_count;
-            $data['minimum_stock_for_warning'] = (int) $data?->storeConfig?->minimum_stock_for_warning ?? 0;
-            $data['halal_tag_status'] = (bool) $data?->storeConfig?->halal_tag_status;
-            $extra_packaging_data = self::get_business_settings('extra_packaging_data');
 
-            $data['extra_packaging_status'] = (bool) (!empty($extra_packaging_data) && data_get($extra_packaging_data, $data?->module?->module_type)) ? $data?->storeConfig?->extra_packaging_status : false;
-            $data['extra_packaging_amount'] = (float) (!empty($extra_packaging_data) && (data_get($extra_packaging_data, $data?->module?->module_type)) && ($data?->storeConfig?->extra_packaging_status == '1')) ? $data?->storeConfig?->extra_packaging_amount : 0;
-            if ($data->storeConfig && $data->storeConfig->is_recommended_deleted == 0) {
-                $data['is_recommended'] = $data->storeConfig->is_recommended;
-                }
-            $data['verified_seller'] = self::get_verified_seller_status($data, $data?->storeConfig);
-            // $data['has_seen_verified_badge_popup'] = (bool) ($data?->storeConfig?->verified_seller && !($data?->storeConfig?->has_seen_verified_badge_popup));
-            $data['self_delivery_system'] = (int) $data->sub_self_delivery;
-            $ratings = StoreLogic::calculate_store_rating($data['rating']);
-            $data['ratings'] = $data?->rating ?? [];
-            unset($data['rating']);
-            $data['avg_rating'] = $ratings['rating'];
-
-            $reviewsInfo = $data->reviews()->where('reviews.status', 1)
-                ->selectRaw('avg(reviews.rating) as average_rating, count(reviews.id) as total_reviews, items.store_id')
-                ->groupBy('items.store_id')
-                ->first();
-
-            $data['rating_count'] = (int) $reviewsInfo?->total_reviews ?? 0;
-
-            $data['positive_rating'] = $ratings['positive_rating'];
-            $data['total_items'] = $data['items_count']??$data?->items()->approved()->count();
-            $data['total_campaigns'] = $data['campaigns_count'];
-            $data['min'] = (float) $data->items()->active()->min('price');
-            $data['max'] = (float) $data->items()->active()->max('price');
-            $data['current_opening_time'] = self::getNextOpeningTime($data['schedules']) ?? 'closed';
-            unset($data['items_count']);
-            unset($data['campaigns_count']);
-            unset($data['campaigns']);
-            unset($data['storeConfig']);
-            unset($data['pivot']);
+            return $storage;
         }
 
-        return $data;
+        return self::format_store_item($data);
+    }
+
+    private static function format_store_item($item)
+    {
+        $item->load('storeConfig');
+        $ratings = StoreLogic::calculate_store_rating($item['rating']);
+        $item['ratings'] = $item?->rating ?? [];
+        unset($item['rating']);
+        $item['avg_rating'] = $ratings['rating'];
+
+        $reviewsInfo = $item->reviews()->where('reviews.status', 1)
+            ->selectRaw('avg(reviews.rating) as average_rating, count(reviews.id) as total_reviews, items.store_id')
+            ->groupBy('items.store_id')
+            ->first();
+
+        $item['rating_count'] = (int) $reviewsInfo?->total_reviews ?? 0;
+        $item['positive_rating'] = $ratings['positive_rating'];
+        $item['total_items'] = $item['items_count'] ?? $item?->items()->approved()->count();
+        $item['total_campaigns'] = $item['campaigns_count'];
+        $item['min'] = (float) $item->items()->active()->min('price');
+        $item['max'] = (float) $item->items()->active()->max('price');
+        $item['is_recommended'] = false;
+        $item['halal_tag_status'] = (bool) $item?->storeConfig?->halal_tag_status;
+        $item['verified_seller'] = self::get_verified_seller_status($item, $item?->storeConfig);
+
+        $extra_packaging_data = self::get_business_settings('extra_packaging_data');
+        $item['extra_packaging_status'] = (bool) (!empty($extra_packaging_data) && data_get($extra_packaging_data, $item?->module?->module_type) == '1') ? $item?->storeConfig?->extra_packaging_status : false;
+        $item['extra_packaging_amount'] = (float) (!empty($extra_packaging_data) && (data_get($extra_packaging_data, $item?->module?->module_type) == '1') && ($item?->storeConfig?->extra_packaging_status == '1')) ? $item?->storeConfig?->extra_packaging_amount : 0;
+
+        if ($item->storeConfig && $item->storeConfig->is_recommended_deleted == 0) {
+            $item['is_recommended'] = $item->storeConfig->is_recommended;
+        }
+        $item['self_delivery_system'] = (int) $item->sub_self_delivery;
+        $item['current_opening_time'] = self::getNextOpeningTime($item['schedules']) ?? 'closed';
+        $item['show_low_stock_count'] = (int) $item?->storeConfig?->show_low_stock_count;
+        $item['minimum_stock_for_warning'] = (int) $item?->storeConfig?->minimum_stock_for_warning ?? 0;
+        $item['can_edit_order'] = (bool) (self::get_business_settings('can_vendor_edit_order') == 1 ? $item?->storeConfig?->can_edit_order : 0);
+
+        unset($item['items_count']);
+        unset($item['campaigns_count']);
+        unset($item['storeConfig']);
+        unset($item['campaigns']);
+        unset($item['pivot']);
+
+        return $item;
     }
 
     public static function wishlist_data_formatting($data, $multi_data = false)
@@ -1114,107 +839,84 @@ class Helpers
         return ['item' => $items, 'store' => $stores];
     }
 
+    public static function pro_discount_data($order): array
+    {
+        $pro = method_exists($order, 'orderProDiscount') ? $order->orderProDiscount : $order->proDiscount;
+        return [
+            'pro_discount' => (float) ($pro?->amount_saved ?? 0),
+            'benefit_type' => $pro?->benefit_type,
+            'delivery_fee_reduction_amount' => (float) ($pro?->delivery_fee_reduction_amount ?? 0),
+            'delivery_offer_type' => $pro?->delivery_offer_type,
+        ];
+    }
+
     public static function order_data_formatting($data, $multi_data = false)
     {
-        $storage = [];
         if ($multi_data) {
+            $storage = [];
             foreach ($data as $item) {
-                if (isset($item['store'])) {
-                    $item['store_name'] = $item['store']['name'];
-                    $item['store_address'] = $item['store']['address'];
-                    $item['store_phone'] = $item['store']['phone'];
-                    $item['store_lat'] = $item['store']['latitude'];
-                    $item['store_lng'] = $item['store']['longitude'];
-                    $item['store_logo'] = $item['store']['logo'];
-                    $item['store_logo_full_url'] = $item['store']['logo_full_url'];
-                    $item['min_delivery_time'] = (int) explode('-', $item['store']['delivery_time'])[0] ?? 0;
-                    $item['max_delivery_time'] = (int) explode('-', $item['store']['delivery_time'])[1] ?? 0;
-
-                    $item['vendor_id'] = $item['store']['vendor_id'];
-                    $item['chat_permission'] = $item['store']['chat_permission'] ?? 0;
-                    $item['review_permission'] = $item['store']['review_permission'] ?? 0;
-                    $item['store_business_model'] = $item['store']['store_business_model'];
-
-                    unset($item['store']);
-                } else {
-                    $item['store_name'] = null;
-                    $item['store_address'] = null;
-                    $item['store_phone'] = null;
-                    $item['store_lat'] = null;
-                    $item['store_lng'] = null;
-                    $item['store_logo'] = null;
-                    $item['store_logo_full_url'] = null;
-                    $item['min_delivery_time'] = null;
-                    $item['max_delivery_time'] = null;
-                    $item['vendor_id'] = null;
-                    $item['chat_permission'] = null;
-                    $item['review_permission'] = null;
-                    $item['store_business_model'] = null;
-                }
-                $item['item_campaign'] = 0;
-                foreach ($item->details as $d) {
-                    if ($d->item_campaign_id != null) {
-                        $item['item_campaign'] = 1;
-                    }
-                }
-
-                $item['delivery_address'] = is_array($item->delivery_address )? $item->delivery_address : json_decode($item->delivery_address, true);
-                $item['details_count'] = (int) $item->details->count();
-                $item['min_delivery_time'] = $item->store ? (int) explode('-', $item->store?->delivery_time)[0] ?? 0 : 0;
-                $item['max_delivery_time'] = $item->store ? (int) explode('-', $item->store?->delivery_time)[1] ?? 0 : 0;
-
-                unset($item['details']);
-                array_push($storage, $item);
-            }
-            $data = $storage;
-        } else {
-            if (isset($data['store'])) {
-                $data['store_name'] = $data['store']['name'];
-                $data['store_address'] = $data['store']['address'];
-                $data['store_phone'] = $data['store']['phone'];
-                $data['store_lat'] = $data['store']['latitude'];
-                $data['store_lng'] = $data['store']['longitude'];
-                $data['store_logo'] = $data['store']['logo'];
-                $data['store_logo_full_url'] = $data['store']['logo_full_url'];
-                $data['min_delivery_time'] = $data['store'] ? (int) explode('-', $data['store']['delivery_time'])[0] ?? 0 : 0;
-                $data['max_delivery_time'] = $data['store'] ? (int) explode('-', $data['store']['delivery_time'])[1] ?? 0 : 0;
-                $data['vendor_id'] = $data['store']['vendor_id'];
-                $data['chat_permission'] = $data['store']['chat_permission'] ?? 0;
-                $data['review_permission'] = $data['store']['review_permission'] ?? 0;
-                $data['store_business_model'] = $data['store']['store_business_model'];
-
-                unset($data['store']);
-            } else {
-                $data['store_name'] = null;
-                $data['store_address'] = null;
-                $data['store_phone'] = null;
-                $data['store_lat'] = null;
-                $data['store_lng'] = null;
-                $data['store_logo'] = null;
-                $data['store_logo_full_url'] = null;
-                $data['min_delivery_time'] = null;
-                $data['max_delivery_time'] = null;
-                $data['vendor_id'] = null;
-                $data['chat_permission'] = null;
-                $data['review_permission'] = null;
-                $data['store_business_model'] = null;
+                $storage[] = self::format_order_item($item);
             }
 
-            $data['item_campaign'] = 0;
-            foreach ($data->details as $d) {
-                if ($d->item_campaign_id != null) {
-                    $data['item_campaign'] = 1;
-                }
-            }
-            $data['delivery_address'] = is_array($data->delivery_address )? $data->delivery_address : json_decode($data->delivery_address, true);
-            $data['details_count'] = (int) $data->details->count();
-
-            unset($data['details']);
+            return $storage;
         }
 
-        $data = gettype($data) == 'object' ? $data->toArray() : $data;
+        $data = self::format_order_item($data);
 
-        return $data;
+        return gettype($data) == 'object' ? $data->toArray() : $data;
+    }
+
+    private static function format_order_item($item)
+    {
+        if (isset($item['store'])) {
+            $item['store_name'] = $item['store']['name'];
+            $item['store_address'] = $item['store']['address'];
+            $item['store_phone'] = $item['store']['phone'];
+            $item['store_lat'] = $item['store']['latitude'];
+            $item['store_lng'] = $item['store']['longitude'];
+            $item['store_logo'] = $item['store']['logo'];
+            $item['store_logo_full_url'] = $item['store']['logo_full_url'];
+            $item['min_delivery_time'] = $item['store'] ? (int) explode('-', $item['store']['delivery_time'])[0] ?? 0 : 0;
+            $item['max_delivery_time'] = $item['store'] ? (int) explode('-', $item['store']['delivery_time'])[1] ?? 0 : 0;
+            $item['vendor_id'] = $item['store']['vendor_id'];
+            $item['chat_permission'] = $item['store']['chat_permission'] ?? 0;
+            $item['review_permission'] = $item['store']['review_permission'] ?? 0;
+            $item['store_business_model'] = $item['store']['store_business_model'];
+
+            unset($item['store']);
+        } else {
+            $item['store_name'] = null;
+            $item['store_address'] = null;
+            $item['store_phone'] = null;
+            $item['store_lat'] = null;
+            $item['store_lng'] = null;
+            $item['store_logo'] = null;
+            $item['store_logo_full_url'] = null;
+            $item['min_delivery_time'] = null;
+            $item['max_delivery_time'] = null;
+            $item['vendor_id'] = null;
+            $item['chat_permission'] = null;
+            $item['review_permission'] = null;
+            $item['store_business_model'] = null;
+        }
+
+        $item['item_campaign'] = 0;
+        foreach ($item->details as $d) {
+            if ($d->item_campaign_id != null) {
+                $item['item_campaign'] = 1;
+            }
+        }
+
+        $item['delivery_address'] = is_array($item->delivery_address) ? $item->delivery_address : json_decode($item->delivery_address, true);
+        $item['details_count'] = (int) $item->details->count();
+        foreach (self::pro_discount_data($item) as $pro_key => $pro_value) {
+            $item[$pro_key] = $pro_value;
+        }
+
+        unset($item['details']);
+        unset($item['orderProDiscount']);
+
+        return $item;
     }
 
     public static function order_details_data_formatting($data)
@@ -1225,11 +927,11 @@ class Helpers
             $item['variation'] = json_decode($item['variation'], true);
             $item['item_details'] = json_decode($item['item_details'], true);
             if ($item['item_id']) {
-                $product = \App\Models\Item::where(['id' => $item['item_details']['id']])->first();
+                $product = Item::where(['id' => $item['item_details']['id']])->first();
                 $item['image_full_url'] = $product?->image_full_url;
                 $item['images_full_url'] = $product?->images_full_url;
             } else {
-                $product = \App\Models\ItemCampaign::where(['id' => $item['item_details']['id']])->first();
+                $product = ItemCampaign::where(['id' => $item['item_details']['id']])->first();
                 $item['image_full_url'] = $product?->image_full_url;
                 $item['images_full_url'] = [];
             }
@@ -1329,6 +1031,16 @@ class Helpers
             return null;
         }
 
+    }
+
+    public static function copyright_text()
+    {
+        return translate('Copyright') . ' ' . date('Y') . ' ' . self::get_business_settings('business_name', false) . '. ' . translate('All right reserved');
+    }
+
+    public static function copyright_placeholder()
+    {
+        return translate('Ex:') . ' ' . self::copyright_text();
     }
 
     public static function getPriorityList($name, $type, $relations = [], $json_decode = false)
@@ -1906,10 +1618,7 @@ class Helpers
         $store_discount_percentage = 0;
         $store_discount = null;
 
-        $running_flash_sale = FlashSaleItem::Active()->whereHas('flashSale', function ($query) {
-            $query->Active()->Running();
-        })
-            ->where(['item_id' => $product->id])->first();
+        $running_flash_sale = self::getRunningFlashSale($product->id);
 
         if ($running_flash_sale) {
             $discount_percentage = $running_flash_sale['discount'];
@@ -2509,6 +2218,49 @@ class Helpers
         return auth('vendor')->user()?->stores[0];
     }
 
+    public static function storeCategoryStatus(): bool
+    {
+        return (bool) (self::get_business_settings('store_category_status') ?? 0);
+    }
+
+    /**
+     * Returns true when the store has at least one StoreCategory row AND the
+     * feature is enabled globally. When `$storeId` is null the id is resolved
+     * from the auth context (vendor or vendor_employee). Returns false safely
+     * in any context where a store id cannot be resolved (e.g. admin or
+     * unauthenticated requests).
+     *
+     * Per-request memoization keeps repeated calls cheap (one SQL exists()).
+     */
+    public static function hasAnyStoreCategory(?int $storeId = null): bool
+    {
+        if (!self::storeCategoryStatus()) {
+            return false;
+        }
+
+        if ($storeId === null) {
+            if (auth('vendor_employee')->check()) {
+                $storeId = auth('vendor_employee')->user()->store->id ?? null;
+            } elseif (auth('vendor')->check()
+                && auth('vendor')->user()
+                && auth('vendor')->user()->stores
+                && auth('vendor')->user()->stores->isNotEmpty()
+            ) {
+                $storeId = (int) auth('vendor')->user()->stores[0]->id;
+            }
+        }
+
+        if (!$storeId) {
+            return false;
+        }
+
+        static $cache = [];
+        if (!isset($cache[$storeId])) {
+            $cache[$storeId] = \App\Models\StoreCategory::where('store_id', $storeId)->exists();
+        }
+        return $cache[$storeId];
+    }
+
     public static function getDisk()
     {
         $config = self::get_business_settings('local_storage');
@@ -2617,6 +2369,89 @@ class Helpers
         return false;
     }
 
+    public static function admin_workspace_modules()
+    {
+        return [
+            'module' => ['dashboard', 'pos', 'order', 'item', 'store', 'category', 'addon', 'attribute', 'unit', 'brand', 'banner', 'coupon', 'campaign', 'notification', 'advertisement', 'reels', 'common_condition', 'parcel', 'recommended_store', 'store_setups', 'promotion', 'ride', 'ride_promotion', 'fare', 'trip', 'vehicle', 'download_app'],
+            'users' => ['employee_role', 'employee', 'customer_management', 'customer_wallet', 'customer_loyalty_point', 'contact_messages', 'cashback', 'deliveryman', 'deliveryman_manage', 'ride_vehicle', 'rider', 'vehicle_category', 'driver', 'provider'],
+            'finance' => ['collect_cash', 'disbursement', 'provide_dm_earning', 'withdraw_list', 'deliveryman_payments'],
+            'reports' => ['report', 'expense_report', 'disbursement_report', 'transaction_report', 'vehicle_reports', 'provider_wise_report', 'provider_vat_reports', 'vendor_vat_report', 'trip_reports', 'trip_tax_report', 'ride_report', 'rental_report'],
+            'dispatch' => ['order', 'all_dispatch', 'order_ms', 'fleet_view', 'heat_map'],
+            'settings' => ['module', 'zone', 'settings', 'subscription', 'subscription_management', 'pro_customer_subscription', 'customer_management', 'system_tax', 'page_social_management', 'gallery', 'login_setup', 'email_setups', 'apps_setting', 'third_party-ms', 'clean_database', 'admin_text_module'],
+        ];
+    }
+
+    public static function admin_can_access_workspace($workspace)
+    {
+        $admin = auth('admin')->user();
+        if (!$admin || !$admin->role) {
+            return false;
+        }
+        if ($admin->role_id == 1) {
+            return true;
+        }
+        $modules = self::admin_workspace_modules()[$workspace] ?? [];
+        foreach ($modules as $module) {
+            if (self::module_permission_check($module)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function settings_workspace_landing_url()
+    {
+        if (self::module_permission_check('settings')) {
+            return route('admin.business-settings.business-setup');
+        }
+        if (self::module_permission_check('subscription')) {
+            return route('admin.business-settings.subscriptionackage.index');
+        }
+        if (self::module_permission_check('pro_customer_subscription')) {
+            return route('admin.pro-customer.benefits-setup');
+        }
+        if (self::module_permission_check('customer_management')) {
+            return route('admin.pro-customer.list');
+        }
+        return route('admin.business-settings.business-setup');
+    }
+
+    public static function admin_landing_url()
+    {
+        $admin = auth('admin')->user();
+        if (!$admin) {
+            return null;
+        }
+        if ($admin->role_id == 1 || self::module_permission_check('dashboard')) {
+            return route('admin.dashboard');
+        }
+        $candidates = [
+            ['pos', 'admin.pos.index', []],
+            ['order', 'admin.order.list', ['all']],
+            ['item', 'admin.item.list', []],
+            ['store', 'admin.store.list', []],
+            ['employee_role', 'admin.users.custom-role.create', []],
+            ['employee', 'admin.users.employee.list', []],
+            ['customer_management', 'admin.users.customer.list', []],
+            ['cashback', 'admin.users.cashback.add-new', []],
+            ['collect_cash', 'admin.transactions.account-transaction.index', []],
+            ['provide_dm_earning', 'admin.transactions.provide-deliveryman-earnings.index', []],
+            ['disbursement', 'admin.transactions.store-disbursement.list', []],
+            ['withdraw_list', 'admin.transactions.store.withdraw_list', []],
+            ['report', 'admin.transactions.report.day-wise-report', []],
+            ['module', 'admin.business-settings.module.index', []],
+            ['zone', 'admin.business-settings.zone.home', []],
+            ['settings', 'admin.business-settings.business-setup', []],
+        ];
+        foreach ($candidates as $candidate) {
+            [$module, $routeName, $params] = $candidate;
+            if (self::module_permission_check($module) && \Illuminate\Support\Facades\Route::has($routeName)) {
+                return route($routeName, $params);
+            }
+        }
+        return null;
+    }
+
     public static function employee_module_permission_check($mod_name)
     {
         if (auth('vendor')->check()) {
@@ -2631,6 +2466,9 @@ class Helpers
             }
             return true;
         } else if (auth('vendor_employee')->check()) {
+            if (!auth('vendor_employee')->user()->role) {
+                return false;
+            }
             $permission = auth('vendor_employee')->user()->role->modules;
             if (isset($permission) && in_array($mod_name, (array) json_decode($permission)) == true) {
                 if ($mod_name == 'reviews') {
@@ -2646,6 +2484,85 @@ class Helpers
             }
         }
 
+        return false;
+    }
+
+    public static function employee_landing_url()
+    {
+        if (!auth('vendor_employee')->check()) {
+            return null;
+        }
+        if (self::employee_module_permission_check('dashboard')) {
+            return null;
+        }
+        $candidates = [
+            ['pos', 'vendor.pos.index', []],
+            ['order', 'vendor.order.list', ['all']],
+            ['item', 'vendor.item.list', []],
+            ['campaign', 'vendor.campaign.list', []],
+            ['coupon', 'vendor.coupon.add-new', []],
+            ['banner', 'vendor.banner.list', []],
+            ['advertisement', 'vendor.advertisement.index', []],
+            ['wallet', 'vendor.wallet.index', []],
+            ['employee', 'vendor.employee.list', []],
+            ['role', 'vendor.custom-role.create', []],
+            ['reviews', 'vendor.reviews', []],
+            ['my_shop', 'vendor.shop.view', []],
+            ['store_setup', 'vendor.store-category.list', []],
+            ['chat', 'vendor.message.list', []],
+        ];
+        foreach ($candidates as $candidate) {
+            [$module, $routeName, $params] = $candidate;
+            if (!self::employee_module_permission_check($module)) {
+                continue;
+            }
+            if (!\Illuminate\Support\Facades\Route::has($routeName)) {
+                continue;
+            }
+            if (!self::vendor_route_subscription_ok($routeName, $module)) {
+                continue;
+            }
+            return route($routeName, $params);
+        }
+        return null;
+    }
+
+    public static function vendor_route_subscription_ok($routeName, $module)
+    {
+        $route = \Illuminate\Support\Facades\Route::getRoutes()->getByName($routeName);
+        $subscription_gated = false;
+        if ($route) {
+            foreach ($route->gatherMiddleware() as $mw) {
+                if (is_string($mw) && str_starts_with($mw, 'subscription')) {
+                    $subscription_gated = true;
+                    break;
+                }
+            }
+        }
+        if (!$subscription_gated) {
+            return true;
+        }
+        $store = self::get_store_data();
+        if (!$store || $store->store_business_model == 'commission') {
+            return true;
+        }
+        if ($store->store_business_model == 'subscription') {
+            $store_sub = $store->store_sub;
+            if ($store_sub == null) {
+                return false;
+            }
+            $package = [
+                'reviews' => $store_sub->review,
+                'pos' => $store_sub->pos,
+                'deliveryman' => $store_sub->self_delivery,
+                'deliveryman_list' => $store_sub->self_delivery,
+                'chat' => $store_sub->chat,
+            ];
+            if (array_key_exists($module, $package)) {
+                return $package[$module] == 1;
+            }
+            return true;
+        }
         return false;
     }
 
@@ -2689,6 +2606,40 @@ class Helpers
         return $envValue;
     }
 
+    public static function system_permission_check(): array
+    {
+        $permission['curl_enabled'] = function_exists('curl_version');
+        //extensions
+        $permission['curl'] = function_exists('curl_version');
+        $permission['bcmath'] = extension_loaded('bcmath');
+        $permission['ctype'] = extension_loaded('ctype');
+        $permission['json'] = extension_loaded('json');
+        $permission['mbstring'] = extension_loaded('mbstring');
+        $permission['openssl'] = extension_loaded('openssl');
+        $permission['pdo'] = defined('PDO::ATTR_DRIVER_NAME');
+        $permission['tokenizer'] = extension_loaded('tokenizer');
+        $permission['xml'] = extension_loaded('xml');
+        $permission['zip'] = extension_loaded('zip');
+        $permission['fileinfo'] = extension_loaded('fileinfo');
+        $permission['gd'] = extension_loaded('gd');
+        $permission['sodium'] = extension_loaded('sodium');
+        $permission['pdo_mysql'] = extension_loaded('pdo_mysql');
+        $permission['db_file_write_perm'] = is_writable(base_path('.env'));
+        $permission['config_file_write_perm'] = is_writable(base_path('config/system-addons.php'));
+        $permission['routes_file_write_perm'] = is_writable(base_path('app/Providers/RouteServiceProvider.php'));
+
+        return $permission;
+    }
+
+    public static function system_file_checks(): array
+    {
+        return [
+            'db_file_write_perm' => ['label' => '.env File Permission', 'path' => base_path('.env')],
+            'config_file_write_perm' => ['label' => 'config/system-addons.php File Permission', 'path' => base_path('config/system-addons.php')],
+            'routes_file_write_perm' => ['label' => 'RouteServiceProvider.php File Permission', 'path' => base_path('app/Providers/RouteServiceProvider.php')],
+        ];
+    }
+
 
     public static function insert_business_settings_key($key, $value = null)
     {
@@ -2718,151 +2669,7 @@ class Helpers
 
     public static function get_language_name($key)
     {
-        $languages = array(
-            "af" => "Afrikaans",
-            "sq" => "Albanian - shqip",
-            "am" => "Amharic - አማርኛ",
-            "ar" => "Arabic - العربية",
-            "an" => "Aragonese - aragonés",
-            "hy" => "Armenian - հայերեն",
-            "ast" => "Asturian - asturianu",
-            "az" => "Azerbaijani - azərbaycan dili",
-            "eu" => "Basque - euskara",
-            "be" => "Belarusian - беларуская",
-            "bn" => "Bengali - বাংলা",
-            "bs" => "Bosnian - bosanski",
-            "br" => "Breton - brezhoneg",
-            "bg" => "Bulgarian - български",
-            "ca" => "Catalan - català",
-            "ckb" => "Central Kurdish - کوردی (دەستنوسی عەرەبی)",
-            "zh" => "Chinese - 中文",
-            "zh-HK" => "Chinese (Hong Kong) - 中文（香港）",
-            "zh-CN" => "Chinese (Simplified) - 中文（简体）",
-            "zh-TW" => "Chinese (Traditional) - 中文（繁體）",
-            "co" => "Corsican",
-            "hr" => "Croatian - hrvatski",
-            "cs" => "Czech - čeština",
-            "da" => "Danish - dansk",
-            "nl" => "Dutch - Nederlands",
-            "en" => "English",
-            "en-AU" => "English (Australia)",
-            "en-CA" => "English (Canada)",
-            "en-IN" => "English (India)",
-            "en-NZ" => "English (New Zealand)",
-            "en-ZA" => "English (South Africa)",
-            "en-GB" => "English (United Kingdom)",
-            "en-US" => "English (United States)",
-            "eo" => "Esperanto - esperanto",
-            "et" => "Estonian - eesti",
-            "fo" => "Faroese - føroyskt",
-            "fil" => "Filipino",
-            "fi" => "Finnish - suomi",
-            "fr" => "French - français",
-            "fr-CA" => "French (Canada) - français (Canada)",
-            "fr-FR" => "French (France) - français (France)",
-            "fr-CH" => "French (Switzerland) - français (Suisse)",
-            "gl" => "Galician - galego",
-            "ka" => "Georgian - ქართული",
-            "de" => "German - Deutsch",
-            "de-AT" => "German (Austria) - Deutsch (Österreich)",
-            "de-DE" => "German (Germany) - Deutsch (Deutschland)",
-            "de-LI" => "German (Liechtenstein) - Deutsch (Liechtenstein)",
-            "de-CH" => "German (Switzerland) - Deutsch (Schweiz)",
-            "el" => "Greek - Ελληνικά",
-            "gn" => "Guarani",
-            "gu" => "Gujarati - ગુજરાતી",
-            "ha" => "Hausa",
-            "haw" => "Hawaiian - ʻŌlelo Hawaiʻi",
-            "he" => "Hebrew - עברית",
-            "hi" => "Hindi - हिन्दी",
-            "hu" => "Hungarian - magyar",
-            "is" => "Icelandic - íslenska",
-            "id" => "Indonesian - Indonesia",
-            "ia" => "Interlingua",
-            "ga" => "Irish - Gaeilge",
-            "it" => "Italian - italiano",
-            "it-IT" => "Italian (Italy) - italiano (Italia)",
-            "it-CH" => "Italian (Switzerland) - italiano (Svizzera)",
-            "ja" => "Japanese - 日本語",
-            "kn" => "Kannada - ಕನ್ನಡ",
-            "kk" => "Kazakh - қазақ тілі",
-            "km" => "Khmer - ខ្មែរ",
-            "ko" => "Korean - 한국어",
-            "ku" => "Kurdish - Kurdî",
-            "ky" => "Kyrgyz - кыргызча",
-            "lo" => "Lao - ລາວ",
-            "la" => "Latin",
-            "lv" => "Latvian - latviešu",
-            "ln" => "Lingala - lingála",
-            "lt" => "Lithuanian - lietuvių",
-            "mk" => "Macedonian - македонски",
-            "ms" => "Malay - Bahasa Melayu",
-            "ml" => "Malayalam - മലയാളം",
-            "mt" => "Maltese - Malti",
-            "mr" => "Marathi - मराठी",
-            "mn" => "Mongolian - монгол",
-            "ne" => "Nepali - नेपाली",
-            "no" => "Norwegian - norsk",
-            "nb" => "Norwegian Bokmål - norsk bokmål",
-            "nn" => "Norwegian Nynorsk - nynorsk",
-            "oc" => "Occitan",
-            "or" => "Oriya - ଓଡ଼ିଆ",
-            "om" => "Oromo - Oromoo",
-            "ps" => "Pashto - پښتو",
-            "fa" => "Persian - فارسی",
-            "pl" => "Polish - polski",
-            "pt" => "Portuguese - português",
-            "pt-BR" => "Portuguese (Brazil) - português (Brasil)",
-            "pt-PT" => "Portuguese (Portugal) - português (Portugal)",
-            "pa" => "Punjabi - ਪੰਜਾਬੀ",
-            "qu" => "Quechua",
-            "ro" => "Romanian - română",
-            "mo" => "Romanian (Moldova) - română (Moldova)",
-            "rm" => "Romansh - rumantsch",
-            "ru" => "Russian - русский",
-            "gd" => "Scottish Gaelic",
-            "sr" => "Serbian - српски",
-            "sh" => "Serbo-Croatian - Srpskohrvatski",
-            "sn" => "Shona - chiShona",
-            "sd" => "Sindhi",
-            "si" => "Sinhala - සිංහල",
-            "sk" => "Slovak - slovenčina",
-            "sl" => "Slovenian - slovenščina",
-            "so" => "Somali - Soomaali",
-            "st" => "Southern Sotho",
-            "es" => "Spanish - español",
-            "es-AR" => "Spanish (Argentina) - español (Argentina)",
-            "es-419" => "Spanish (Latin America) - español (Latinoamérica)",
-            "es-MX" => "Spanish (Mexico) - español (México)",
-            "es-ES" => "Spanish (Spain) - español (España)",
-            "es-US" => "Spanish (United States) - español (Estados Unidos)",
-            "su" => "Sundanese",
-            "sw" => "Swahili - Kiswahili",
-            "sv" => "Swedish - svenska",
-            "tg" => "Tajik - тоҷикӣ",
-            "ta" => "Tamil - தமிழ்",
-            "tt" => "Tatar",
-            "te" => "Telugu - తెలుగు",
-            "th" => "Thai - ไทย",
-            "ti" => "Tigrinya - ትግርኛ",
-            "to" => "Tongan - lea fakatonga",
-            "tr" => "Turkish - Türkçe",
-            "tk" => "Turkmen",
-            "tw" => "Twi",
-            "uk" => "Ukrainian - українська",
-            "ur" => "Urdu - اردو",
-            "ug" => "Uyghur",
-            "uz" => "Uzbek - o‘zbek",
-            "vi" => "Vietnamese - Tiếng Việt",
-            "wa" => "Walloon - wa",
-            "cy" => "Welsh - Cymraeg",
-            "fy" => "Western Frisian",
-            "xh" => "Xhosa",
-            "yi" => "Yiddish",
-            "yo" => "Yoruba - Èdè Yorùbá",
-            "zu" => "Zulu - isiZulu",
-        );
-        return array_key_exists($key, $languages) ? $languages[$key] : $key;
+        return array_key_exists($key, LANGUAGE_NAMES) ? LANGUAGE_NAMES[$key] : $key;
     }
 
     public static function get_view_keys()
@@ -3019,10 +2826,12 @@ class Helpers
                 if (isset($variation['values']) && isset($product_variation['values']) && $product_variation['name'] == $variation['name']) {
                     $result[$k] = $product_variation;
                     $result[$k]['values'] = [];
+                    $selected_labels = data_get($variation, 'values.label', []);
                     foreach ($product_variation['values'] as $key => $option) {
-                        if (in_array($option['label'], $variation['values']['label'])) {
+                        $label = data_get($option, 'label');
+                        if ($label !== null && in_array($label, $selected_labels)) {
                             $result[$k]['values'][] = $option;
-                            $variation_price += $option['optionPrice'];
+                            $variation_price += data_get($option, 'optionPrice', 0);
                         }
                     }
                 }
@@ -3070,8 +2879,9 @@ class Helpers
         foreach ($product as $product_variation) {
             foreach ($product_variation['values'] as $option) {
                 foreach ($match as $variation) {
-                    if ($product_variation['name'] == $variation['name'] && isset($variation['values']) && in_array($option['label'], $variation['values']['label'])) {
-                        $result += $option['optionPrice'];
+                    $label = data_get($option, 'label');
+                    if ($product_variation['name'] == $variation['name'] && $label !== null && in_array($label, data_get($variation, 'values.label', []))) {
+                        $result += data_get($option, 'optionPrice', 0);
                     }
                 }
             }
@@ -3114,166 +2924,6 @@ class Helpers
         return $data[0][0][0] ?? $q;
     }
 
-
-    public static function getLanguageCode(string $country_code): string
-    {
-        $locales = array(
-            'en-English(default)',
-            'af-Afrikaans',
-            'sq-Albanian - shqip',
-            'am-Amharic - አማርኛ',
-            'ar-Arabic - العربية',
-            'an-Aragonese - aragonés',
-            'hy-Armenian - հայերեն',
-            'ast-Asturian - asturianu',
-            'az-Azerbaijani - azərbaycan dili',
-            'eu-Basque - euskara',
-            'be-Belarusian - беларуская',
-            'bn-Bengali - বাংলা',
-            'bs-Bosnian - bosanski',
-            'br-Breton - brezhoneg',
-            'bg-Bulgarian - български',
-            'ca-Catalan - català',
-            'ckb-Central Kurdish - کوردی (دەستنوسی عەرەبی)',
-            'zh-Chinese - 中文',
-            'zh-HK-Chinese (Hong Kong) - 中文（香港）',
-            'zh-CN-Chinese (Simplified) - 中文（简体）',
-            'zh-TW-Chinese (Traditional) - 中文（繁體）',
-            'co-Corsican',
-            'hr-Croatian - hrvatski',
-            'cs-Czech - čeština',
-            'da-Danish - dansk',
-            'nl-Dutch - Nederlands',
-            'en-AU-English (Australia)',
-            'en-CA-English (Canada)',
-            'en-IN-English (India)',
-            'en-NZ-English (New Zealand)',
-            'en-ZA-English (South Africa)',
-            'en-GB-English (United Kingdom)',
-            'en-US-English (United States)',
-            'eo-Esperanto - esperanto',
-            'et-Estonian - eesti',
-            'fo-Faroese - føroyskt',
-            'fil-Filipino',
-            'fi-Finnish - suomi',
-            'fr-French - français',
-            'fr-CA-French (Canada) - français (Canada)',
-            'fr-FR-French (France) - français (France)',
-            'fr-CH-French (Switzerland) - français (Suisse)',
-            'gl-Galician - galego',
-            'ka-Georgian - ქართული',
-            'de-German - Deutsch',
-            'de-AT-German (Austria) - Deutsch (Österreich)',
-            'de-DE-German (Germany) - Deutsch (Deutschland)',
-            'de-LI-German (Liechtenstein) - Deutsch (Liechtenstein)
-            ',
-            'de-CH-German (Switzerland) - Deutsch (Schweiz)',
-            'el-Greek - Ελληνικά',
-            'gn-Guarani',
-            'gu-Gujarati - ગુજરાતી',
-            'ha-Hausa',
-            'haw-Hawaiian - ʻŌlelo Hawaiʻi',
-            'he-Hebrew - עברית',
-            'hi-Hindi - हिन्दी',
-            'hu-Hungarian - magyar',
-            'is-Icelandic - íslenska',
-            'id-Indonesian - Indonesia',
-            'ia-Interlingua',
-            'ga-Irish - Gaeilge',
-            'it-Italian - italiano',
-            'it-IT-Italian (Italy) - italiano (Italia)',
-            'it-CH-Italian (Switzerland) - italiano (Svizzera)',
-            'ja-Japanese - 日本語',
-            'kn-Kannada - ಕನ್ನಡ',
-            'kk-Kazakh - қазақ тілі',
-            'km-Khmer - ខ្មែរ',
-            'ko-Korean - 한국어',
-            'ku-Kurdish - Kurdî',
-            'ky-Kyrgyz - кыргызча',
-            'lo-Lao - ລາວ',
-            'la-Latin',
-            'lv-Latvian - latviešu',
-            'ln-Lingala - lingála',
-            'lt-Lithuanian - lietuvių',
-            'mk-Macedonian - македонски',
-            'ms-Malay - Bahasa Melayu',
-            'ml-Malayalam - മലയാളം',
-            'mt-Maltese - Malti',
-            'mr-Marathi - मराठी',
-            'mn-Mongolian - монгол',
-            'ne-Nepali - नेपाली',
-            'no-Norwegian - norsk',
-            'nb-Norwegian Bokmål - norsk bokmål',
-            'nn-Norwegian Nynorsk - nynorsk',
-            'oc-Occitan',
-            'or-Oriya - ଓଡ଼ିଆ',
-            'om-Oromo - Oromoo',
-            'ps-Pashto - پښتو',
-            'fa-Persian - فارسی',
-            'pl-Polish - polski',
-            'pt-Portuguese - português',
-            'pt-BR-Portuguese (Brazil) - português (Brasil)',
-            'pt-PT-Portuguese (Portugal) - português (Portugal)',
-            'pa-Punjabi - ਪੰਜਾਬੀ',
-            'qu-Quechua',
-            'ro-Romanian - română',
-            'mo-Romanian (Moldova) - română (Moldova)',
-            'rm-Romansh - rumantsch',
-            'ru-Russian - русский',
-            'gd-Scottish Gaelic',
-            'sr-Serbian - српски',
-            'sh-Serbo-Croatian - Srpskohrvatski',
-            'sn-Shona - chiShona',
-            'sd-Sindhi',
-            'si-Sinhala - සිංහල',
-            'sk-Slovak - slovenčina',
-            'sl-Slovenian - slovenščina',
-            'so-Somali - Soomaali',
-            'st-Southern Sotho',
-            'es-Spanish - español',
-            'es-AR-Spanish (Argentina) - español (Argentina)',
-            'es-419-Spanish (Latin America) - español (Latinoamérica)
-            ',
-            'es-MX-Spanish (Mexico) - español (México)',
-            'es-ES-Spanish (Spain) - español (España)',
-            'es-US-Spanish (United States) - español (Estados Unidos)
-            ',
-            'su-Sundanese',
-            'sw-Swahili - Kiswahili',
-            'sv-Swedish - svenska',
-            'tg-Tajik - тоҷикӣ',
-            'ta-Tamil - தமிழ்',
-            'tt-Tatar',
-            'te-Telugu - తెలుగు',
-            'th-Thai - ไทย',
-            'ti-Tigrinya - ትግርኛ',
-            'to-Tongan - lea fakatonga',
-            'tr-Turkish - Türkçe',
-            'tk-Turkmen',
-            'tw-Twi',
-            'uk-Ukrainian - українська',
-            'ur-Urdu - اردو',
-            'ug-Uyghur',
-            'uz-Uzbek - o‘zbek',
-            'vi-Vietnamese - Tiếng Việt',
-            'wa-Walloon - wa',
-            'cy-Welsh - Cymraeg',
-            'fy-Western Frisian',
-            'xh-Xhosa',
-            'yi-Yiddish',
-            'yo-Yoruba - Èdè Yorùbá',
-            'zu-Zulu - isiZulu',
-        );
-
-        foreach ($locales as $locale) {
-            $locale_region = explode('-', $locale);
-            if ($country_code == $locale_region[0]) {
-                return $locale_region[0];
-            }
-        }
-
-        return "en";
-    }
 
     public static function language_load()
     {
@@ -3455,77 +3105,22 @@ class Helpers
 
     public static function react_activation_check($react_domain, $react_license_code)
     {
-        $scheme = str_contains($react_domain, 'localhost') ? 'http://' : 'https://';
-        $url = empty(parse_url($react_domain)['scheme']) ? $scheme . ltrim($react_domain, '/') : $react_domain;
-        $response = Http::post('https://store.6amtech.com/api/v1/customer/license-check', [
-            'domain_name' => str_ireplace('www.', '', parse_url($url, PHP_URL_HOST)),
-            'license_code' => $react_license_code
-        ]);
-        return ($response->successful() && isset($response->json('content')['is_active']) && $response->json('content')['is_active']);
+        // NulledMaster: Always return true, no server verification
+        return true;
     }
 
     public static function activation_submit($purchase_key)
     {
-        $post = [
-            'purchase_key' => $purchase_key
-        ];
-        $live = 'https://check.6amtech.com';
-        $ch = curl_init($live . '/api/v1/software-check');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
-        $response = curl_exec($ch);
-
-        curl_close($ch);
-        $response_body = json_decode($response, true);
-
-        try {
-            if ($response_body['is_valid'] && $response_body['result']['item']['id'] == env('REACT_APP_KEY')) {
-                $previous_active = json_decode(BusinessSetting::where('key', 'app_activation')->first()->value ?? '[]');
-                $found = 0;
-                foreach ($previous_active as $key => $item) {
-                    if ($item->software_id == env('REACT_APP_KEY')) {
-                        $found = 1;
-                    }
-                }
-                if (!$found) {
-                    $previous_active[] = [
-                        'software_id' => env('REACT_APP_KEY'),
-                        'is_active' => 1
-                    ];
-                    Helpers::businessUpdateOrInsert(['key' => 'app_activation'], [
-                        'value' => json_encode($previous_active)
-                    ]);
-                }
-                return true;
-            }
-
-        } catch (\Exception $exception) {
-            info($exception->getMessage());
-
-            $previous_active[] = [
-                'software_id' => env('REACT_APP_KEY'),
-                'is_active' => 1
-            ];
-            Helpers::businessUpdateOrInsert(['key' => 'app_activation'], [
-                'value' => json_encode($previous_active)
-            ]);
-
-            return true;
-        }
-        return false;
+        // NulledMaster: Always return true, no server verification
+        return true;
     }
 
     public static function react_domain_status_check()
     {
+        // NulledMaster: Always set status to 1 (active)
         $data = self::get_business_settings('react_setup');
-        if ($data && isset($data['react_domain']) && isset($data['react_license_code'])) {
-            if (isset($data['react_platform']) && $data['react_platform'] == 'codecanyon') {
-                $data['status'] = (int) self::activation_submit($data['react_license_code']);
-            } elseif (!self::react_activation_check($data['react_domain'], $data['react_license_code'])) {
-                $data['status'] = 0;
-            } elseif ($data['status'] != 1) {
-                $data['status'] = 1;
-            }
+        if ($data && isset($data['react_domain'])) {
+            $data['status'] = 1;
             Helpers::businessUpdateOrInsert(['key' => 'react_setup'], [
                 'value' => json_encode($data)
             ]);
@@ -4859,6 +4454,22 @@ class Helpers
     }
 
 
+    public static function posCartSubtotal(): float
+    {
+        $subtotal = 0.0;
+        foreach ((array) session()->get('cart', []) as $cartItem) {
+            if (!is_array($cartItem)) {
+                continue;
+            }
+            $unit     = (float) ($cartItem['price'] ?? 0);
+            $quantity = (int)   ($cartItem['quantity'] ?? 0);
+            $addon    = (float) ($cartItem['addon_price'] ?? 0);
+            $discount = (float) ($cartItem['discount'] ?? 0);
+            $subtotal += ($unit * $quantity) + $addon - ($discount * $quantity);
+        }
+        return (float) max($subtotal, 0);
+    }
+
     public static function getFinalCalculatedTax($details_data, $additionalCharges, $totalDiscount, $price, $storeId, $storeData = true)
     {
         $addonIds = [];
@@ -4896,7 +4507,7 @@ class Helpers
                 // --- Addons
                 $addons = json_decode($item['add_ons'], true) ?? [];
                 $addonDiscount = $item['addon_discount'] ?? 0;
-                $addonTotalPrice = $item['total_add_on_price'] ?? 1; // Avoid division by zero
+                $addonTotalPrice = ($item['total_add_on_price'] ?? 0) > 0 ? $item['total_add_on_price'] : 1;
 
                 $addonDiscountTotal += $addonDiscount;
 
@@ -4924,7 +4535,7 @@ class Helpers
             $otherDiscounts = $totalDiscount - ($productDiscountTotal + $addonDiscountTotal);
 
             foreach ($tempList as $entry) {
-                $share = ($entry['base_final'] / $totalAfterOwnDiscounts) * $otherDiscounts;
+                $share = $totalAfterOwnDiscounts > 0 ? ($entry['base_final'] / $totalAfterOwnDiscounts) * $otherDiscounts : 0;
                 $finalPrice = $entry['base_final'] - $share;
 
                 if ($entry['type'] === 'product') {
@@ -4996,7 +4607,7 @@ class Helpers
         if (addon_published_status('TaxModule')) {
             $SystemTaxVat = \Modules\TaxModule\Entities\SystemTaxSetup::where('is_active', 1)
                 ->where('tax_payer', $tax_payer)->where('is_default', 1)->first();
-            if (!$SystemTaxVat) {
+            if (!$SystemTaxVat || ($SystemTaxVat && $SystemTaxVat?->is_included == 1)) {
                 return ['productWiseTax' => false, 'categoryWiseTax' => false, 'taxVats' => []];
             }
             if ($getTaxVatList) {
@@ -5304,6 +4915,34 @@ class Helpers
         return explode('/', $mimeType)[1] ?? '';
     }
 
+    public static function reel_matches_product(?int $reelId, ?string $productType, ?int $productId): bool
+    {
+        if (!$reelId || !$productType || !$productId || !Schema::hasTable('reels') || !Schema::hasColumn('reels', 'productable_id')) {
+            return false;
+        }
+
+        return DB::table('reels')
+            ->where('id', $reelId)
+            ->where('productable_type', $productType)
+            ->where('productable_id', $productId)
+            ->exists();
+    }
+
+    public static function resolve_reel_id_for_product(?int $reelId, ?string $productType, ?int $productId): ?int
+    {
+        return self::reel_matches_product($reelId, $productType, $productId) ? $reelId : null;
+    }
+
+    public static function resolve_reel_id(?int $reelId, ?int $itemId): ?int
+    {
+        return self::resolve_reel_id_for_product($reelId, \App\Models\Item::class, $itemId);
+    }
+
+    public static function resolve_reel_vehicle_id(?int $reelId, ?int $vehicleId): ?int
+    {
+        return self::resolve_reel_id_for_product($reelId, 'Modules\\Rental\\Entities\\Vehicle', $vehicleId);
+    }
+
     public static function seoPageList()
     {
         return [
@@ -5331,7 +4970,7 @@ class Helpers
 
     public static function getDecimalPlaces()
     {
-        $decimalPlaces = (int) config('round_up_to_digit');
+        $decimalPlaces = (int) config('round_up_to_digit') ?? 2;
          return number_format(pow(10, -$decimalPlaces), $decimalPlaces, '.', '');
 
     }
@@ -5419,6 +5058,30 @@ class Helpers
     public static function productVideoMaxUploadSizeMb(): int
     {
         return self::maxUploadSizeMb(PRODUCT_VIDEO_MAX_FILE_SIZE);
+    }
+
+    public static function host_base_domain(string $host): string
+    {
+        $host = strtolower(trim($host));
+
+        if ($host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)) {
+            return $host;
+        }
+
+        $labels = explode('.', $host);
+        if (count($labels) <= 2) {
+            return $host;
+        }
+
+        // Keep three labels when the second-to-last is a known second-level
+        // registrar label (co.uk, co.tz, com.bd, com.ng, org.uk, …). Matching
+        // the LABEL instead of a hardcoded full-suffix list covers every
+        // country's ccTLD — a fixed list of full suffixes always misses some
+        // (that's how sokogrocery.co.tz collapsed to "co.tz").
+        $secondLevelLabels = ['co', 'com', 'net', 'org', 'gov', 'edu', 'ac', 'go', 'or', 'ne', 'me', 'gen'];
+        $take = in_array($labels[count($labels) - 2], $secondLevelLabels, true) ? 3 : 2;
+
+        return implode('.', array_slice($labels, -$take));
     }
 
     public static function getStorageDiskByKey($model, string $key, string $default = 'public'): string
@@ -5595,6 +5258,10 @@ class Helpers
                 $visitor_log_type = 'App\Models\Item';
                 break;
 
+            case 'store':
+                $visitor_log_type = 'App\Models\Store';
+                break;
+
             default:
                 $visitor_log_type = 'App\Models\Item';
                 break;
@@ -5614,4 +5281,59 @@ class Helpers
 
     }
 
+    public static function check_website_builder_status()
+    {
+        // The vendor website builder targets storefront vendors only. Rental
+        // providers don't have a product storefront, so they never get the
+        // builder — regardless of the per-store flag.
+        $store = self::get_store_data();
+        if (($store?->module_type ?? null) === 'rental') {
+            return false;
+        }
+
+        $admin_website_builder_status = self::get_business_settings('admin_website_builder_status');
+        $vendor_website_builder_status = StoreConfig::where('store_id', self::get_store_id())->value('website_builder_status');
+
+        return $vendor_website_builder_status == 1 && $admin_website_builder_status == 1;
+    }
+
+    public static function send_push_notif_for_maintenance_mode($data, $topic, $type)
+    {
+        $postData = [
+            'message' => [
+                'topic' => $topic,
+                'data' => [
+                    'title' => (string) ($data['title'] ?? ''),
+                    'body' => (string) ($data['description'] ?? ''),
+                    'type' => (string) $type,
+                    'image' => (string) ($data['image'] ?? ''),
+                    'body_loc_key' => (string) $type,
+                ],
+            ],
+        ];
+        return self::sendNotificationToHttp($postData);
+    }
+
+    public static function is_vendor_panel_maintenance_active(): bool
+    {
+        if (!Cache::has('maintenance')) {
+            return false;
+        }
+
+        $maintenance = Cache::get('maintenance');
+
+        if (empty($maintenance['vendor_panel'])) {
+            return false;
+        }
+
+        if (($maintenance['maintenance_duration'] ?? null) === 'until_change') {
+            return true;
+        }
+
+        if (!empty($maintenance['start_date']) && !empty($maintenance['end_date'])) {
+            return Carbon::now()->between(Carbon::parse($maintenance['start_date']), Carbon::parse($maintenance['end_date']));
+        }
+
+        return true;
+    }
 }

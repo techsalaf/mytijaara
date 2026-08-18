@@ -52,6 +52,21 @@
             </div>
         </div>
         <div class="col-lg-4 col-sm-6">
+            <div class="item">
+                <div
+                    class="flex-shrink-0 warning rounded-10 w-40px aspect-1-1 d-flex justify-content-center align-items-center mb-3">
+                    <img src="{{ asset('public/assets/admin/img/report/4.svg') }}" alt="earning">
+                </div>
+                <div class="mb-2">{{ translate('messages.Pro Customer Discount') }}</div>
+                <h2 class="font-medium fs-24 fs-18-mobile mb-2">
+                    {{ App\CentralLogics\Helpers::format_currency($expenses['pro_discount_on_product'] ?? 0) }}
+                </h2>
+                <div class="fs-12 bg-light px-2 py-1 rounded-lg w-max-content">
+                    {{ $expenses['pro_discount_on_product_percentage'] ?? 0 }}% {{ translate('messages.of Total') }}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-sm-6">
             <div class="item border-right">
                 <div
                     class="flex-shrink-0 warning rounded-10 w-40px aspect-1-1 d-flex justify-content-center align-items-center mb-3">
@@ -82,6 +97,23 @@
                 </div>
             </div>
         </div>
+        @if(!in_array('parcel',$expenses['order_types']) && ($expenses['slightly_delay'] ?? 0) > 0)
+        <div class="col-lg-4 col-sm-6">
+            <div class="item">
+                <div
+                    class="flex-shrink-0 warning rounded-10 w-40px aspect-1-1 d-flex justify-content-center align-items-center mb-3">
+                    <img src="{{ asset('public/assets/admin/img/report/new/refunded.png') }}" alt="earning">
+                </div>
+                <div class="mb-2">{{ translate('messages.Slightly Delay Delivery Charge') }}</div>
+                <h2 class="font-medium fs-24 fs-18-mobile mb-2">
+                    {{ App\CentralLogics\Helpers::format_currency($expenses['slightly_delay']) }}
+                </h2>
+                <div class="fs-12 bg-light px-2 py-1 rounded-lg w-max-content">{{ $expenses['slightly_delay_percentage'] }}%
+                    {{ translate('messages.of Total') }}
+                </div>
+            </div>
+        </div>
+        @endif
         @if(!in_array('parcel',$expenses['order_types']) && $expenses['other'] > 0)
         <div class="col-lg-4 col-sm-6">
             <div class="item">

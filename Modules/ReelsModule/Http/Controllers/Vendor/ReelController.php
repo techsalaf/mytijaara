@@ -5,12 +5,14 @@ namespace Modules\ReelsModule\Http\Controllers\Vendor;
 use App\CentralLogics\Helpers;
 use App\Exceptions\InvalidUploadException;
 use App\Http\Controllers\Controller;
+use App\Models\Item;
 use Brian2694\Toastr\Facades\Toastr;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -39,8 +41,9 @@ class ReelController extends Controller
             ->appends($request->query());
 
         $overview = $this->getFilteredOverview($request, $store->id);
+        $overviewCards = $this->buildOverviewCards($overview);
 
-        return view('reelsmodule::vendor.reels.index', compact('reels', 'overview', 'store'));
+        return view('reelsmodule::vendor.reels.index', compact('reels', 'overview', 'overviewCards', 'store'));
     }
 
     public function create(): View|RedirectResponse
@@ -56,8 +59,12 @@ class ReelController extends Controller
             'status' => true,
         ]);
         $store = Helpers::get_store_data();
+        $items = $this->getStoreItems($store->id);
+        $selectedProductId = null;
+        $productLabel = $this->productLabel($store->id);
+        $actionLabel = $this->actionLabel($store->id);
 
-        return view('reelsmodule::vendor.reels.create', compact('language', 'defaultLang', 'reel', 'store'));
+        return view('reelsmodule::vendor.reels.create', compact('language', 'defaultLang', 'reel', 'store', 'items', 'selectedProductId', 'productLabel', 'actionLabel'));
     }
 
     public function store(ReelStoreRequest $request)
@@ -100,8 +107,12 @@ class ReelController extends Controller
         $language = getWebConfig('language') ?? [];
         $defaultLang = str_replace('_', '-', app()->getLocale());
         $store = Helpers::get_store_data();
+        $items = $this->getStoreItems($store->id);
+        $selectedProductId = $reel->productable_id;
+        $productLabel = $this->productLabel($store->id);
+        $actionLabel = $this->actionLabel($store->id);
 
-        return view('reelsmodule::vendor.reels.edit', compact('language', 'defaultLang', 'reel', 'store'));
+        return view('reelsmodule::vendor.reels.edit', compact('language', 'defaultLang', 'reel', 'store', 'items', 'selectedProductId', 'productLabel', 'actionLabel'));
     }
 
     public function update(ReelUpdateRequest $request, int $id)
@@ -206,7 +217,7 @@ class ReelController extends Controller
         $reelStatuses = array_values(array_filter((array) $request->input('reel_status', [])));
         $today = Carbon::today()->toDateString();
 
-        $query = Reel::with(['store', 'storage'])
+        $query = Reel::with(['store', 'storage', 'productable'])
             ->withCount([
                 'engagements as total_views' => fn (Builder $builder) => $builder->where('type', ReelEngagement::TYPE_VIEW),
                 'engagements as total_likes' => fn (Builder $builder) => $builder->where('type', ReelEngagement::TYPE_LIKE),
@@ -336,6 +347,64 @@ class ReelController extends Controller
                 ->where('type', ReelEngagement::TYPE_VISIT)
                 ->whereIn('reel_id', $reelIds)
                 ->count(),
+            'total_sale' => ReelEngagement::query()
+                ->where('type', ReelEngagement::TYPE_ORDER)
+                ->whereIn('reel_id', $reelIds)
+                ->count(),
+            'total_sale_amount' => (float) ReelEngagement::query()
+                ->where('type', ReelEngagement::TYPE_ORDER)
+                ->whereIn('reel_id', $reelIds)
+                ->sum('amount'),
+        ];
+    }
+
+    private function buildOverviewCards(array $overview): array
+    {
+        return [
+            [
+                'value' => $overview['total_reels'] ?? 0,
+                'label' => translate('messages.Total_Reels'),
+                'icon' => 'tio-video-camera-outlined',
+                'color' => 'text-purple',
+                'bg' => 'bg-purple bg-opacity-10',
+            ],
+            [
+                'value' => $overview['total_views'] ?? 0,
+                'label' => translate('messages.Total_Views'),
+                'icon' => 'tio-invisible',
+                'color' => 'text-info',
+                'bg' => 'bg-info bg-opacity-10',
+            ],
+            [
+                'value' => $overview['total_likes'] ?? 0,
+                'label' => translate('messages.Total_Likes'),
+                'icon' => 'tio-heart-outlined',
+                'color' => 'text-danger',
+                'bg' => 'bg-danger bg-opacity-10',
+            ],
+            [
+                'value' => $overview['total_store_visits'] ?? 0,
+                'label' => translate('messages.Store_Visits'),
+                'icon' => 'tio-home-vs-2-outlined',
+                'color' => 'text-success',
+                'bg' => 'bg-success bg-opacity-10',
+            ],
+            [
+                'value' => Helpers::format_currency($overview['total_sale_amount'] ?? 0),
+                'label' => translate('messages.Total_Sale_Amount'),
+                'tooltip' => translate('messages.Total_order_value_from_Reel_Order_Now_purchases'),
+                'icon' => 'tio-money',
+                'color' => 'text-primary',
+                'bg' => 'bg-primary bg-opacity-10',
+            ],
+            [
+                'value' => $overview['total_sale'] ?? 0,
+                'label' => translate('messages.Total_Sale'),
+                'tooltip' => translate('messages.Total_orders_placed_using_the_Reel_Order_Now_button'),
+                'icon' => 'tio-shopping-cart',
+                'color' => 'text-warning',
+                'bg' => 'bg-warning bg-opacity-10',
+            ],
         ];
     }
 
@@ -347,6 +416,10 @@ class ReelController extends Controller
         $reel->store_id = $store->id;
         $reel->module_id = (int) $store->module_id;
         $reel->module_type = (string) $store->module_type;
+        $product = $this->resolveReelProductable($request->input('product_id'), $store->id);
+        $reel->productable_type = $product['type'];
+        $reel->productable_id = $product['id'];
+        $reel->order_now_button = $request->boolean('order_now_button');
         $reel->description = $request->description[array_search('default', $request->lang)] ?? $request->description[0];
         $reel->is_always_visible = $request->boolean('is_always_visible');
         $reel->start_date = $reel->is_always_visible ? null : $startDate;
@@ -493,5 +566,94 @@ class ReelController extends Controller
             ->where('type', $type)
             ->whereHas('reel', fn (Builder $builder) => $builder->where('store_id', $storeId))
             ->count();
+    }
+
+    private function isRentalStore(?int $storeId): bool
+    {
+        if (!$storeId) {
+            return false;
+        }
+
+        return \App\Models\Store::with('module:id,module_type')->find($storeId)?->module?->module_type === 'rental';
+    }
+
+    private function productLabel(?int $storeId): string
+    {
+        return $this->isRentalStore($storeId) ? translate('messages.Vehicle') : translate('messages.Product');
+    }
+
+    private function actionLabel(?int $storeId): string
+    {
+        return $this->isRentalStore($storeId) ? translate('messages.Book_Now') : translate('messages.Order_Now');
+    }
+
+    private function getStoreItems(?int $storeId): Collection
+    {
+        if (!$storeId) {
+            return collect();
+        }
+
+        if ($this->isRentalStore($storeId)) {
+            if (!class_exists(\Modules\Rental\Entities\Vehicle::class)) {
+                return collect();
+            }
+
+            return \Modules\Rental\Entities\Vehicle::withoutGlobalScopes()
+                ->where('provider_id', $storeId)
+                ->where('status', 1)
+                ->orderBy('name')
+                ->get(['id', 'name', 'day_wise_price', 'hourly_price', 'distance_price'])
+                ->map(fn ($vehicle) => (object) [
+                    'id' => $vehicle->id,
+                    'name' => $vehicle->name,
+                    'price' => (float) ($vehicle->day_wise_price ?: $vehicle->hourly_price ?: $vehicle->distance_price),
+                ]);
+        }
+
+        // withoutGlobalScopes() bypasses Store/Zone scoping (the vendor panel
+        // has no zone header), but it also strips the model's `translate` scope
+        // that pins the always-eager-loaded `translations` to the current
+        // locale. Without that pin, ALL locales load and Item::getNameAttribute()
+        // returns the first translation row regardless of locale (e.g. Arabic),
+        // so re-apply the current-locale constraint here.
+        return Item::withoutGlobalScopes()
+            ->with(['translations' => function ($query) {
+                $query->where('locale', app()->getLocale());
+            }])
+            ->where('store_id', $storeId)
+            ->where('status', 1)
+            ->where('is_approved', 1)
+            ->orderBy('name')
+            ->get(['id', 'name', 'price']);
+    }
+
+    private function resolveReelProductable($productId, int $storeId): array
+    {
+        $productId = (int) $productId;
+        $empty = ['type' => null, 'id' => null];
+
+        if (!$productId) {
+            return $empty;
+        }
+
+        if ($this->isRentalStore($storeId)) {
+            if (!class_exists(\Modules\Rental\Entities\Vehicle::class)) {
+                return $empty;
+            }
+
+            $belongs = \Modules\Rental\Entities\Vehicle::withoutGlobalScopes()
+                ->where('id', $productId)
+                ->where('provider_id', $storeId)
+                ->exists();
+
+            return $belongs ? ['type' => \Modules\Rental\Entities\Vehicle::class, 'id' => $productId] : $empty;
+        }
+
+        $belongs = Item::withoutGlobalScopes()
+            ->where('id', $productId)
+            ->where('store_id', $storeId)
+            ->exists();
+
+        return $belongs ? ['type' => Item::class, 'id' => $productId] : $empty;
     }
 }

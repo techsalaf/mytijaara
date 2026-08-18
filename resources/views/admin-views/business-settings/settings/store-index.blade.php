@@ -19,9 +19,6 @@
         </div>
         <form action="{{ route('admin.business-settings.update-store') }}" method="post" enctype="multipart/form-data">
             @csrf
-            @php
-                $name = \App\Models\BusinessSetting::where('key', 'business_name')->first();
-            @endphp
 
             <div class="row g-3">
                 @php
@@ -89,6 +86,7 @@
                                             </div>
                                         </div>
                                     </div>
+
                                     <div class="col-lg-4 col-sm-6">
                                         @php
                                             $store_self_registration = \App\Models\BusinessSetting::where('key', 'toggle_store_registration')->first();
@@ -172,6 +170,7 @@
                                             </label>
                                         </div>
                                     </div>
+
                                     <div class="col-sm-6 col-lg-4 {{ $product_gallery == 1 ? ' ' : 'd-none' }}  access_all_products">
                                         @php
                                             $access_all_products = \App\Models\BusinessSetting::where('key', 'access_all_products')->first()?->value ?? 0;
@@ -211,6 +210,7 @@
                                             </label>
                                         </div>
                                     </div>
+
                                     <div class="col-lg-4 col-sm-6">
                                         @php
                                             $store_review_reply = \App\Models\BusinessSetting::where('key', 'store_review_reply')->first();
@@ -252,6 +252,7 @@
                                             </label>
                                         </div>
                                     </div>
+
                                     <div class="col-lg-4 col-sm-6">
                                         @php
                                             $verified_seller_badge = \App\Models\BusinessSetting::where('key', 'verified_seller_badge')->first();
@@ -293,6 +294,7 @@
                                             </label>
                                         </div>
                                     </div>
+
                                     <div class="col-lg-4 col-sm-6">
                                         @php
                                             $vendor_can_set_low_stock = \App\Models\BusinessSetting::where('key', 'vendor_can_set_low_stock')->first()?->value ?? 0;
@@ -333,6 +335,88 @@
                                             </label>
                                         </div>
                                     </div>
+
+                                    <div class="col-lg-4 col-sm-6">
+                                        @php
+                                            $store_category_status = \App\Models\BusinessSetting::where('key', 'store_category_status')->first()?->value ?? 0;
+                                        @endphp
+                                        <div class="form-group mb-0">
+                                            <span class="mb-2 d-flex align-items-center">
+                                                <span class="text-title">
+                                                    {{ translate('Vendor can Create Category') }}
+                                                </span>
+                                                <span class="form-label-secondary text-danger d-flex align-items-center gap-1"
+                                                    data-toggle="tooltip" data-placement="right"
+                                                    data-original-title="{{ translate('If_enabled,_vendors_can_create_and_manage_their_own_store_categories_separately_from_the_global_categories.') }}"><i class="tio-info text-muted ps--3"></i>
+                                                </span>
+                                            </span>
+                                            <label
+                                                class="toggle-switch h--45px toggle-switch-sm d-flex justify-content-between border rounded px-3 py-0 form-control">
+                                                <span class="pr-1 d-flex align-items-center switch--label">
+                                                    <span class="line--limit-1 text-title">
+                                                        {{ translate('Can Create') }}
+                                                    </span>
+                                                </span>
+
+                                                <input type="checkbox" data-id="store_category_status" data-type="toggle"
+                                                    data-image-on="{{ asset('/public/assets/admin/img/modal/info-warning.png') }}"
+                                                    data-image-off="{{ asset('/public/assets/admin/img/modal/info-warning.png') }}"
+                                                    data-title-on="<strong>{{ translate('Are you sure to enable Vendor Store Categories?') }}</strong>"
+                                                    data-title-off="<strong>{{ translate('Are you sure to disable Vendor Store Categories?') }}</strong>"
+                                                    data-text-on="{{ translate('If enabled, vendors can create and manage their own store categories from their panel.') }}"
+                                                    data-text-off="{{ translate('If disabled, vendors will not be able to create or manage their own store categories. Existing category assignments on items will remain but the menu will be hidden.') }}"
+                                                    data-footer-text-on="<div class='text-center text-info mt-5'>{{ translate('Note : Don’t forget to save the information before leaving this page ') }}</div>"
+                                                    data-footer-text-off="<div class='text-center text-info mt-5'>{{ translate('Note : Don’t forget to save the information before leaving this page ') }}</div>"
+                                                    class="status toggle-switch-input dynamic-checkbox-toggle"
+                                                    name="store_category_status" id="store_category_status" value="1"
+                                                    {{ $store_category_status ? 'checked' : '' }}>
+                                                <span class="toggle-switch-label text">
+                                                    <span class="toggle-switch-indicator"></span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-4 col-sm-6">
+                                        @php
+                                            $can_vendor_edit_order = \App\Models\BusinessSetting::where('key', 'can_vendor_edit_order')->first()?->value ?? 0;
+                                        @endphp
+                                        <div class="form-group mb-0">
+                                            <span class="mb-2 d-flex align-items-center">
+                                                <span class="text-title">
+                                                    {{ translate('Vendor can Edit Order') }}
+                                                </span>
+                                                <span class="form-label-secondary text-danger d-flex align-items-center gap-1"
+                                                    data-toggle="tooltip" data-placement="right"
+                                                    data-original-title="{{ translate('If_enabled,_vendors_can_edit_orders_placed_by_customers.') }} {{ translate('The admin must also enable this feature from the individual vendors settings for it to take effect.') }}"><i class="tio-info text-muted ps--3"></i>
+                                                </span>
+                                            </span>
+                                            <label
+                                                class="toggle-switch h--45px toggle-switch-sm d-flex justify-content-between border rounded px-3 py-0 form-control">
+                                                <span class="pr-1 d-flex align-items-center switch--label">
+                                                    <span class="line--limit-1 text-title">
+                                                        {{ translate('Can Edit') }}
+                                                    </span>
+                                                </span>
+
+                                                <input type="checkbox" data-id="can_vendor_edit_order" data-type="toggle"
+                                                    data-image-on="{{ asset('/public/assets/admin/img/modal/info-warning.png') }}"
+                                                    data-image-off="{{ asset('/public/assets/admin/img/modal/info-warning.png') }}"
+                                                    data-title-on="<strong>{{ translate('Are you sure to enable Vendor Can Edit Order?') }}</strong>"
+                                                    data-title-off="<strong>{{ translate('Are you sure to disable Vendor Can Edit Order?') }}</strong>"
+                                                    data-text-on="{{ translate('If enabled, vendors can edit orders placed by customers.') }} {{ translate('The vendor must also turn it on from their vendor panel for it to take effect.') }}"
+                                                    data-text-off="{{ translate('If disabled, vendors will not be able to edit orders placed by customers.') }}"
+                                                    data-footer-text-on="<div class='text-center text-info mt-5'>{{ translate('Note : Don’t forget to save the information before leaving this page ') }}</div>"
+                                                    data-footer-text-off="<div class='text-center text-info mt-5'>{{ translate('Note : Don’t forget to save the information before leaving this page ') }}</div>"
+                                                    class="status toggle-switch-input dynamic-checkbox-toggle"
+                                                    name="can_vendor_edit_order" id="can_vendor_edit_order" value="1"
+                                                    {{ $can_vendor_edit_order ? 'checked' : '' }}>
+                                                <span class="toggle-switch-label text">
+                                                    <span class="toggle-switch-indicator"></span>
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="info-notes-bg px-3 py-2 rounded fz-11  gap-2 align-items-center d-flex mt-20">
@@ -345,6 +429,70 @@
                             </div>
                         </div>
                     </div>
+
+                    @if (addon_published_status('Builder'))
+                    <div class="card mb-20" id="admin_website_builder_section">
+                        <div class="card-body">
+                            <div class="mb-20">
+                                <div class="row g-1 align-items-center">
+                                    <div class="col-xxl-9 col-lg-8 col-md-7 col-sm-6">
+                                        <div>
+                                            <h4 class="mb-1">
+                                                {{ translate('Vendor Website Builder') }}
+                                            </h4>
+                                            <p class="mb-0 fs-12">
+                                                {{ translate('Enable this option to allow vendors to set up and manage their own website.') }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="col-xxl-3 col-lg-4 col-md-5 col-sm-6">
+                                        <div class="">
+                                            @php
+                                                $admin_website_builder_status = \App\Models\BusinessSetting::where('key', 'admin_website_builder_status')->first()?->value ?? 0;
+                                                $admin_website_builder_datas = \App\Models\BusinessSetting::where('key', 'admin_website_builder_status')->first()?->value ?? '';
+                                                $admin_website_builder_datas = json_decode($admin_website_builder_datas, true);
+                                            @endphp
+                                            <div class="form-group mb-0">
+                                                <label
+                                                    class="toggle-switch h--45px toggle-switch-sm d-flex justify-content-between border rounded px-3 py-0 form-control">
+                                                    <span class="pr-1 d-flex align-items-center switch--label">
+                                                        <span class="line--limit-1">
+                                                            {{translate('Status') }}
+                                                        </span>
+                                                    </span>
+                                                    <input type="checkbox"
+                                                        data-id="admin_website_builder_status"
+                                                        data-type="toggle"
+                                                        data-image-on="{{ asset('/public/assets/admin/img/modal/store-reg-on.png') }}"
+                                                        data-image-off="{{ asset('/public/assets/admin/img/modal/store-reg-off.png') }}"
+                                                        data-title-on="<strong>{{translate('Are you sure to enable vendor Website setup?')}}</strong>"
+                                                        data-title-off="<strong>{{translate('Are you sure to disable vendor Website setup?')}}</strong>"
+                                                        data-text-on="<p>{{ translate('If enabled, vendors will have the freedom to create, edit, and manage their own websites independently.') }}</p>"
+                                                        data-text-off="<p>{{ translate('If disabled, vendors will not be able to create or manage their own websites.') }}</p>"
+                                                        class="status toggle-switch-input dynamic-checkbox-toggle"
+                                                        value="1"
+                                                        name="admin_website_builder_status" id="admin_website_builder_status"
+                                                        {{ $admin_website_builder_status == 1 ? 'checked' : '' }}>
+                                                    <span class="toggle-switch-label text">
+                                                        <span class="toggle-switch-indicator"></span>
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-notes-bg px-3 py-2 rounded fz-11 gap-2 align-items-center d-flex">
+                                <img src="{{asset('public/assets/admin/img/info-idea.svg')}}" alt="">
+                                <span>
+                                    {{ translate('Turning on this status only allows the feature. Each vendor must also turn it on from their own vendor panel for their website to go live.') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     <div class="card mb-20" id="product_approval_section">
                         <div class="card-body">
                             <div class="mb-20">

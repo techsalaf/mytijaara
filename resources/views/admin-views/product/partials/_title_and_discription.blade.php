@@ -6,7 +6,7 @@
                         {{ translate('messages.Basic Setup') }}
                     </h3>
                     <p class="fs-12 mb-0">
-                        {{ translate('messages.Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam odio tellus, laoreet ') }}
+                        {{ translate('messages.Provide the product name and short description. Add translations for each available language to display the product correctly across locales.') }}
                     </p>
                 </div>
                     <div class="__bg-F8F9FC-card p-xxl-20 p-3">

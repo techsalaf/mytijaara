@@ -27,7 +27,7 @@
         @endif
     </td>
     <td>
-        {{$item->stock}}
+        {{ max((int) $item->stock, 0) }}
     </td>
 
     <td>

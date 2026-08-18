@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\ConfigController;
+use App\Http\Controllers\Api\V1\ProCustomerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -82,6 +83,7 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
 
     // Module
     Route::get('module', 'ModuleController@index');
+    Route::get('module/top-offer', 'ModuleController@topOffer');
     Route::post('newsletter/subscribe','NewsletterController@index');
     Route::get('react-landing-page', 'ConfigController@react_landing_page')->middleware('actch:react_web');
     Route::get('flutter-landing-page', 'ConfigController@flutter_landing_page');
@@ -175,6 +177,9 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
         Route::get('all-orders', 'VendorController@get_all_orders');
         Route::put('update-order-status', 'VendorController@update_order_status');
         Route::put('update-order-amount', 'VendorController@edit_order_amount');
+        Route::put('update-order', 'VendorOrderEditController@update_order');
+        Route::get('get-searched-food', 'VendorOrderEditController@get_searched_foods');
+        Route::get('order-edit-log', 'VendorOrderEditController@get_edit_logs');
         Route::get('order-details', 'VendorController@get_order_details');
         Route::get('order', 'VendorController@get_order');
         Route::put('update-fcm-token', 'VendorController@update_fcm_token');
@@ -301,6 +306,22 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
             Route::get('stock-limit-list', 'ItemController@stock_limit_list');
         });
 
+        // Store Category (vendor's own)
+        Route::group(['prefix' => 'store-category'], function () {
+            Route::get('list', 'StoreCategoryController@list');
+            Route::get('details/{id}', 'StoreCategoryController@details');
+            Route::post('store', 'StoreCategoryController@store');
+            Route::post('update/{id}', 'StoreCategoryController@update');
+            Route::post('status', 'StoreCategoryController@status');
+            Route::post('priority', 'StoreCategoryController@priority');
+            Route::delete('delete', 'StoreCategoryController@delete');
+            Route::get('items/{id}', 'StoreCategoryController@getProducts');
+
+            // Assign items to a My Category
+            Route::get('assignable-items/{id}', 'StoreCategoryController@assignableItems');
+            Route::post('assign-items', 'StoreCategoryController@assignItems');
+        });
+
         // POS
         Route::group(['prefix'=>'pos'], function(){
             Route::get('orders', 'POSController@order_list');
@@ -343,8 +364,16 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
     Route::get('item/get-nutrition-name-list', 'ItemController@getNutritionNameList');
 
     Route::get('customer/order/parcel-instructions', 'OrderController@parcel_instructions');
+    Route::get('customer/order/last', 'OrderController@get_last_orders');
     Route::get('most-tips', 'OrderController@most_tips');
     Route::get('stores/details/{id}', 'StoreController@get_details');
+
+    // Pro Customer — public endpoints
+    Route::group(['prefix' => 'pro-customer'], function () {
+        Route::get('plans', [ProCustomerController::class, 'plans']);
+        Route::get('faqs', [ProCustomerController::class, 'faqs']);
+        Route::get('terms-and-conditions', [ProCustomerController::class, 'termsAndConditions']);
+    });
 
     Route::group(['middleware'=>['module-check']], function(){
         Route::group(['prefix' => 'customer', 'middleware' => 'auth:api'], function () {
@@ -404,9 +433,21 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
 
             Route::get('visit-again', 'OrderController@order_again');
             Route::get('recent-ordered-items', 'OrderController@get_recent_ordered_items');
+            Route::post('order-again/reorder', 'OrderController@reorderFromOrder');
+            Route::post('monthly-order/reorder', 'OrderController@reorderMonthly');
+            Route::get('monthly-order/list', 'OrderController@listMonthlySubscriptions');
+            Route::get('monthly-order/details', 'OrderController@monthlySubscriptionDetails');
+            Route::delete('monthly-order/remove', 'OrderController@removeMonthlySubscription');
 
             Route::get('review-reminder', 'CustomerController@review_reminder');
             Route::get('review-reminder-cancel', 'CustomerController@review_reminder_cancel');
+
+            // Pro Customer — auth endpoints
+            Route::prefix('pro-customer')->group(function () {
+                Route::post('subscribe', [ProCustomerController::class, 'subscribe']);
+                Route::post('cancel', [ProCustomerController::class, 'cancel']);
+                Route::get('active-offer', [ProCustomerController::class, 'activeOffer']);
+            });
 
         });
         Route::group(['prefix' => 'customer', 'middleware' => 'apiGuestCheck'], function () {
@@ -419,6 +460,7 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
                 Route::post('get-Tax', 'OrderController@getTaxFromCart');
                 Route::post('prescription/place', 'OrderController@prescription_place_order');
                 Route::put('cancel', 'OrderController@cancel_order');
+                Route::delete('delete', 'OrderController@delete_order');
                 Route::post('refund-request', 'OrderController@refund_request');
                 Route::get('refund-reasons', 'OrderController@refund_reasons');
                 Route::get('track', 'OrderController@track_order')->withoutMiddleware('auth:apiGuestCheck');
@@ -434,11 +476,14 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
 
             Route::group(['prefix'=>'cart'], function() {
                 Route::get('list', 'CartController@get_carts');
+                Route::get('get-all', 'CartController@get_all_carts');
                 Route::post('add', 'CartController@add_to_cart');
+                Route::post('add-multiple', 'CartController@add_to_cart_multiple');
                 Route::post('update', 'CartController@update_cart');
                 Route::delete('remove-item', 'CartController@remove_cart_item');
                 Route::delete('remove', 'CartController@remove_cart');
             });
+
 
         });
 
@@ -462,7 +507,7 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
             Route::get('recommended', 'ItemController@get_recommended');
             Route::get('basic', 'ItemController@get_popular_basic_products');
             Route::get('suggested', 'ItemController@get_cart_suggest_products');
-            Route::get('item-or-store-search', 'ItemController@item_or_store_search');
+            Route::get('item-or-store-search', 'ItemController@item_or_store_search')->withoutMiddleware(['module-check']);
             Route::post('reviews/submit', 'ItemController@submit_product_review')->middleware('auth:api');
             Route::get('common-conditions', 'ItemController@get_store_condition_products');
             Route::get('get-products', 'ItemController@get_products');
@@ -470,7 +515,9 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
 
         Route::group(['prefix' => 'stores'], function () {
             Route::get('get-stores/{filter_data}', 'StoreController@get_stores');
+            Route::get('verified', 'StoreController@get_verified_stores');
             Route::get('latest', 'StoreController@get_latest_stores');
+            Route::get('distance', 'StoreController@get_distance_wise_stores');
             Route::get('popular', 'StoreController@get_popular_stores');
             Route::get('recommended', 'StoreController@get_recommended_stores');
             Route::get('discounted', 'StoreController@get_discounted_stores');
@@ -480,12 +527,19 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
             Route::get('search', 'StoreController@get_searched_stores');
             Route::get('get-data', 'StoreController@get_combined_data');
             Route::get('top-offer-near-me', 'StoreController@get_top_offer_near_me');
+            Route::get('quick-delivery', 'StoreController@get_quick_delivery_stores');
+            Route::get('exclusive-deals', 'StoreController@get_exclusive_deals');
         });
         Route::get('get-combined-data', 'SearchController@get_combined_data');
+        Route::get('trending-searches', 'SearchController@getTrendingSearches')->withoutMiddleware(['module-check']);
 
         Route::group(['prefix' => 'banners'], function () {
             Route::get('/', 'BannerController@get_banners');
             Route::get('{store_id}/', 'BannerController@get_store_banners');
+        });
+
+        Route::group(['prefix' => 'smart-banners'], function () {
+            Route::get('/', 'SmartBannerController@get_banners')->withoutMiddleware(['module-check']);
         });
 
         Route::group(['prefix' => 'other-banners'], function () {
@@ -504,6 +558,7 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
             Route::get('stores/{category_id}', 'CategoryController@get_stores');
             Route::get('featured/items', 'CategoryController@get_featured_category_products');
             Route::get('popular', 'CategoryController@get_popular_category_list');
+            Route::get('top', 'CategoryController@get_top_categories')->withoutMiddleware(['module-check']);
         });
 
         Route::group(['prefix' => 'common-condition'], function () {
@@ -541,10 +596,20 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>'localization'], function (
         Route::get('parcel-category','ParcelCategoryController@index');
         Route::get('advertisement/list', 'AdvertisementController@get_adds');
 
+        Route::group(['prefix' => 'store-categories'], function () {
+            Route::get('/', 'StoreCategoryController@getCategories');
+            Route::get('store/{storeId}', 'StoreCategoryController@getByStore');
+            Route::get('items', 'StoreCategoryController@getCategoriesWithItems');
+        });
+    });
+    Route::group(['prefix' => 'offers'], function () {
+        Route::get('items', 'ItemController@getOfferItems');
+        Route::get('stores', 'ItemController@getOfferStores');
     });
     Route::get('vehicle/extra_charge', 'ConfigController@extra_charge');
     Route::get('get-vehicles', 'ConfigController@get_vehicles');
     Route::get('get-parcel-cancellation-reasons', 'ConfigController@parcel_cancellation_reason');
 
     Route::get('get-page-meta-data', [ConfigController::class, 'getPageMetaData']);
+
 });

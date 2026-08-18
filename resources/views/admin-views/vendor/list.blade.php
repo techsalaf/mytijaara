@@ -104,7 +104,7 @@
                 <div class="search--button-wrapper">
                     <h5 class="card-title">{{translate('messages.stores_list')}}</h5>
 
-                @if(!isset(auth('admin')->user()->zone_id))
+                @if(!auth('admin')?->user()?->zone_id)
                 <div class="select-item min--280">
                     <select name="zone_id" class="form-control js-select2-custom set-filter" data-url="{{url()->full()}}" data-filter="zone_id">
                         <option value="" {{!request('zone_id')?'selected':''}}>{{ translate('messages.All_Zones') }}</option>
@@ -127,7 +127,7 @@
                         </div>
                         <!-- End Search -->
                     </form>
-                    @if(request()->get('search'))
+                    @if(request()->input('search'))
                     <button type="reset" class="btn btn--primary ml-2 location-reload-to-base" data-url="{{url()->full()}}">{{translate('messages.reset')}}</button>
                     @endif
 
@@ -200,9 +200,7 @@
                                         <div class="info max-w-200px">
                                             <div title="{{ $store?->name }}" class="text--title ">
                                                 {{Str::limit($store->name,20,'...')}}
-                                                @if ($verified_seller_badge == 1 && $store->storeConfig?->verified_seller)
-                                                    <img src="{{ asset('public/assets/admin/img/checked-badge.svg') }}" alt="" class="rounded-0 w-auto h-auto object-contain">
-                                                @endif
+                                                @include('partials._verified_store_badge', ['store' => $store])
                                             </div>
                                             <div class="font-light">
                                                 {{translate('messages.id')}}:{{$store->id}}

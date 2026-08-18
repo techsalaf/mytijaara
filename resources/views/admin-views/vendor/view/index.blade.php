@@ -49,9 +49,7 @@
                                 <div class="info-area mb-20">
                                     <h3 class="fs-20 mb-0 fw-bold text--title d-flex align-items-center gap-2">
                                         {{ $store->name }}
-                                        @if ($verified_seller_badge == 1 && $store->storeConfig?->verified_seller)
-                                            <img src="{{ asset('public/assets/admin/img/badge-rounded-circle.svg') }}" alt="" class="rounded-0 w-auto h-auto object-contain">
-                                        @endif
+                                        @include('partials._verified_store_badge', ['store' => $store])
                                     </h3>
                                     <span class="fs-12 lh--12 text-8797AB">{{ translate('Created at') }} {{ \App\CentralLogics\Helpers::date_format($store->created_at) }}</span>
                                 </div>

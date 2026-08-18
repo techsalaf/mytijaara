@@ -10,6 +10,7 @@ Route::group([
     'middleware' => ['admin', 'module:reels', 'current-module', 'actch:admin_panel'],
 ], function () {
     Route::get('/', [ReelController::class, 'index'])->name('index');
+    Route::get('/items', [ReelController::class, 'items'])->name('items');
     Route::get('/create', [ReelController::class, 'create'])->name('create');
     Route::post('/store', [ReelController::class, 'store'])->name('store');
     Route::get('/{id}/edit', [ReelController::class, 'edit'])->name('edit');

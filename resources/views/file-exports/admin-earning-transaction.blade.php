@@ -9,6 +9,8 @@
                     {{ translate('messages.Expense_Report') }}
                 @elseif(($data['type'] ?? 'order') === 'subscription')
                     {{ translate('messages.Subscription_Earnings') }}
+                @elseif(($data['type'] ?? 'order') === 'pro_customer')
+                    {{ translate('messages.Pro_Customer_Subscription') }}
                 @else
                     {{ translate('messages.Earnings') }}
                 @endif
@@ -29,6 +31,8 @@
                     {{ translate('messages.Expense_Source') }}
                 @elseif(($data['type'] ?? 'order') === 'subscription')
                     {{ translate('messages.Transaction_Type') }}
+                @elseif(($data['type'] ?? 'order') === 'pro_customer')
+                    {{ translate('messages.Plan') }}
                 @else
                     {{ translate('messages.Earning_Source') }}
                 @endif

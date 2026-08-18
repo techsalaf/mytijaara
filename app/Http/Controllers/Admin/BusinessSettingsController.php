@@ -84,6 +84,8 @@ class BusinessSettingsController extends Controller
                 'new_customer_discount_validity_type',
                 'new_customer_discount_amount',
                 'new_customer_discount_amount_validity',
+                'pro_member_status',
+                'customer_personalization_status',
             ];
 
             $data = BusinessSetting::whereIn('key', $keys)
@@ -304,7 +306,9 @@ class BusinessSettingsController extends Controller
             'product_approval' => $request['product_approval'],
             'access_all_products' => $request['access_all_products'],
             'product_gallery' => $request['product_gallery'],
-
+            'admin_website_builder_status' => $request['admin_website_builder_status'] ?? 0,
+            'store_category_status' => $request['store_category_status'] ?? 0,
+            'can_vendor_edit_order' => $request['can_vendor_edit_order'] ?? 0
         ];
 
         foreach ($storeSettings as $key => $value) {
@@ -367,6 +371,8 @@ class BusinessSettingsController extends Controller
             'takeaway_status' => 'takeaway_status',
             'schedule_order_slot_duration_time_format' => 'schedule_order_slot_duration_time_format',
             'extra_packaging_charge_status' => 'extra_packaging_charge_status',
+            'repeat_order_option' => 'repeat_order_option',
+            'monthly_order_reminder' => 'monthly_order_reminder',
         ];
 
         if ($request->order_cancelation_rate_limit_status && $request->order_cancelation_rate_warning_limit > $request->order_cancelation_rate_block_limit) {
@@ -451,7 +457,6 @@ class BusinessSettingsController extends Controller
             'dm_disbursement_waiting_time',
             'dm_disbursement_create_time',
             'dm_disbursement_min_amount',
-            'system_php_path',
         ];
 
 
@@ -461,128 +466,9 @@ class BusinessSettingsController extends Controller
             ]);
         }
 
-        $data = self::generateCronCommand(disbursement_type: $request['disbursement_type']);
-
-        if (function_exists('exec')) {
-           $scriptPath = 'script.sh';
-            exec('sh ' . $scriptPath);
-        } elseif ($request['disbursement_type'] === 'automated') {
-            Session::flash('disbursement_exec', true);
-            Toastr::warning(
-                translate('messages.Servers_PHP_exec_function_is_disabled_check_dependencies_&_start_cron_job_manualy_in_server')
-            );
-        }
-
-           Helpers::businessUpdateOrInsert(['key' => 'store_disbursement_command'], [
-                'value' => $data['storeCronCommand'],
-            ]);
-            Helpers::businessUpdateOrInsert(['key' => 'dm_disbursement_command'], [
-                'value' => $data['dmCronCommand'],
-            ]);
-
         Toastr::success(translate('messages.successfully_updated_disbursement_functionality'));
 
         return back();
-    }
-
-    private function dmSchedule()
-    {
-        $key = [
-            'dm_disbursement_time_period',
-            'dm_disbursement_week_start',
-            'dm_disbursement_create_time',
-        ];
-        $settings = array_column(BusinessSetting::whereIn('key', $key)->get()->toArray(), 'value', 'key');
-
-        $scheduleFrequency = $settings['dm_disbursement_time_period'] ?? 'daily';
-        $weekDay = $settings['dm_disbursement_week_start'] ?? 'sunday';
-        $time = $settings['dm_disbursement_create_time'] ?? '12:00';
-
-        $time = explode(':', $time);
-
-        $hour = $time[0];
-        $min = $time[1];
-
-        $days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        $day = array_search($weekDay, $days);
-        $schedule = '* * * * *';
-        if ($scheduleFrequency == 'daily') {
-            $schedule = $min . ' ' . $hour . ' ' . '* * *';
-        } elseif ($scheduleFrequency == 'weekly') {
-
-            $schedule = $min . ' ' . $hour . ' ' . '* * ' . $day;
-        } elseif ($scheduleFrequency == 'monthly') {
-            $schedule = $min . ' ' . $hour . ' ' . '28-31 * *';
-        }
-
-        return $schedule;
-    }
-
-    private function storeSchedule()
-    {
-        $key = [
-            'store_disbursement_time_period',
-            'store_disbursement_week_start',
-            'store_disbursement_create_time',
-        ];
-        $settings = array_column(BusinessSetting::whereIn('key', $key)->get()->toArray(), 'value', 'key');
-
-        $scheduleFrequency = $settings['store_disbursement_time_period'] ?? 'daily';
-        $weekDay = $settings['store_disbursement_week_start'] ?? 'sunday';
-        $time = $settings['store_disbursement_create_time'] ?? '12:00';
-
-        $time = explode(':', $time);
-
-        $hour = $time[0];
-        $min = $time[1];
-
-        $days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        $day = array_search($weekDay, $days);
-        $schedule = '* * * * *';
-        if ($scheduleFrequency == 'daily') {
-            $schedule = $min . ' ' . $hour . ' ' . '* * *';
-        } elseif ($scheduleFrequency == 'weekly') {
-
-            $schedule = $min . ' ' . $hour . ' ' . '* * ' . $day;
-        } elseif ($scheduleFrequency == 'monthly') {
-            $schedule = $min . ' ' . $hour . ' ' . '28-31 * *';
-        }
-
-        return $schedule;
-    }
-
-    private function generateCronCommand($disbursement_type = 'automated')
-    {
-        try {
-            $system_php_path = BusinessSetting::where('key', 'system_php_path')->first();
-            $system_php_path = $system_php_path ? $system_php_path->value : '/usr/bin/php';
-            $dmSchedule = self::dmSchedule();
-            $storeSchedule = self::storeSchedule();
-            $scriptFilename = $_SERVER['SCRIPT_FILENAME'];
-            $rootPath = dirname($scriptFilename);
-            $phpCommand = $system_php_path;
-            $dmScriptPath = $rootPath . '/artisan dm:disbursement';
-            $storeScriptPath = $rootPath . '/artisan store:disbursement';
-            $dmClearCronCommand = "(crontab -l | grep -v \"$phpCommand $dmScriptPath\") | crontab -";
-            $dmCronCommand = $disbursement_type == 'automated' ? "(crontab -l ; echo \"$dmSchedule $phpCommand $dmScriptPath\") | crontab -" : '';
-            $storeClearCronCommand = "(crontab -l | grep -v \"$phpCommand $storeScriptPath\") | crontab -";
-            $storeCronCommand = $disbursement_type == 'automated' ? "(crontab -l ; echo \"$storeSchedule $phpCommand $storeScriptPath\") | crontab -" : '';
-            $scriptContent = "#!/bin/bash\n";
-            $scriptContent .= $dmClearCronCommand . "\n";
-            $scriptContent .= $dmCronCommand . "\n";
-            $scriptContent .= $storeClearCronCommand . "\n";
-            $scriptContent .= $storeCronCommand . "\n";
-            $scriptFilePath = $rootPath . '/script.sh';
-            file_put_contents($scriptFilePath, $scriptContent);
-
-        } catch (\Exception $exception) {
-              info($exception->getMessage());
-        }
-
-        return [
-            'dmCronCommand' => $dmCronCommand ?? '',
-            'storeCronCommand' => $storeCronCommand ?? '',
-        ];
     }
 
     public function business_setup(Request $request)
@@ -1175,51 +1061,6 @@ class BusinessSettingsController extends Controller
         $setting->save();
     }
 
-    public function currency_store(Request $request)
-    {
-        $request->validate([
-            'currency_code' => 'required|unique:currencies',
-        ]);
-
-        Currency::create([
-            'country' => $request['country'],
-            'currency_code' => $request['currency_code'],
-            'currency_symbol' => $request['symbol'],
-            'exchange_rate' => $request['exchange_rate'],
-        ]);
-        Toastr::success(translate('messages.currency_added_successfully'));
-
-        return back();
-    }
-
-    public function currency_edit($id)
-    {
-        $currency = Currency::find($id);
-
-        return view('admin-views.business-settings.currency-update', compact('currency'));
-    }
-
-    public function currency_update(Request $request, $id)
-    {
-        Currency::where(['id' => $id])->update([
-            'country' => $request['country'],
-            'currency_code' => $request['currency_code'],
-            'currency_symbol' => $request['symbol'],
-            'exchange_rate' => $request['exchange_rate'],
-        ]);
-        Toastr::success(translate('messages.currency_updated_successfully'));
-
-        return redirect('vendor-panel/business-settings/currency-add');
-    }
-
-    public function currency_delete($id)
-    {
-        Currency::where(['id' => $id])->delete();
-        Toastr::success(translate('messages.currency_deleted_successfully'));
-
-        return back();
-    }
-
     private function update_data($request, $key_data)
     {
         $data = DataSetting::firstOrNew(
@@ -1427,7 +1268,21 @@ class BusinessSettingsController extends Controller
             return view('admin-views.business-settings.fcm-index-rental');
         }
 
-        return view('admin-views.business-settings.fcm-index');
+        $subscription_reminder_before_time = DataSetting::where(['key' => 'subscription_reminder_before_time', 'type' => 'notification_settings'])->first()?->value ?? 0;
+        $subscription_reminder_before = DataSetting::where(['key' => 'subscription_reminder_before', 'type' => 'notification_settings'])->first()?->value ?? 'days';
+
+        $subscription_reminder_enabled = NotificationMessage::where('key', 'subscription_expire_reminder')
+            ->where('status', 1)
+            ->exists();
+
+        $monthly_order_reminder = NotificationMessage::where('key', 'monthly_order_reminder')->first();
+
+        return view('admin-views.business-settings.fcm-index', compact(
+            'subscription_reminder_before_time',
+            'subscription_reminder_before',
+            'subscription_reminder_enabled',
+            'monthly_order_reminder'
+        ));
     }
 
     public function fcm_config()
@@ -1456,6 +1311,7 @@ class BusinessSettingsController extends Controller
                 'messagingSenderId' => $request->messagingSenderId,
                 'appId' => $request->appId,
                 'measurementId' => $request->measurementId,
+                'vapidKey' => $request->vapidKey,
             ]),
         ]);
         self::firebase_message_config_file_gen();
@@ -1468,13 +1324,13 @@ class BusinessSettingsController extends Controller
     {
         $config = Helpers::get_business_settings('fcm_credentials');
 
-        $apiKey = $config['apiKey'] ?? '';
-        $authDomain = $config['authDomain'] ?? '';
-        $projectId = $config['projectId'] ?? '';
-        $storageBucket = $config['storageBucket'] ?? '';
+        $apiKey            = $config['apiKey'] ?? '';
+        $authDomain        = $config['authDomain'] ?? '';
+        $projectId         = $config['projectId'] ?? '';
+        $storageBucket     = $config['storageBucket'] ?? '';
         $messagingSenderId = $config['messagingSenderId'] ?? '';
-        $appId = $config['appId'] ?? '';
-        $measurementId = $config['measurementId'] ?? '';
+        $appId             = $config['appId'] ?? '';
+        $measurementId     = $config['measurementId'] ?? '';
 
         $filePath = base_path('firebase-messaging-sw.js');
 
@@ -1485,9 +1341,13 @@ class BusinessSettingsController extends Controller
                 }
             }
 
+            // Modern compat SDK (10.x) with onBackgroundMessage + click
+            // routing. Single SW shared by host's legacy push paths and
+            // Builder storefront customers — Builder's click handler
+            // routes by data.type into /profile?page=orders / inbox.
             $fileContent = <<<JS
-                importScripts('https://www.gstatic.com/firebasejs/8.3.2/firebase-app.js');
-                importScripts('https://www.gstatic.com/firebasejs/8.3.2/firebase-messaging.js');
+                importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
+                importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
 
                 firebase.initializeApp({
                     apiKey: "$apiKey",
@@ -1500,12 +1360,49 @@ class BusinessSettingsController extends Controller
                 });
 
                 const messaging = firebase.messaging();
-                messaging.setBackgroundMessageHandler(function (payload) {
-                    return self.registration.showNotification(payload.data.title, {
-                        body: payload.data.body ? payload.data.body : '',
-                        icon: payload.data.icon ? payload.data.icon : ''
+
+                messaging.onBackgroundMessage((payload) => {
+                    const data = payload.data || {};
+                    const title = data.title || (payload.notification && payload.notification.title) || "Notification";
+                    const body  = data.body  || (payload.notification && payload.notification.body)  || "";
+                    const image = data.image || (payload.notification && payload.notification.image) || undefined;
+
+                    self.registration.showNotification(title, {
+                        body,
+                        icon: image,
+                        data,
                     });
                 });
+
+                self.addEventListener("notificationclick", (event) => {
+                    event.notification.close();
+                    const data = event.notification.data || {};
+                    const url = resolveTargetUrl(data);
+
+                    event.waitUntil(
+                        self.clients
+                            .matchAll({ type: "window", includeUncontrolled: true })
+                            .then((windowClients) => {
+                                const existing = windowClients.find((c) => c.url.startsWith(self.location.origin));
+                                if (existing) {
+                                    existing.focus();
+                                    return existing.navigate(url);
+                                }
+                                return self.clients.openWindow(url);
+                            }),
+                    );
+                });
+
+                function resolveTargetUrl(data) {
+                    const base = self.location.origin;
+                    if (data && data.type === "order_status" && data.order_id) {
+                        return base + "/profile?page=orders&orderId=" + encodeURIComponent(data.order_id);
+                    }
+                    if (data && data.type === "message") {
+                        return base + "/profile?page=inbox";
+                    }
+                    return base + "/";
+                }
                 JS;
 
             if (file_put_contents($filePath, $fileContent) === false) {
@@ -1518,324 +1415,113 @@ class BusinessSettingsController extends Controller
 
     public function update_fcm_messages(Request $request)
     {
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'order_pending_message')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
+        $moduleType = $request->module_type;
+        $languages = $request->lang ?? [];
+        $enIndex = array_search('en', $languages);
+
+        // [request_field, status_field, db_key, parcel_supported]
+        $messages = [
+            ['pending_message',                'pending_status',                      'order_pending_message',          true],
+            ['confirm_message',                'confirm_status',                      'order_confirmation_msg',         true],
+            ['processing_message',             'processing_status',                   'order_processing_message',       false],
+            ['order_handover_message',         'order_handover_message_status',       'order_handover_message',         false],
+            ['order_refunded_message',         'order_refunded_message_status',       'order_refunded_message',         false],
+            ['refund_request_canceled',        'refund_request_canceled_status',      'refund_request_canceled',        false],
+            ['out_for_delivery_message',       'out_for_delivery_status',             'out_for_delivery_message',       true],
+            ['delivered_message',              'delivered_status',                    'order_delivered_message',        true],
+            ['delivery_boy_assign_message',    'delivery_boy_assign_status',          'delivery_boy_assign_message',    true],
+            ['delivery_boy_delivered_message', 'delivery_boy_delivered_status',       'delivery_boy_delivered_message', true],
+            ['order_cancled_message',          'order_cancled_message_status',        'order_cancled_message',          true],
+            ['offline_order_accept_message',   'offline_order_accept_message_status', 'offline_order_accept_message',   true],
+            ['offline_order_deny_message',     'offline_order_deny_message_status',   'offline_order_deny_message',     true],
+        ];
+
+        foreach ($messages as [$requestKey, $statusKey, $dbKey, $parcelSupported]) {
+            if (!$parcelSupported && $moduleType == 'parcel') {
+                continue;
+            }
+
+            $notification = NotificationMessage::where('module_type', $moduleType)
+                ->where('key', $dbKey)
+                ->first() ?? new NotificationMessage;
+            $notification->key = $dbKey;
+            $notification->module_type = $moduleType;
+            $this->writeNotificationFields($notification, $request, $requestKey, $statusKey, $languages, $enIndex);
         }
 
-        $notification->key = 'order_pending_message';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->pending_message[array_search('en', $request->lang)];
-        $notification->status = $request['pending_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->pending_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->pending_message[$index]]
+        if ($request->has('monthly_order_reminder')) {
+            $monthlyReminder = NotificationMessage::where('key', 'monthly_order_reminder')->first() ?? new NotificationMessage;
+            $monthlyReminder->key = 'monthly_order_reminder';
+            $monthlyReminder->module_type = null;
+            $this->writeNotificationFields($monthlyReminder, $request, 'monthly_order_reminder', 'monthly_order_reminder_status', $languages, $enIndex);
+
+            Helpers::businessUpdateOrInsert(['key' => 'monthly_order_reminder_days_before'], [
+                'value' => $request->monthly_order_reminder_days_before ?? 3,
+            ]);
+            Helpers::businessUpdateOrInsert(['key' => 'monthly_order_reminder_before_unit'], [
+                'value' => $request->monthly_order_reminder_before_unit ?? 'day',
+            ]);
+        }
+
+        // Subscription notifications (global, not module-scoped)
+        if (Helpers::get_business_settings('pro_member_status') == 1) {
+            if ($request->has('subscription_reminder_before_time')) {
+                DataSetting::updateOrInsert(
+                    ['key' => 'subscription_reminder_before_time', 'type' => 'notification_settings'],
+                    ['value' => $request->subscription_reminder_before_time]
                 );
             }
-        }
-
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'order_confirmation_msg')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
-        }
-
-        $notification->key = 'order_confirmation_msg';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->confirm_message[array_search('en', $request->lang)];
-        $notification->status = $request['confirm_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->confirm_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->confirm_message[$index]]
+            if ($request->has('subscription_reminder_before')) {
+                DataSetting::updateOrInsert(
+                    ['key' => 'subscription_reminder_before', 'type' => 'notification_settings'],
+                    ['value' => $request->subscription_reminder_before]
                 );
             }
-        }
-        if ($request->module_type != 'parcel') {
 
-            $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'order_processing_message')->first();
-            if ($notification == null) {
-                $notification = new NotificationMessage;
-            }
+            $subscriptionKeys = [
+                'subscription_expire_reminder' => 'subscription_expire_reminder_status',
+                'subscription_activated'       => 'subscription_activated_status',
+                'subscription_expired'         => 'subscription_expired_status',
+                'subscription_canceled'        => 'subscription_canceled_status',
+            ];
 
-            $notification->key = 'order_processing_message';
-            $notification->module_type = $request->module_type;
-            $notification->message = $request->processing_message[array_search('en', $request->lang)];
-            $notification->status = $request['processing_status'] == 1 ? 1 : 0;
-            $notification->save();
-            foreach ($request->lang as $index => $key) {
-                if ($request->processing_message[$index]) {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\NotificationMessage',
-                            'translationable_id' => $notification->id,
-                            'locale' => $key,
-                            'key' => $notification->key,
-                        ],
-                        ['value' => $request->processing_message[$index]]
-                    );
+            foreach ($subscriptionKeys as $msgKey => $statusKey) {
+                if (!$request->has($msgKey)) {
+                    continue;
                 }
-            }
 
-            $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'order_handover_message')->first();
-            if ($notification == null) {
-                $notification = new NotificationMessage;
-            }
-
-            $notification->key = 'order_handover_message';
-            $notification->module_type = $request->module_type;
-            $notification->message = $request->order_handover_message[array_search('en', $request->lang)];
-            $notification->status = $request['order_handover_message_status'] == 1 ? 1 : 0;
-            $notification->save();
-            foreach ($request->lang as $index => $key) {
-                if ($request->order_handover_message[$index]) {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\NotificationMessage',
-                            'translationable_id' => $notification->id,
-                            'locale' => $key,
-                            'key' => $notification->key,
-                        ],
-                        ['value' => $request->order_handover_message[$index]]
-                    );
-                }
-            }
-
-            $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'order_refunded_message')->first();
-            if ($notification == null) {
-                $notification = new NotificationMessage;
-            }
-
-            $notification->key = 'order_refunded_message';
-            $notification->module_type = $request->module_type;
-            $notification->message = $request->order_refunded_message[array_search('en', $request->lang)];
-            $notification->status = $request['order_refunded_message_status'] == 1 ? 1 : 0;
-            $notification->save();
-            foreach ($request->lang as $index => $key) {
-                if ($request->order_refunded_message[$index]) {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\NotificationMessage',
-                            'translationable_id' => $notification->id,
-                            'locale' => $key,
-                            'key' => $notification->key,
-                        ],
-                        ['value' => $request->order_refunded_message[$index]]
-                    );
-                }
-            }
-
-            $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'refund_request_canceled')->first();
-
-            if ($notification == null) {
-                $notification = new NotificationMessage;
-            }
-
-            $notification->key = 'refund_request_canceled';
-            $notification->module_type = $request->module_type;
-            $notification->message = $request->refund_request_canceled[array_search('en', $request->lang)];
-            $notification->status = $request['refund_request_canceled_status'] == 1 ? 1 : 0;
-            $notification->save();
-            foreach ($request->lang as $index => $key) {
-                if ($request->refund_request_canceled[$index]) {
-                    Translation::updateOrInsert(
-                        [
-                            'translationable_type' => 'App\Models\NotificationMessage',
-                            'translationable_id' => $notification->id,
-                            'locale' => $key,
-                            'key' => $notification->key,
-                        ],
-                        ['value' => $request->refund_request_canceled[$index]]
-                    );
-                }
-            }
-        }
-
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'out_for_delivery_message')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
-        }
-
-        $notification->key = 'out_for_delivery_message';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->out_for_delivery_message[array_search('en', $request->lang)];
-        $notification->status = $request['out_for_delivery_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->out_for_delivery_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->out_for_delivery_message[$index]]
-                );
-            }
-        }
-
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'order_delivered_message')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
-        }
-
-        $notification->key = 'order_delivered_message';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->delivered_message[array_search('en', $request->lang)];
-        $notification->status = $request['delivered_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->delivered_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->delivered_message[$index]]
-                );
-            }
-        }
-
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'delivery_boy_assign_message')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
-        }
-
-        $notification->key = 'delivery_boy_assign_message';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->delivery_boy_assign_message[array_search('en', $request->lang)];
-        $notification->status = $request['delivery_boy_assign_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->delivery_boy_assign_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->delivery_boy_assign_message[$index]]
-                );
-            }
-        }
-
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'delivery_boy_delivered_message')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
-        }
-
-        $notification->key = 'delivery_boy_delivered_message';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->delivery_boy_delivered_message[array_search('en', $request->lang)];
-        $notification->status = $request['delivery_boy_delivered_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->delivery_boy_delivered_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->delivery_boy_delivered_message[$index]]
-                );
-            }
-        }
-
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'order_cancled_message')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
-        }
-
-        $notification->key = 'order_cancled_message';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->order_cancled_message[array_search('en', $request->lang)];
-        $notification->status = $request['order_cancled_message_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->order_cancled_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->order_cancled_message[$index]]
-                );
-            }
-        }
-
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'offline_order_accept_message')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
-        }
-
-        $notification->key = 'offline_order_accept_message';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->offline_order_accept_message[array_search('en', $request->lang)];
-        $notification->status = $request['offline_order_accept_message_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->offline_order_accept_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->offline_order_accept_message[$index]]
-                );
-            }
-        }
-
-        $notification = NotificationMessage::where('module_type', $request->module_type)->where('key', 'offline_order_deny_message')->first();
-        if ($notification == null) {
-            $notification = new NotificationMessage;
-        }
-
-        $notification->key = 'offline_order_deny_message';
-        $notification->module_type = $request->module_type;
-        $notification->message = $request->offline_order_deny_message[array_search('en', $request->lang)];
-        $notification->status = $request['offline_order_deny_message_status'] == 1 ? 1 : 0;
-        $notification->save();
-        foreach ($request->lang as $index => $key) {
-            if ($request->offline_order_deny_message[$index]) {
-                Translation::updateOrInsert(
-                    [
-                        'translationable_type' => 'App\Models\NotificationMessage',
-                        'translationable_id' => $notification->id,
-                        'locale' => $key,
-                        'key' => $notification->key,
-                    ],
-                    ['value' => $request->offline_order_deny_message[$index]]
-                );
+                $notification = NotificationMessage::where('key', $msgKey)->first() ?? new NotificationMessage;
+                $notification->key = $msgKey;
+                $notification->module_type = null;
+                $this->writeNotificationFields($notification, $request, $msgKey, $statusKey, $languages, $enIndex);
             }
         }
 
         Toastr::success(translate('messages.message_updated'));
 
         return back();
+    }
+
+    private function writeNotificationFields(NotificationMessage $notification, Request $request, string $requestKey, string $statusKey, array $languages, $enIndex): void
+    {
+        $messages = $request->input($requestKey, []);
+        $notification->message = $messages[$enIndex] ?? '';
+        $notification->status = $request->input($statusKey) == 1 ? 1 : 0;
+        $notification->save();
+
+        foreach ($languages as $index => $locale) {
+            if (!empty($messages[$index])) {
+                Translation::updateOrInsert(
+                    [
+                        'translationable_type' => 'App\Models\NotificationMessage',
+                        'translationable_id' => $notification->id,
+                        'locale' => $locale,
+                        'key' => $notification->key,
+                    ],
+                    ['value' => $messages[$index]]
+                );
+            }
+        }
     }
 
     public function update_fcm_messages_rental(Request $request)
@@ -2121,115 +1807,144 @@ class BusinessSettingsController extends Controller
             'apple_login_status',
             'email_verification_status',
             'phone_verification_status',
+            'send_otp_via',
         ])->get(['key', 'value'])->toArray(), 'value', 'key');
 
-        return view('admin-views.login-setup.login_page', compact('data'));
+        $social_login = [];
+        foreach (['social_login', 'apple_login'] as $login_key) {
+            foreach (Helpers::get_business_settings($login_key) ?? [] as $social) {
+                $social_login[$social['login_medium']] = (bool) $social['status'];
+            }
+        }
+
+        $google_login_status = (bool) ($social_login['google'] ?? false);
+        $facebook_login_status = (bool) ($social_login['facebook'] ?? false);
+        $apple_login_status = (bool) ($social_login['apple'] ?? false);
+        $is_firebase_active = (bool) (Helpers::get_business_settings('firebase_otp_verification') ?? 0);
+        $is_sms_active = Setting::where('is_active', 1)
+            ->whereJsonContains('live_values->status', '1')
+            ->where('settings_type', 'sms_config')
+            ->exists();
+        $is_mail_active = (bool) config('mail.status');
+
+        return view('admin-views.login-setup.login_page', compact(
+            'data',
+            'google_login_status',
+            'facebook_login_status',
+            'apple_login_status',
+            'is_firebase_active',
+            'is_sms_active',
+            'is_mail_active'
+        ));
     }
 
     public function login_settings_update(Request $request)
     {
         $social_login = [];
-        $social_login_data = Helpers::get_business_settings('social_login') ?? [];
-        foreach ($social_login_data as $social) {
-            $social_login[$social['login_medium']] = (bool) $social['status'];
-        }
-        $social_login_data = Helpers::get_business_settings('apple_login') ?? [];
-        foreach ($social_login_data as $social) {
-            $social_login[$social['login_medium']] = (bool) $social['status'];
+        foreach (['social_login', 'apple_login'] as $login_key) {
+            foreach (Helpers::get_business_settings($login_key) ?? [] as $social) {
+                $social_login[$social['login_medium']] = (bool) $social['status'];
+            }
         }
 
-        $is_firebase_active = Helpers::get_business_settings('firebase_otp_verification') ?? 0;
+        $manual_login_status = (bool) $request['manual_login_status'];
+        $otp_login_status = (bool) $request['otp_login_status'];
+        $social_login_status = (bool) $request['social_login_status'];
+        $google_login_status = (bool) $request['google_login_status'];
+        $facebook_login_status = (bool) $request['facebook_login_status'];
+        $apple_login_status = (bool) $request['apple_login_status'];
+        $email_verification_status = (bool) $request['email_verification_status'];
+        $phone_verification_status = (bool) $request['phone_verification_status'];
 
-        $is_sms_active = Setting::whereJsonContains('live_values->status', '1')->where('settings_type', 'sms_config')->exists();
+        $is_firebase_active = (bool) (Helpers::get_business_settings('firebase_otp_verification') ?? 0);
+        $is_sms_active = Setting::where('is_active', 1)
+            ->whereJsonContains('live_values->status', '1')
+            ->where('settings_type', 'sms_config')
+            ->exists();
+        $is_mail_active = (bool) config('mail.status');
 
-        $is_mail_active = config('mail.status');
+        $selected_socials = [
+            'google' => $google_login_status,
+            'facebook' => $facebook_login_status,
+            'apple' => $apple_login_status,
+        ];
+        $is_misconfigured = fn (string $medium) => $social_login_status
+            && $selected_socials[$medium]
+            && empty($social_login[$medium]);
 
-        if (!$request['manual_login_status'] && !$request['otp_login_status'] && !$request['social_login_status']) {
-            Session::flash('select-one-method', true);
+        $response = match (true) {
+            ! $manual_login_status && ! $otp_login_status && ! $social_login_status => (function () {
+                Session::flash('select-one-method', true);
 
-            return back();
-        }
+                return back();
+            })(),
+            $otp_login_status && ! $is_sms_active && ! $is_firebase_active => (function () {
+                Session::flash('sms-config', true);
 
-        if ($request['otp_login_status'] && !$is_sms_active && !$is_firebase_active) {
-            Session::flash('sms-config', true);
+                return back();
+            })(),
+            $otp_login_status && ! $phone_verification_status => (function () {
+                Toastr::error(translate('messages.Phone verification is required when OTP login is enabled.'));
 
-            return back();
-        }
-
-        if (!$request['manual_login_status'] && !$request['otp_login_status'] && $request['social_login_status']) {
-            if (!$request['google_login_status'] && !$request['facebook_login_status']) {
+                return back()->withInput();
+            })(),
+            ! $manual_login_status && ! $otp_login_status && $social_login_status && ! $google_login_status && ! $facebook_login_status => (function () {
                 Session::flash('select-one-method-android', true);
 
                 return back();
-            }
+            })(),
+            $social_login_status && ! $google_login_status && ! $facebook_login_status && ! $apple_login_status => (function () {
+                Session::flash('select-one-method-social-login', true);
+
+                return back();
+            })(),
+            $is_misconfigured('google') => (function () {
+                Session::flash('setup-google', true);
+
+                return back();
+            })(),
+            $is_misconfigured('facebook') => (function () {
+                Session::flash('setup-facebook', true);
+
+                return back();
+            })(),
+            $is_misconfigured('apple') => (function () {
+                Session::flash('setup-apple', true);
+
+                return back();
+            })(),
+            $phone_verification_status && ! $is_sms_active && ! $is_firebase_active => (function () {
+                Session::flash('sms-config-verification', true);
+
+                return back();
+            })(),
+            $email_verification_status && ! $is_mail_active => (function () {
+                Session::flash('mail-config-verification', true);
+
+                return back();
+            })(),
+            default => null,
+        };
+
+        if ($response) {
+            return $response;
         }
-        if ($request['social_login_status'] && !$request['google_login_status'] && !$request['facebook_login_status'] && !$request['apple_login_status']) {
-            Session::flash('select-one-method-social-login', true);
 
-            return back();
+        $settings = [
+            'manual_login_status' => $manual_login_status ? 1 : 0,
+            'otp_login_status' => $otp_login_status ? 1 : 0,
+            'social_login_status' => $social_login_status ? 1 : 0,
+            'google_login_status' => $social_login_status && $google_login_status ? 1 : 0,
+            'facebook_login_status' => $social_login_status && $facebook_login_status ? 1 : 0,
+            'apple_login_status' => $social_login_status && $apple_login_status ? 1 : 0,
+            'email_verification_status' => $email_verification_status ? 1 : 0,
+            'phone_verification_status' => $phone_verification_status ? 1 : 0,
+            'send_otp_via' => $request['send_otp_via'] ?? 'sms',
+        ];
+
+        foreach ($settings as $key => $value) {
+            Helpers::businessUpdateOrInsert(['key' => $key], ['value' => $value]);
         }
-
-        if (($request['social_login_status'] && $request['google_login_status'] && !isset($social_login['google'])) || ($request['social_login_status'] && ($request['google_login_status'] && isset($social_login['google'])) && !$social_login['google'])) {
-            Session::flash('setup-google', true);
-
-            return back();
-        }
-
-        if (($request['social_login_status'] && $request['facebook_login_status'] && !isset($social_login['facebook'])) || ($request['social_login_status'] && ($request['facebook_login_status'] && isset($social_login['facebook'])) && !$social_login['facebook'])) {
-            Session::flash('setup-facebook', true);
-
-            return back();
-        }
-
-        if (($request['social_login_status'] && $request['apple_login_status'] && !isset($social_login['apple'])) || ($request['social_login_status'] && ($request['apple_login_status'] && isset($social_login['apple'])) && !$social_login['apple'])) {
-            Session::flash('setup-apple', true);
-
-            return back();
-        }
-
-        if ($request['phone_verification_status'] && !$is_sms_active && !$is_firebase_active) {
-            Session::flash('sms-config-verification', true);
-
-            return back();
-        }
-
-        if ($request['email_verification_status'] && !$is_mail_active) {
-            Session::flash('mail-config-verification', true);
-
-            return back();
-        }
-
-        Helpers::businessUpdateOrInsert(['key' => 'manual_login_status'], [
-            'value' => $request['manual_login_status'] ? 1 : 0,
-        ]);
-
-        Helpers::businessUpdateOrInsert(['key' => 'otp_login_status'], [
-            'value' => $request['otp_login_status'] ? 1 : 0,
-        ]);
-
-        Helpers::businessUpdateOrInsert(['key' => 'social_login_status'], [
-            'value' => $request['social_login_status'] ? 1 : 0,
-        ]);
-
-        Helpers::businessUpdateOrInsert(['key' => 'google_login_status'], [
-            'value' => $request['social_login_status'] ? ($request['google_login_status'] ? 1 : 0) : 0,
-        ]);
-
-        Helpers::businessUpdateOrInsert(['key' => 'facebook_login_status'], [
-            'value' => $request['social_login_status'] ? ($request['facebook_login_status'] ? 1 : 0) : 0,
-        ]);
-
-        Helpers::businessUpdateOrInsert(['key' => 'apple_login_status'], [
-            'value' => $request['social_login_status'] ? ($request['apple_login_status'] ? 1 : 0) : 0,
-        ]);
-
-        Helpers::businessUpdateOrInsert(['key' => 'email_verification_status'], [
-            'value' => $request['email_verification_status'] ? 1 : 0,
-        ]);
-
-        Helpers::businessUpdateOrInsert(['key' => 'phone_verification_status'], [
-            'value' => $request['phone_verification_status'] ? 1 : 0,
-        ]);
 
         Toastr::success(translate('messages.login_settings_data_updated_successfully'));
 
@@ -5647,6 +5362,125 @@ class BusinessSettingsController extends Controller
         return back();
     }
 
+    public function react_ride_share_page_settings($tab)
+    {
+        if (addon_published_status('RideShare') != 1) {
+            abort(404);
+        }
+
+        $base = 'admin-views.business-settings.landing-page-settings.';
+        $views = [
+            'hero' => 'react-ride-share-page-hero',
+        ];
+
+        if (!isset($views[$tab])) {
+            abort(404);
+        }
+
+        return view($base . $views[$tab]);
+    }
+
+    public function update_react_ride_share_page_settings(Request $request, $tab)
+    {
+        if (getEnvMode() == 'demo') {
+            Toastr::info(translate('messages.update_option_is_disable_for_demo'));
+            return back();
+        }
+
+        if (addon_published_status('RideShare') != 1) {
+            abort(404);
+        }
+
+        $keyPrefix = '';
+        if (str_starts_with($tab, 'rider-')) {
+            $keyPrefix = 'rider_';
+            $tab = substr($tab, 6);
+        }
+
+        if ($tab == 'hero-intro') {
+            $titleField = $keyPrefix.'hero_intro_title';
+            $subTitleField = $keyPrefix.'hero_intro_sub_title';
+            $imageField = $keyPrefix.'hero_intro_image';
+
+            $request->validate([
+                $titleField.'.0' => 'required|max:50',
+                $subTitleField.'.0' => 'required|max:150',
+                $imageField => 'nullable|mimes:'.IMAGE_FORMAT_FOR_VALIDATION.'|max:'.MAX_FILE_SIZE * 1024,
+            ], [
+                $titleField.'.0.required' => translate('messages.Default_title_is_required'),
+                $subTitleField.'.0.required' => translate('messages.Default_sub_title_is_required'),
+            ]);
+
+            $this->getAddLandingPageData($request, 'react_ride_share_page', $titleField, true);
+            $this->getAddLandingPageData($request, 'react_ride_share_page', $subTitleField, true);
+            $this->saveRideShareImage($request, $imageField, 'ride_share_hero_section');
+
+            Toastr::success(translate('messages.hero_section_updated'));
+            return back();
+        } elseif (str_starts_with($tab, 'hero-point-card-')) {
+            $cardNumber = str_replace('hero-point-card-', '', $tab);
+            $statusKey = $keyPrefix."hero_point_status_card_$cardNumber";
+            $titleKey = $keyPrefix."hero_point_title_card_$cardNumber";
+            $imageKey = $keyPrefix."hero_point_image_card_$cardNumber";
+
+            $request->validate([
+                "$titleKey.0" => 'required|max:20',
+                $imageKey => 'nullable|mimes:'.IMAGE_FORMAT_FOR_VALIDATION.'|max:'.MAX_FILE_SIZE * 1024,
+            ], [
+                "$titleKey.0.required" => translate('messages.Default_title_is_required'),
+                "$imageKey.max" => translate('messages.file_size_must_be_less_than_2mb'),
+                "$imageKey.mimes" => translate('messages.invalid_file_type'),
+            ]);
+
+            $this->getAddLandingPageData($request, 'react_ride_share_page', $statusKey, false);
+            $this->getAddLandingPageData($request, 'react_ride_share_page', $titleKey, true);
+            $this->saveRideShareImage($request, $imageKey, 'ride_share_hero_section');
+
+            Toastr::success(translate('messages.hero_point_card_updated'));
+            return back();
+        }
+
+        Toastr::error(translate('messages.not_found'));
+        return back();
+    }
+
+    private function saveRideShareImage($request, $key, $dir)
+    {
+        $data = DataSetting::firstOrNew(['type' => 'react_ride_share_page', 'key' => $key]);
+
+        if ($request->input("{$key}_deleted") == '1') {
+            if ($data->value) {
+                Helpers::check_and_delete($dir . '/', $data->value);
+            }
+            $data->value = null;
+            $data->save();
+            return;
+        }
+
+        if ($request->hasFile($key)) {
+            $file = $request->file($key);
+            $format = strtolower($file->getClientOriginalExtension() ?? 'png');
+            $data->value = empty($data->value)
+                ? Helpers::upload(dir: $dir . '/', format: $format, image: $file)
+                : Helpers::update(dir: $dir . '/', old_image: $data->value, format: $format, image: $file);
+            $data->save();
+        } elseif (!$data->exists) {
+            $data->value = null;
+            $data->save();
+        }
+    }
+
+    public function delete_react_ride_share_page_settings($tab, $key)
+    {
+        if (getEnvMode() == 'demo') {
+            Toastr::info(translate('messages.update_option_is_disable_for_demo'));
+            return back();
+        }
+
+        Toastr::error(translate('messages.not_found'));
+        return back();
+    }
+
     public function flutter_landing_page_settings($tab)
     {
         if ($tab == 'fixed-data') {
@@ -7028,6 +6862,7 @@ class BusinessSettingsController extends Controller
 
             $item->category_id = $data->category_id;
             $item->category_ids = $data->category_ids;
+            $item->store_category_id = $data->store_category_id;
 
             $item->choice_options = $data->choice_options;
             $item->food_variations = $data->food_variations;
@@ -7155,6 +6990,7 @@ class BusinessSettingsController extends Controller
         $data = array_column(BusinessSetting::whereIn('key', [
             'section_wise_ai_limit',
             'image_upload_limit_for_ai',
+            'ai_chat_status',
         ])->get(['key', 'value'])->toArray(), 'value', 'key');
 
         return view('admin-views.business-settings.3rd_party.open_ai_settings', compact('data'));
@@ -7165,6 +7001,7 @@ class BusinessSettingsController extends Controller
         $limits = [
             'section_wise_ai_limit' => $request->section_wise_ai_limit ?? 0,
             'image_upload_limit_for_ai' => $request->image_upload_limit_for_ai ?? 0,
+            'ai_chat_status' => $request->ai_chat_status ?? 0,
         ];
 
         foreach ($limits as $key => $value) {
@@ -7692,9 +7529,7 @@ class BusinessSettingsController extends Controller
     private function updateBusinessModelSettings(Request $request): void
     {
             if (!$request->subscription_business_model && !$request->commission_business_model) {
-                Toastr::error(translate(
-                    'You_must_select_at_least_one_business_model_between_commission_and_subscription'
-                ));
+                Toastr::error(translate('You_must_select_at_least_one_business_model_between_commission_and_subscription'));
                 back()->throwResponse();
             }
 
@@ -7711,7 +7546,7 @@ class BusinessSettingsController extends Controller
             Helpers::businessUpdateOrInsert(['key' => 'subscription_business_model'], ['value' => 1]);
             Helpers::businessUpdateOrInsert(['key' => 'commission_business_model'], ['value' => 0]);
 
-            if (Helpers::commission_check() === 0) {
+            if (BusinessSetting::where('key', 'commission_business_model')->first()?->value === 0) {
                 Store::where('store_business_model', 'commission')
                     ->update(['store_business_model' => 'unsubscribed', 'status' => 0]);
             }
@@ -7727,7 +7562,7 @@ class BusinessSettingsController extends Controller
         Helpers::businessUpdateOrInsert(['key' => 'commission_business_model'], ['value' => 1]);
         Helpers::businessUpdateOrInsert(['key' => 'subscription_business_model'], ['value' => 0]);
 
-        if (Helpers::subscription_check() === 0) {
+        if (BusinessSetting::where('key', 'subscription_business_model')->first()?->value === 0) {
             Store::query()->update(['store_business_model' => 'commission']);
         }
     }
@@ -7736,8 +7571,7 @@ class BusinessSettingsController extends Controller
     {
         Helpers::businessUpdateOrInsert(['key' => 'commission_business_model'], ['value' => 1]);
 
-        if (!$request->subscription_business_model &&
-            StoreSubscription::where('status', 1)->exists()) {
+        if (!$request->subscription_business_model &&  StoreSubscription::where('status', 1)->exists()) {
             Toastr::warning(translate('You_need_to_switch_your_subscribers_to_commission_first'));
             back()->throwResponse();
         }

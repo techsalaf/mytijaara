@@ -195,87 +195,89 @@
             <div class="col-12">
                 <div class="card card-body recent-transactions-card">
                     <!-- Header -->
-                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap border-0 recent-transaction-header">
-                        <div>
-                            <h3 class="mb-20">{{ translate('messages.Recent_Transactions') }}</h3>
-                            <div class="js-nav-scroller hs-nav-scroller-horizontal">
-                                <!-- Nav -->
-                                <ul class="nav nav-tabs border-0 nav--tabs nav--pills transaction-nav-tabs">
-                                    <li class="nav-item">
-                                        <a class="nav-link active transaction-tab" data-type="order" href="#"
-                                            aria-disabled="true">{{ translate('messages.Earnings') }}</a>
-                                    </li>
-                                    @if (request()->tab != 'parcel')
-                                    <li class="nav-item">
-                                        <a class="nav-link transaction-tab" data-type="subscription" href="#"
-                                            aria-disabled="true">{{ translate('messages.Subscription_Earnings') }}</a>
-                                    </li>
-
-                                    @endif
-                                    <li class="nav-item">
-                                        <a class="nav-link transaction-tab" data-type="expense" href="#"
-                                            aria-disabled="true">{{ translate('messages.Expenses') }}</a>
-                                    </li>
-                                </ul>
-                                <!-- End Nav -->
+                    <div class="border-0 recent-transaction-header">
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-1">
+                            <h3 class="0">{{ translate('messages.Recent_Transactions') }}</h3>
+                            <div class="search--button-wrapper justify-content-end">
+                                <form id="transaction-search-form" class="">
+                                    <!-- Search -->
+                                    <div class="input--group input-group input-group-merge input-group-flush">
+                                        <input id="datatableSearch_" type="search" name="report_search" class="form-control" value=""
+                                            placeholder="{{ translate('Search By Order ID') }}" aria-label="Search"
+                                            required>
+                                        <button type="submit" class="btn btn--secondary">
+                                            <i class="tio-search"></i>
+                                        </button>
+                                    </div>
+                                    <!-- End Search -->
+                                </form>
+                                <div
+                                    class="d-flex flex-wrap gpa-3 justify-content-sm-end align-items-sm-center ml-0 mr-0 flex-grow-0">
+                                    <!-- Unfold -->
+                                    <div class="hs-unfold ml-3">
+                                        <a class="js-hs-unfold-invoker btn btn-sm btn-white dropdown-toggle btn export-btn font--sm"
+                                            href="javascript:;"
+                                            data-hs-unfold-options='{
+                                                    "target": "#usersExportDropdown",
+                                                    "type": "css-animation",
+                                                    "boundary": "viewport"
+                                                }'
+                                            data-hs-unfold-target="#usersExportDropdown" data-hs-unfold-invoker="">
+                                            <i class="tio-download-to mr-1"></i> {{ translate('export') }}
+                                        </a>
+    
+                                        <div id="usersExportDropdown"
+                                            class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-sm-right">
+                                            <span class="dropdown-header">{{ translate('download_options') }}</span>
+                                            <a id="export-excel" class="dropdown-item" href="javascript:;">
+                                                <img class="avatar avatar-xss avatar-4by3 mr-2"
+                                                    src="{{ asset('public/assets/admin') }}/svg/components/excel.svg"
+                                                    alt="Image Description">
+                                                {{ translate('messages.excel') }}
+                                            </a>
+                                            <a id="export-csv" class="dropdown-item" href="javascript:;">
+                                                <img class="avatar avatar-xss avatar-4by3 mr-2"
+                                                    src="{{ asset('public/assets/admin') }}/svg/components/placeholder-csv-format.svg"
+                                                    alt="Image Description">
+                                                .{{ translate('messages.csv') }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <!-- End Unfold -->
+                                </div>
                             </div>
                         </div>
-                        <div class="search--button-wrapper justify-content-end">
-                            <form id="transaction-search-form" class="">
-                                <!-- Search -->
-                                <div class="input--group input-group input-group-merge input-group-flush">
-                                    <input id="datatableSearch_" type="search" name="report_search" class="form-control" value=""
-                                        placeholder="{{ translate('Search By Order ID') }}" aria-label="Search"
-                                        required>
-                                    <button type="submit" class="btn btn--secondary">
-                                        <i class="tio-search"></i>
-                                    </button>
-                                </div>
-                                <!-- End Search -->
-                            </form>
-                            <div
-                                class="d-flex flex-wrap gpa-3 justify-content-sm-end align-items-sm-center ml-0 mr-0 flex-grow-0">
-                                <!-- Unfold -->
-                                <div class="hs-unfold ml-3">
-                                    <a class="js-hs-unfold-invoker btn btn-sm btn-white dropdown-toggle btn export-btn font--sm"
-                                        href="javascript:;"
-                                        data-hs-unfold-options='{
-                                                "target": "#usersExportDropdown",
-                                                "type": "css-animation",
-                                                "boundary": "viewport"
-                                            }'
-                                        data-hs-unfold-target="#usersExportDropdown" data-hs-unfold-invoker="">
-                                        <i class="tio-download-to mr-1"></i> {{ translate('export') }}
-                                    </a>
+                        <div class="js-nav-scroller hs-nav-scroller-horizontal">
+                            <!-- Nav -->
+                            <ul class="nav mb-0 nav-tabs border-0 nav--tabs nav--pills transaction-nav-tabs">
+                                <li class="nav-item">
+                                    <a class="nav-link active transaction-tab" data-type="order" href="#"
+                                        aria-disabled="true">{{ translate('messages.Earnings') }}</a>
+                                </li>
+                                @if (request()->tab != 'parcel')
+                                <li class="nav-item">
+                                    <a class="nav-link transaction-tab" data-type="subscription" href="#"
+                                        aria-disabled="true">{{ translate('messages.Subscription_Earnings') }}</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link transaction-tab" data-type="pro_customer" href="#"
+                                        aria-disabled="true">{{ translate('messages.Pro_Customer_Subscription') }}</a>
+                                </li>
 
-                                    <div id="usersExportDropdown"
-                                        class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-sm-right">
-                                        <span class="dropdown-header">{{ translate('download_options') }}</span>
-                                        <a id="export-excel" class="dropdown-item" href="javascript:;">
-                                            <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                                src="{{ asset('public/assets/admin') }}/svg/components/excel.svg"
-                                                alt="Image Description">
-                                            {{ translate('messages.excel') }}
-                                        </a>
-                                        <a id="export-csv" class="dropdown-item" href="javascript:;">
-                                            <img class="avatar avatar-xss avatar-4by3 mr-2"
-                                                src="{{ asset('public/assets/admin') }}/svg/components/placeholder-csv-format.svg"
-                                                alt="Image Description">
-                                            .{{ translate('messages.csv') }}
-                                        </a>
-                                    </div>
-                                </div>
-                                <!-- End Unfold -->
-                            </div>
+                                @endif
+                                <li class="nav-item">
+                                    <a class="nav-link transaction-tab" data-type="expense" href="#"
+                                        aria-disabled="true">{{ translate('messages.Expenses') }}</a>
+                                </li>
+                            </ul>
+                            <!-- End Nav -->
                         </div>
                         <!-- End Row -->
                     </div>
                     <!-- End Header -->
 
                     <!-- Table -->
-                    <div class="table-responsive datatable-custom mt-4 z-index-2" id="transaction_table_container">
-
-                    </div>
+                    <div id="transaction_table_container"></div>
                     <!-- End Table -->
                     <!-- End Footer -->
 
@@ -356,6 +358,12 @@
                 colors.push('#8B5CF6');
             }
 
+            if (!earnings.is_parcel && (earnings.pro_customer_subscription || 0) > 0) {
+                labels.push('{{ translate('Pro Customer Subscription') }}');
+                data.push(earnings.pro_customer_subscription || 0);
+                colors.push('#3B82F6');
+            }
+
             labels.push('{{ translate('Additional Fees') }}');
             data.push(earnings.additional_charge || 0);
             colors.push('#EC4899');
@@ -363,6 +371,12 @@
             labels.push('{{ translate('Delivery Fee Commission') }}');
             data.push(earnings.delivery_fee_comission || 0);
             colors.push('#F59E0B');
+
+            if ((earnings.express_charge || 0) > 0) {
+                labels.push('{{ translate('Express Delivery Charge') }}');
+                data.push(earnings.express_charge || 0);
+                colors.push('#0EA5E9');
+            }
 
             const options = {
                 chart: {
@@ -804,6 +818,8 @@
             let placeholder = "{{ translate('messages.Search_by_Transaction_ID') }}";
             if (currentTransactionType === 'subscription') {
                 placeholder = "{{ translate('messages.Search_by_Transaction_ID_or_Store_Name') }}";
+            } else if (currentTransactionType === 'pro_customer') {
+                placeholder = "{{ translate('messages.Search_by_Transaction_ID_or_Customer_Name') }}";
             } else {
                 placeholder = "{{ translate('messages.Search_by_Txn_ID_or_Order_ID') }}";
             }

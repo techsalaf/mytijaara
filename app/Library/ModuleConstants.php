@@ -689,7 +689,7 @@ const NOTIFICATION_FOR_RIDE_SHARE_DRIVER = [
 ];
 
 const NOTIFICATION_FOR_RIDE_SHARE_DRIVER_REGISTRATION = [
-    ['key' => 'registration_approved', 'value' => 'Registration Approved'],
+    // ['key' => 'registration_approved', 'value' => 'Registration Approved'],
     ['key' => 'vehicle_request_approved', 'value' => 'Vehicle Request Approved'],
     ['key' => 'vehicle_request_denied', 'value' => 'Vehicle Request Denied'],
     ['key' => 'identity_image_rejected', 'value' => 'Identity Image Rejected'],
@@ -699,22 +699,22 @@ const NOTIFICATION_FOR_RIDE_SHARE_DRIVER_REGISTRATION = [
 
 
 const NOTIFICATION_FOR_RIDE_SHARE_OTHERS = [
-    ['key' => 'coupon_applied', 'value' => 'Coupon Applied'],
-    ['key' => 'coupon_removed', 'value' => 'Coupon Removed'],
+    // ['key' => 'coupon_applied', 'value' => 'Coupon Applied'],
+    // ['key' => 'coupon_removed', 'value' => 'Coupon Removed'],
     ['key' => 'review_from_customer', 'value' => 'Review From Customer'],
     ['key' => 'review_from_driver', 'value' => 'Review From Driver'],
     ['key' => 'someone_used_your_code', 'value' => 'Someone Used Your Code'],
     ['key' => 'referral_reward_received', 'value' => 'Referral Reward Received'],
     ['key' => 'safety_alert_sent', 'value' => 'Safety Alert Sent'],
     ['key' => 'safety_problem_resolved', 'value' => 'Safety Problem Resolved'],
-    ['key' => 'terms_and_conditions_updated', 'value' => 'Terms And Conditions Updated'],
-    ['key' => 'privacy_policy_updated', 'value' => 'Privacy Policy Updated'],
-    ['key' => 'legal_updated', 'value' => 'Legal Updated'],
-    ['key' => 'new_message', 'value' => 'New Message'],
-    ['key' => 'admin_message', 'value' => 'Admin Message'],
+    // ['key' => 'terms_and_conditions_updated', 'value' => 'Terms And Conditions Updated'],
+    // ['key' => 'privacy_policy_updated', 'value' => 'Privacy Policy Updated'],
+    // ['key' => 'legal_updated', 'value' => 'Legal Updated'],
+    // ['key' => 'new_message', 'value' => 'New Message'],
+    // ['key' => 'admin_message', 'value' => 'Admin Message'],
     ['key' => 'level_up', 'value' => 'Level Up'],
-    ['key' => 'fund_added_by_admin', 'value' => 'Fund Added By Admin'],
-    ['key' => 'admin_collected_cash', 'value' => 'Admin Collected Cash'],
+    // ['key' => 'fund_added_by_admin', 'value' => 'Fund Added By Admin'],
+    // ['key' => 'admin_collected_cash', 'value' => 'Admin Collected Cash'],
     ['key' => 'withdraw_request_rejected', 'value' => 'Withdraw Request Rejected'],
     ['key' => 'withdraw_request_approved', 'value' => 'Withdraw Request Approved'],
 //    ['key' => 'withdraw_request_settled', 'value' => 'Withdraw Request Settled'],

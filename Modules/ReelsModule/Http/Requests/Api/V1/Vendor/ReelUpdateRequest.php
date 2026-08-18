@@ -29,6 +29,8 @@ class ReelUpdateRequest extends FormRequest
             'is_always_visible' => 'nullable|in:1',
             'dates' => 'required_without:is_always_visible|nullable|string',
             'status' => 'nullable|boolean',
+            'product_id' => 'nullable|integer',
+            'order_now_button' => 'nullable|boolean',
         ];
     }
 
@@ -39,6 +41,8 @@ class ReelUpdateRequest extends FormRequest
         return [
             'description.required' => translate('messages.default_description_is_required'),
             'translations.json' => translate('messages.json'),
+            'product_id.integer' => translate('messages.product_id_must_be_an_integer'),
+            'order_now_button.boolean' => translate('messages.status_must_be_boolean'),
             'thumbnail.image' => translate('messages.reel_thumbnail_must_be_an_image'),
             'thumbnail.mimes' => translate('messages.reel_thumbnail_format_is_invalid'),
             'thumbnail.max' => str_replace(':size', (string) MAX_FILE_SIZE, translate('messages.reel_thumbnail_size_must_not_exceed_2_mb')),

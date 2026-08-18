@@ -25,7 +25,15 @@
         </div>
         <!-- End Page Header -->
 
+        @php
+            $use_v2_chrome = match (config('layout.version', 'auto')) {
+                'v1'    => false,
+                'v2'    => true,
+                default => in_array(\Config::get('module.current_module_type'), config('layout.v2_modules', []), true),
+            };
+        @endphp
         <div class="row">
+            @if(!$use_v2_chrome)
             <div class="col-lg-3">
                 <!-- Navbar -->
                 <div class="navbar-vertical navbar-expand-lg mb-3 mb-lg-5">
@@ -69,8 +77,9 @@
                 </div>
                 <!-- End Navbar -->
             </div>
+            @endif
 
-            <div class="col-lg-9">
+            <div class="{{ $use_v2_chrome ? 'col-lg-12' : 'col-lg-9' }}">
                 <form action="{{ getEnvMode() != 'demo' ? route('admin.settings') : 'javascript:' }}" method="post"
                     enctype="multipart/form-data" id="admin-settings-form">
                     @csrf

@@ -199,15 +199,55 @@
             });
         }
 
+        function loadReelItems(storeId, selectedId) {
+            const $item = $('#product_id');
+            if (!$item.length) {
+                return;
+            }
+
+            const noneOption = '<option value="">{{ translate('messages.none') }}</option>';
+
+            if (!storeId) {
+                $item.html(noneOption);
+                if ($item.hasClass('select2-hidden-accessible')) {
+                    $item.val('').trigger('change');
+                }
+                return;
+            }
+
+            $.get('{{ route('admin.reels.items') }}', { store_id: storeId }, function (response) {
+                let options = noneOption;
+                (response.items || []).forEach(function (item) {
+                    const selected = selectedId && parseInt(selectedId, 10) === parseInt(item.id, 10) ? 'selected' : '';
+                    options += '<option value="' + item.id + '" ' + selected + '>' + item.name + '</option>';
+                });
+                $item.html(options);
+                if ($item.hasClass('select2-hidden-accessible')) {
+                    $item.trigger('change');
+                }
+            });
+        }
+
+        function syncCallToActionPreview() {
+            const enabled = $('#call-to-action-toggle').is(':checked');
+            $('#product-select-wrapper').toggle(enabled);
+            $('#order-now-btn').toggle(enabled);
+        }
+
         $(function () {
             initReelDateRange();
             toggleAlwaysVisibleState(true);
             updateTextCounters();
+            syncCallToActionPreview();
 
             $(document).on('change', '#is_always_visible', function () {
                 toggleAlwaysVisibleState(false);
             });
             $(document).on('input', '.reel-des-textarea', updateTextCounters);
+            $(document).on('change', '#call-to-action-toggle', syncCallToActionPreview);
+            $(document).on('change', '#store_id', function () {
+                loadReelItems($(this).val(), null);
+            });
 
             $('#reel-form').on('submit', function (e) {
                 e.preventDefault();

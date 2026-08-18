@@ -85,7 +85,7 @@ $countryCode= strtolower($country?$country->value:'auto');
                             <select name="zone_id" required>
                                 <option value="" hidden>{{ translate('messages.select_zone') }}</option>
                                 @foreach (\App\Models\Zone::active()->get() as $zone)
-                                    @if (isset(auth('admin')->user()->zone_id))
+                                    @if (auth('admin')?->user()?->zone_id)
                                         @if (auth('admin')->user()->zone_id == $zone->id)
                                             <option value="{{ $zone->id }}" selected>{{ $zone->name }}</option>
                                         @endif

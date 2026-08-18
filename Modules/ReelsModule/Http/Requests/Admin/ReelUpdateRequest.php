@@ -29,6 +29,8 @@ class ReelUpdateRequest extends FormRequest
             'lang.*' => 'required|string',
             'thumbnail' => 'nullable|image|max:' . (MAX_FILE_SIZE * 1024) . '|mimes:'.IMAGE_FORMAT_FOR_VALIDATION,
             'video' => 'nullable|file|mimes:mp4,mov,3gp,gif,webm,mkv|max:' . ($maxUploadSizeMb * 1024),
+            'product_id' => 'nullable|integer',
+            'order_now_button' => 'nullable|in:1',
             'is_always_visible' => 'nullable|in:1',
             'dates' => 'required_without:is_always_visible|nullable|string',
         ];

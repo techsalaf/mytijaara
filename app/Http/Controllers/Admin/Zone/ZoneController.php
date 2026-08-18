@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Zone;
 use App\CentralLogics\Helpers;
 use App\Models\Order;
 use App\Models\Cart;
+use App\Models\ModuleZoneDeliveryOption;
 use Illuminate\View\View;
 use App\Exports\ZoneExport;
 use Illuminate\Http\Request;
@@ -75,7 +76,7 @@ class ZoneController extends BaseController
         $digital_payment = Helpers::get_business_settings('digital_payment');
         $offline_payment = Helpers::get_business_settings('offline_payment_status');
         return response()->json([
-            'view' => view('admin-views.zone.partials._table', compact('zones', 'config', 'digital_payment', 'offline_payment'))->render(),
+            'view' => view('admin-views.zone.partials._table_rows', compact('zones', 'config', 'digital_payment', 'offline_payment'))->render(),
             'id' => $zone->id,
             'total' => $zones->count()
         ]);
@@ -165,8 +166,15 @@ class ZoneController extends BaseController
         $cash_on_delivery = Helpers::get_business_settings('cash_on_delivery');
         $digital_payment = Helpers::get_business_settings('digital_payment');
         $offline_payment = Helpers::get_business_settings('offline_payment_status');
+        // Saver delivery type options
+        $saverOptions = ModuleZoneDeliveryOption::query()
+            ->where('zone_id', $id)
+            ->get()
+            ->groupBy(['module_id', 'delivery_type'])
+            ->map(fn ($byType) => $byType->map(fn ($rows) => $rows->first()))
+            ->toArray();
 
-        return view(ZoneViewPath::MODULE_SETUP[VIEW], compact('zone', 'cash_on_delivery', 'digital_payment', 'offline_payment'));
+        return view(ZoneViewPath::MODULE_SETUP[VIEW], compact('zone', 'cash_on_delivery', 'digital_payment', 'offline_payment', 'saverOptions'));
     }
 
     public function getLatestModuleSetupView(): View
@@ -235,7 +243,31 @@ class ZoneController extends BaseController
         $filteredModuleData = collect($request->module_data)
             ->only($request->module_id)
             ->toArray();
+        // Saver delivery type store or update
+        $saverPayload = $this->zoneService->extractSaverOptionsAndNormalisePivot(
+            $filteredModuleData,
+            $request->module_id ?? [],
+        );
+
+        $saverErrors = $this->zoneService->validateModuleSaverSetup($saverPayload);
+        if (!empty($saverErrors)) {
+            $firstModuleId = array_key_first($saverErrors);
+            $moduleName = Module::find($firstModuleId)?->module_name ?? 'Unknown Module';
+            $reason = $saverErrors[$firstModuleId];
+            $message = match ($reason) {
+                'express_required' => translate('messages.Express delivery requires extra charge and reduce delivery time for module:') . ' ' . $moduleName,
+                'min_time_lt_reduce_time' => translate('messages.Minimum delivery time cannot be less than reduce delivery time for module:') . ' ' . $moduleName,
+                default => translate('messages.Slightly delay delivery requires reduce charge and add delivery time for module:') . ' ' . $moduleName,
+            };
+            Toastr::error($message);
+            return back()->withInput();
+        }
+
         $this->zoneRepo->zoneModuleSetupUpdate(id: $id, data: $paymentData, moduleData: $filteredModuleData);
+
+        foreach ($saverPayload as $moduleId => $payload) {
+            $this->zoneService->upsertModuleSaverOptions((int) $moduleId, (int) $id, $payload);
+        }
 
         Toastr::success(translate('messages.zone_module_updated_successfully'));
         return redirect()->route('admin.business-settings.zone.home');

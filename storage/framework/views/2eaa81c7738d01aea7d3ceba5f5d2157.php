@@ -1,4 +1,3 @@
-
 <?php ($business_name = \App\CentralLogics\Helpers::get_business_settings('business_name')); ?>
 <?php $__env->startSection('title', translate('messages.landing_page') . ' | ' . $business_name != 'null' ? $business_name : 'Sixam Mart'); ?>
 <?php $__env->startSection('content'); ?>

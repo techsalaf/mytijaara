@@ -188,7 +188,7 @@
                                 <span class="d-block mb-1">
                                     <span>{{ translate('messages.Total_stock') }}</span>
                                     <span>:</span>
-                                    <strong> {{  $product->stock  }}</strong>
+                                    <strong> {{  max((int) $product->stock, 0)  }}</strong>
                                 </span>
 
                                     @if ($product?->unit)

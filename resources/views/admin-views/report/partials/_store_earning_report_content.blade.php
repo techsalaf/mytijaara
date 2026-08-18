@@ -38,7 +38,7 @@
                     </label>
                     <select name="store_id" id="store_id" data-placeholder="{{ translate('messages.select_store') }}" class="js-data-example-ajax form-control">
                         @if (isset($store))
-                            <option value="{{ $store->id }}" selected>{{ $store->name }}</option>
+                            <option value="{{ $store->id }}" data-verified="{{ (int) $store->verified_seller }}" selected>{{ $store->name }}</option>
                         @else
                             <option value="all" selected>{{ translate('messages.all_stores') }}</option>
                         @endif
@@ -215,9 +215,7 @@
     <!-- End Header -->
 
     <!-- Table -->
-    <div class="table-responsive datatable-custom mt-4 z-index-2" id="transaction_table_container">
-
-    </div>
+    <div id="transaction_table_container"></div>
 </div>
 
 

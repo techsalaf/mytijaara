@@ -229,7 +229,7 @@
                                 <div class="form-group">
                                     <label for="company_button_name" class="form-label text-capitalize">
                                         {{translate('Button Name')}}
-                                        <span class="input-label-secondary text--title" data-toggle="tooltip" data-placement="right" data-original-title="Lorem ipsum">
+                                        <span class="input-label-secondary text--title" data-toggle="tooltip" data-placement="right" data-original-title="{{ translate('messages.The call-to-action label shown on the landing page button.') }}">
                                             <i class="tio-info-outined"></i>
                                         </span>
                                     </label>

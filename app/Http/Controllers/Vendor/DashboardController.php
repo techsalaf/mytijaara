@@ -17,6 +17,10 @@ class DashboardController extends Controller
 {
     public function dashboard(Request $request)
     {
+        $employee_landing = Helpers::employee_landing_url();
+        if ($employee_landing) {
+            return redirect($employee_landing);
+        }
         if(Helpers::get_store_data()->module_type == 'rental'){
             return to_route('vendor.providerDashboard');
 

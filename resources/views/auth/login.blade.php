@@ -179,16 +179,18 @@
       <div class="modal-body">
         <div class="forget-pass-content">
             <img src="{{asset('/public/assets/admin/img/send-mail.svg')}}" alt="">
-            <!-- After Succeed -->
             <h4>
                 {{ translate('Send_Mail_to_Your_Email') }} ?
             </h4>
             <p>
                 {{ translate('A mail will be send to your registered email') }} {{ isset($role) && $role == 'admin'  ? \App\Models\Admin::where('role_id',1)->first()?->masked_email : ''  }} {{ translate('with a  link to change passowrd') }}
             </p>
-            <a class="btn btn-lg btn-block btn--primary mt-3" href="{{route('reset-password')}}">
-                {{ translate('Send Mail') }}
-            </a>
+            <form action="{{ route('reset-password') }}" method="post">
+                @csrf
+                <button type="submit" class="btn btn-lg btn-block btn--primary mt-3">
+                    {{ translate('Send Mail') }}
+                </button>
+            </form>
         </div>
       </div>
     </div>
@@ -403,9 +405,5 @@
     </script>
 @endif
 
-<!-- IE Support -->
-<script>
-    if (/MSIE \d|Trident.*rv:/.test(navigator.userAgent)) document.write('<script src="{{asset('public//assets/admin')}}/vendor/babel-polyfill/polyfill.min.js"><\/script>');
-</script>
 </body>
 </html>

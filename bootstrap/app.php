@@ -5,10 +5,12 @@ use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\AdminRentalModuleCheckMiddleware;
 // Core Laravel web middleware
 use App\Http\Middleware\APIGuestMiddleware;
+use App\Http\Middleware\MaintenanceMode;
 use App\Http\Middleware\Authenticate;
 use App\Http\Middleware\CurrentModule;
 use App\Http\Middleware\DmTokenIsValid;
 use App\Http\Middleware\EncryptCookies;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\InstallationMiddleware;
 use App\Http\Middleware\Localization;
 // Custom middleware
@@ -46,7 +48,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withMiddleware(function (Middleware $middleware) {
 
+        $middleware->web(append: [
+            HandleInertiaRequests::class,
+        ]);
+
         $middleware->use([
+            // Runs first: send www↔apex of the panel host to the canonical
+            // APP_HOST_DOMAIN so its domain-constrained routes match.
+            \App\Http\Middleware\RedirectToCanonicalHost::class,
             \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
             \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
             \App\Http\Middleware\TrimStrings::class,
@@ -94,6 +103,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'current-module' => CurrentModule::class,
             'admin-rental-module' => AdminRentalModuleCheckMiddleware::class,
             'provider-rental-module' => ProviderRentalModuleCheckMiddleware::class,
+            'maintenance' => MaintenanceMode::class,
         ]);
     })
 

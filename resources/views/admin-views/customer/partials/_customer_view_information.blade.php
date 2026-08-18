@@ -1,10 +1,11 @@
 @if($customer)
     <div class="card-body">
         <div class="media gap-3 flex-wrap">
-            <div class="avatar avatar-circle avatar-70">
-                <img class="avatar-img onerror-image" width="70" height="70" data-onerror-image="{{asset('public/assets/admin/img/160x160/img1.jpg')}}" src="{{ $customer->image_full_url }}"
-                alt="Image Description">
-            </div>
+            @include('partials._user-avatar', [
+                'imageUrl'  => $customer->image_full_url,
+                'proStatus' => $customer->pro_status ?? false,
+                'size'      => 70,
+            ])
             <div class="media-body">
                 <div class="key-value-list d-flex flex-column gap-2 text-dark" style="--min-width: 60px">
                     <div class="key-val-list-item d-flex gap-3">

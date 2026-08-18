@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="{{ asset('public/assets/landing/css/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('public/assets/landing/css/odometer.css') }}" />
     <link rel="stylesheet" href="{{ asset('public/assets/admin/css/toastr.css') }}">
+    <link rel="stylesheet" href="{{ asset('public/assets/admin/css/app-toast.css') }}">
     <link rel="stylesheet" href="{{ asset('public/assets/landing/css/landing.css') }}"/>
     <link rel="stylesheet" href="{{asset('public/assets/admin/intltelinput/css/intlTelInput.css')}}">
 
@@ -80,10 +81,10 @@
     <!-- Header -->
     <nav class="main-nav">
         <div class="container">
-            <a href="{{route('home')}}" class="nav-logo">
-                <img class="onerror-image" data-onerror-image="{{ asset('public/assets/admin/img/160x160/img2.jpg') }}" src="{{ \App\CentralLogics\Helpers::logoFullUrl()}}" alt="image" />
+            <a href="{{route('home')}}" class="nav-logo max-w-70px-mobile">
+                <img class="onerror-image object-fit-contain" data-onerror-image="{{ asset('public/assets/admin/img/160x160/img2.jpg') }}" src="{{ \App\CentralLogics\Helpers::logoFullUrl()}}" alt="image" />
             </a>
-            <div class="nav-links">
+            <div class="nav-links gap-3 gap-lg-4">
                 <a href="{{route('home')}}" class="{{ Request::is('/') ? 'active-link' : '' }}">{{ translate('messages.home') }}</a>
                 <a href="{{route('about-us')}}" class="{{ Request::is('about-us') ? 'active-link' : '' }}">{{ translate('messages.about_us') }}</a>
                 <a href="{{route('privacy-policy')}}" class="{{ Request::is('privacy-policy') ? 'active-link' : '' }}">{{ translate('messages.privacy_policy') }}</a>
@@ -255,6 +256,8 @@
     <script src="{{ asset('public/assets/landing/js/viewport.jquery.js') }}"></script>
     <script src="{{ asset('public/assets/landing/js/odometer.min.js') }}"></script>
     <script src="{{ asset('public/assets/admin/js/toastr.js') }}"></script>
+    <script src="{{ asset('public/assets/admin/js/app-toast.js') }}"></script>
+    <script src="{{ asset('public/assets/admin/js/field-error-toast.js') }}"></script>
     <script src="{{ asset('public/assets/admin/intltelinput/js/intlTelInput.min.js')}}"></script>
     {!! Toastr::message() !!}
     @if ($errors->any())

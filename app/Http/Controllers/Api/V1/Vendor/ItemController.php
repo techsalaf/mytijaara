@@ -41,8 +41,19 @@ class ItemController extends Controller
             ],403);
         }
 
+        // Conditional required: store_category_id is required when the vendor
+        // has at least one of their own categories. Resolved from the token.
+        $vendorStoreId = (int) ($request['vendor']->stores[0]->id ?? 0);
+        $storeCategoryRule = Helpers::hasAnyStoreCategory($vendorStoreId) ? 'required' : 'nullable';
+
         $validator = Validator::make($request->all(), array_merge([
             'category_id' => 'required',
+            'store_category_id' => [
+                $storeCategoryRule,
+                Rule::exists('store_categories', 'id')->where(function ($query) use ($vendorStoreId) {
+                    return $query->where('store_id', $vendorStoreId);
+                }),
+            ],
             'image' => [
                 Rule::requiredIf(function ()use ($request) {
                     return ($request['vendor']->stores[0]->module->module_type != 'food')  ;
@@ -53,6 +64,7 @@ class ItemController extends Controller
             'translations'=>'required',
         ], $this->productVideoValidationRules()), [
             'category_id.required' => translate('messages.category_required'),
+            'store_category_id.required' => translate('messages.store_category_required'),
         ]);
 
         if ($request['discount_type'] == 'percent') {
@@ -181,6 +193,7 @@ class ItemController extends Controller
         }
         $item->category_id = $request->sub_category_id?$request->sub_category_id:$request->category_id;
         $item->category_ids = json_encode($category);
+        $item->store_category_id = $request->filled('store_category_id') ? (int) $request->store_category_id : null;
         $item->description = $data[1]['value'];
 
         $choice_options = [];
@@ -364,10 +377,12 @@ class ItemController extends Controller
             $item_details->common_condition_id = $request->condition_id;
             $item_details->is_basic = $request->basic ?? 0;
             $item_details->is_prescription_required = $request->is_prescription_required ?? 0;
+            $item_details->unit_value = $request->unit_value;
+            $item_details->manufacturer = $request->manufacturer;
             $item_details->save();
         }
 
-        if ($request['vendor']->stores[0]->module->module_type == 'ecommerce') {
+        if (in_array($request['vendor']->stores[0]->module->module_type, ['ecommerce', 'grocery'])) {
             $item_details = new EcommerceItemDetails();
             $item_details->item_id = $item->id;
             $item_details->brand_id = $request->brand_id;
@@ -458,9 +473,9 @@ class ItemController extends Controller
     public function get_item($id)
     {
         try {
-            $item = Item::withoutGlobalScope('translate')->with(['tags','taxVats'])->where('id',$id)
+            $item = Item::withoutGlobalScope('translate')->with(['tags','taxVats','translations'])->where('id',$id)
             ->first();
-            $item = Helpers::product_data_formatting_translate($item, false, false, app()->getLocale());
+            $item = Helpers::product_data_formatting_translate(data: $item, trans: false, local: app()->getLocale());
             return response()->json($item, 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -482,13 +497,25 @@ class ItemController extends Controller
             ],403);
         }
 
+        // Conditional required: store_category_id is required when the vendor
+        // has at least one of their own categories. Resolved from the token.
+        $vendorStoreId = (int) ($request['vendor']->stores[0]->id ?? 0);
+        $storeCategoryRule = Helpers::hasAnyStoreCategory($vendorStoreId) ? 'required' : 'nullable';
+
         $validator = Validator::make($request->all(), array_merge([
             'id' => 'required',
             'category_id' => 'required',
+            'store_category_id' => [
+                $storeCategoryRule,
+                Rule::exists('store_categories', 'id')->where(function ($query) use ($vendorStoreId) {
+                    return $query->where('store_id', $vendorStoreId);
+                }),
+            ],
             'price' => 'required|numeric|between:' . $minimumPrice . ',999999999999.999',
             'discount' => 'nullable|numeric|min:0',
         ], $this->productVideoValidationRules()), [
             'category_id.required' => translate('messages.category_required'),
+            'store_category_id.required' => translate('messages.store_category_required'),
         ]);
 
         if ($request['discount_type'] == 'percent') {
@@ -587,6 +614,7 @@ class ItemController extends Controller
 
         $p->category_id = $request->sub_category_id?$request->sub_category_id:$request->category_id;
         $p->category_ids = json_encode($category);
+        $p->store_category_id = $request->filled('store_category_id') ? (int) $request->store_category_id : null;
         $p->description = $data[1]['value'];
 
         $choice_options = [];
@@ -747,11 +775,13 @@ class ItemController extends Controller
                         'common_condition_id' => $request->condition_id,
                         'is_basic' => $request->basic ?? 0,
                         'is_prescription_required' => $request->is_prescription_required ?? 0,
+                        'unit_value' => $request->unit_value,
+                        'manufacturer' => $request->manufacturer,
                     ]
                 );
         }
 
-        if($request['vendor']->stores[0]->module->module_type == 'ecommerce'){
+        if (in_array($request['vendor']->stores[0]->module->module_type, ['ecommerce', 'grocery'])) {
             DB::table('ecommerce_item_details')
                 ->updateOrInsert(
                     ['item_id' => $p->id],
@@ -877,6 +907,9 @@ class ItemController extends Controller
             $query->whereHas('category',function($q)use($request){
                 return $q->whereId($request->category_id)->orWhere('parent_id', $request->category_id);
             });
+        })
+        ->when($request->store_category_id, function($query) use($request){
+            return $query->where('store_category_id', $request->store_category_id);
         })
         ->when($request->store_id, function($query) use($request){
             return $query->where('store_id', $request->store_id);
@@ -1032,6 +1065,7 @@ class ItemController extends Controller
 
         $item->category_id = $data->category_id;
         $item->category_ids = $data->category_ids;
+        $item->store_category_id = $data->store_category_id;
         $item->slug = $data->slug;
 
         $item->choice_options = $data->choice_options;
@@ -1165,11 +1199,13 @@ class ItemController extends Controller
                         'common_condition_id' => $request->condition_id,
                         'is_basic' => $request->basic ?? 0,
                         'is_prescription_required' => $request->is_prescription_required ?? 0,
+                        'unit_value' => $request->unit_value,
+                        'manufacturer' => $request->manufacturer,
                         'item_id' => null
                     ]
                 );
         }
-        if($request['vendor']->stores[0]->module->module_type == 'ecommerce'){
+        if (in_array($request['vendor']->stores[0]->module->module_type, ['ecommerce', 'grocery'])) {
             DB::table('ecommerce_item_details')
                 ->updateOrInsert(
                     ['temp_product_id' => $item->id],
@@ -1178,6 +1214,8 @@ class ItemController extends Controller
                         'item_id' => null,
                     ]
                 );
+        }
+        if ($request['vendor']->stores[0]->module->module_type == 'ecommerce') {
             $this->addOrUpdateMetaData($request,$item->id,temp:true);
         }
 
@@ -1237,6 +1275,9 @@ class ItemController extends Controller
         })
         ->when(is_numeric($sub_category_id), function ($query) use ($sub_category_id) {
             return $query->where('category_id', $sub_category_id);
+        })
+        ->when($request->store_category_id, function ($query) use ($request) {
+            return $query->where('store_category_id', $request->store_category_id);
         })
         ->when($status == 'pending' , function($query){
             $query->where('is_rejected',0);

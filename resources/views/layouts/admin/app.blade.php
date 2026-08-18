@@ -14,7 +14,7 @@ $countryCode = strtolower($country ? $country : 'auto');
     <!-- Title -->
     <title>@yield('title')</title>
     <!-- Favicon -->
-    @php($logo = \App\Models\BusinessSetting::where(['key' => 'icon'])->first())
+    @php $logo = \App\Models\BusinessSetting::where(['key' => 'icon'])->first(); @endphp
     {{--
     <link rel="shortcut icon" href=""> --}}
     <link rel="icon" type="image/x-icon"
@@ -32,17 +32,31 @@ $countryCode = strtolower($country ? $country : 'auto');
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/bootstrap-tour-standalone.min.css')}}">
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/emogi-area.css')}}">
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/style.css')}}">
+    <link rel="stylesheet" href="{{asset('public/assets/admin/css/app-toast.css')}}">
 
     <link rel="stylesheet" href="{{asset('public/assets/admin/intltelinput/css/intlTelInput.css')}}">
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/upload-single-image.css')}}">
     @if (!isset($module_type))
-    @php($module_type = Config::get('module.current_module_type'))
+    @php $module_type = Config::get('module.current_module_type'); @endphp
     @endif
     @if(addon_published_status('RideShare') && in_array($module_type, ['ride-share', 'settings', 'transactions']))
         <link rel="stylesheet" href="{{ asset('Modules/RideShare/public/assets/css/ride-share.css') }}">
     @endif
     @if(addon_published_status('ReelsModule'))
         <link rel="stylesheet" href="{{ asset('Modules/ReelsModule/public/assets/css/reels.css') }}">
+    @endif
+    {{-- Layout version + feature toggles come from config/layout.php (central switch). --}}
+    @php
+        $layout_version  = config('layout.version', 'auto');
+        $layout_features = config('layout.features', []);
+        $use_v2_chrome   = match ($layout_version) {
+            'v1'    => false,
+            'v2'    => true,
+            default => in_array($module_type, config('layout.v2_modules', []), true),
+        };
+    @endphp
+    @if($use_v2_chrome)
+        <link rel="stylesheet" href="{{ asset('public/assets/admin/css/admin-v2.css') }}">
     @endif
     @stack('css_or_js')
 
@@ -51,13 +65,45 @@ $countryCode = strtolower($country ? $country : 'auto');
     <link rel="stylesheet" href="{{asset('public/assets/admin/css/toastr.css')}}">
 </head>
 
-<body class="footer-offset">
+<body class="footer-offset {{ ($use_v2_chrome ?? false) ? 'v2-chrome' : '' }}{{ ($use_v2_chrome && ($layout_features['pin'] ?? true) === false) ? ' layout-no-pin' : '' }}">
+
+    @php
+        $v2_current_module_id_for_url = config('module.current_module_id');
+    @endphp
+    @if(!empty($v2_current_module_id_for_url))
+    <script>
+    (function () {
+        try {
+            var mid = "{{ $v2_current_module_id_for_url }}";
+            if (!mid) return;
+            var url = new URL(window.location.href);
+            if (url.searchParams.get('module_id') !== mid) {
+                url.searchParams.set('module_id', mid);
+                history.replaceState(history.state, '', url.toString());
+            }
+
+            window.addEventListener('pageshow', function (e) {
+                if (e.persisted) {
+                    var u = new URL(window.location.href);
+                    if (u.searchParams.has('module_id')) {
+                        window.location.reload();
+                    }
+                }
+            });
+        } catch (e) {}
+    })();
+    </script>
+    @endif
+
     @if (getEnvMode() == 'demo')
         <div class="direction-toggle">
             <i class="tio-settings"></i>
             <span></span>
         </div>
     @endif
+
+    {{-- Global toast container: new_tostar(type, title, description) --}}
+    <div id="app-toast-container" class="app-toast-container"></div>
 
     <div class="container">
         <div class="row">
@@ -71,7 +117,7 @@ $countryCode = strtolower($country ? $country : 'auto');
         </div>
     </div>
     @if (!isset($module_type))
-    @php($module_type = Config::get('module.current_module_type'))
+    @php $module_type = Config::get('module.current_module_type'); @endphp
     @endif
 
     <!-- Builder -->
@@ -79,16 +125,62 @@ $countryCode = strtolower($country ? $country : 'auto');
     <!-- End Builder -->
 
     <!-- JS Preview mode only -->
+    {{-- Legacy header always included: HSDemo() in custom.js reads its innerHTML
+         and the #staticBackdrop search modal lives inside it. CSS hides the visible
+         chrome when v2 is active. --}}
     @include('layouts.admin.partials._header')
 
-    @if(Request::is('admin/payment/configuration*') || Request::is('admin/sms/configuration*') || Request::is('taxvat/*'))
-    @php($module_type = 'settings')
+    @if($use_v2_chrome ?? false)
+        @include('layouts.admin.partials._header_v2')
     @endif
 
-    @if(in_array($module_type, ['rental', 'ride-share']))
-        @include("{$module_type}::admin.partials._sidebar_{$module_type}")
+    @if(Request::is('admin/payment/configuration*') || Request::is('admin/sms/configuration*') || Request::is('taxvat/*') || Request::is('admin/pro-customer*'))
+        @php $module_type = 'settings'; @endphp
+    @endif
+
+    @if($use_v2_chrome ?? false)
+        {{-- Legacy sidebar still included as an empty stub so HSDemo() doesn't crash. --}}
+        <div id="sidebarMain" class="d-none"></div>
+        <div id="sidebarCompact" class="d-none"></div>
+        @if($module_type === 'users')
+            @include('layouts.admin.partials._sidebar_v2_users')
+        @elseif($module_type === 'transactions')
+            @php
+                $req_path_for_dispatch = request()->path();
+                $is_tax_url = \Illuminate\Support\Str::is('admin/transactions/report/*tax*', $req_path_for_dispatch)
+                    || \Illuminate\Support\Str::is('admin/transactions/rental/report/*tax*', $req_path_for_dispatch)
+                    || \Illuminate\Support\Str::is('admin/transactions/ride-share/report/*tax*', $req_path_for_dispatch);
+                $is_reports_url = !$is_tax_url && (
+                    \Illuminate\Support\Str::is('admin/transactions/report/*', $req_path_for_dispatch)
+                    || \Illuminate\Support\Str::is('admin/transactions/rental/report/*', $req_path_for_dispatch)
+                    || \Illuminate\Support\Str::is('admin/transactions/ride-share/*', $req_path_for_dispatch)
+                );
+            @endphp
+            @if($is_reports_url)
+                @include('layouts.admin.partials._sidebar_v2_reports')
+            @else
+                @include('layouts.admin.partials._sidebar_v2_finance')
+            @endif
+        @elseif($module_type === 'dispatch')
+            @include('layouts.admin.partials._sidebar_v2_dispatch')
+        @elseif($module_type === 'settings')
+            @include('layouts.admin.partials._sidebar_v2_settings')
+        @elseif($module_type === 'rental')
+            @include('rental::admin.partials._sidebar_v2_rental')
+        @elseif($module_type === 'ride-share')
+            @include('ride-share::admin.partials._sidebar_v2_ride-share')
+        @else
+            @include('layouts.admin.partials._sidebar_v2')
+        @endif
     @else
-        @include("layouts.admin.partials._sidebar_{$module_type}")
+        {{-- v1 sidebars: addon modules live in their own view namespace. --}}
+        @if($module_type === 'rental')
+            @include('rental::admin.partials._sidebar_rental')
+        @elseif($module_type === 'ride-share')
+            @include('ride-share::admin.partials._sidebar_ride-share')
+        @else
+            @include("layouts.admin.partials._sidebar_{$module_type}")
+        @endif
     @endif
 
     <!-- END ONLY DEV -->
@@ -374,13 +466,17 @@ if (in_array(config('module.current_module_type'), config('module.module_type'))
         <script src="{{asset('public/assets/admin')}}/js/vendor.min.js"></script>
         <script src="{{asset('public/assets/admin')}}/js/jquery.validate.min.js"></script>
         <script src="{{asset('public/assets/admin')}}/js/theme.min.js"></script>
+        {{-- Centralized verified-store badge for every select2 dropdown (must load right after select2/theme). --}}
+        <script src="{{asset('public/assets/admin')}}/js/verified-select2.js"></script>
         <script src="{{asset('public/assets/admin')}}/js/sweet_alert.js"></script>
         <script src="{{asset('public/assets/admin')}}/js/bootstrap-tour-standalone.min.js"></script>
         <script src="{{asset('public/assets/admin/js/owl.min.js')}}"></script>
         <script src="{{asset('public/assets/admin')}}/js/emogi-area.js"></script>
         <script src="{{asset('public/assets/admin')}}/js/toastr.js"></script>
+        <script src="{{asset('public/assets/admin/js/app-toast.js')}}"></script>
         <script src="{{asset('public/assets/admin/js/app-blade/admin.js')}}"></script>
         <script src="{{asset('public/assets/admin/js/form-validate.js')}}"></script>
+        <script src="{{asset('public/assets/admin/js/field-error-toast.js')}}"></script>
         <script src="{{asset('public/assets/admin/js/upload-single-image.js')}}"></script>
         <script src="{{asset('public/assets/admin/js/multiple-file-upload.js')}}"></script>
         <script src="{{asset('public/assets/admin/intltelinput/js/intlTelInput.min.js')}}"></script>
@@ -440,13 +536,18 @@ if (in_array(config('module.current_module_type'), config('module.module_type'))
             "use strict";
 
 
-            @php($hasModules = \App\Models\Module::Active()->exists())
+            @php $hasModules = \App\Models\Module::Active()->exists(); @endphp
 
             @if(!$hasModules)
                 $('#instruction-modal').show();
             @endif
 
             $('.restart-Tour').on('click', function () {
+                // v2 chrome has its own driver.js-based tour; legacy uses bootstrap-tour.
+                if (document.body.classList.contains('v2-chrome') && typeof window.startV2Tour === 'function') {
+                    window.startV2Tour({ restart: true });
+                    return;
+                }
                 @if($hasModules)
                     tour.restart();
                     $('body').css('overflow', 'hidden')
@@ -628,7 +729,7 @@ if (in_array(config('module.current_module_type'), config('module.module_type'))
                 }
             });
 
-            @php($fcm_credentials = \App\CentralLogics\Helpers::get_business_settings('fcm_credentials'))
+            @php $fcm_credentials = \App\CentralLogics\Helpers::get_business_settings('fcm_credentials'); @endphp
             let firebaseConfig = {
                 apiKey: "{{isset($fcm_credentials['apiKey']) ? $fcm_credentials['apiKey'] : ''}}",
                 authDomain: "{{isset($fcm_credentials['authDomain']) ? $fcm_credentials['authDomain'] : ''}}",
@@ -737,11 +838,11 @@ if (in_array(config('module.current_module_type'), config('module.module_type'))
             let admin_zone_id = null;
             let admin_role_id = null;
 
-            @php($order_notification_type = \App\CentralLogics\Helpers::get_business_settings('order_notification_type') ?? 'manual')
+            @php $order_notification_type = \App\CentralLogics\Helpers::get_business_settings('order_notification_type') ?? 'manual'; @endphp
             messaging.onMessage(function (payload) {
                 console.log(payload.data)
                 if (payload.data.order_id && payload.data.type == "order_request") {
-                    @php($admin_order_notification = \App\CentralLogics\Helpers::get_business_settings('admin_order_notification') ?? 0)
+                    @php $admin_order_notification = \App\CentralLogics\Helpers::get_business_settings('admin_order_notification') ?? 0; @endphp
                     @if (\App\CentralLogics\Helpers::module_permission_check('order') && $admin_order_notification && $order_notification_type == 'firebase')
                         new_order_type = payload.data.order_type
                         new_module_id = payload.data.module_id
@@ -845,7 +946,7 @@ if (in_array(config('module.current_module_type'), config('module.module_type'))
             }
 
             @if(\App\CentralLogics\Helpers::module_permission_check('order') && $order_notification_type == 'manual')
-            @php($admin_order_notification = \App\CentralLogics\Helpers::get_business_settings('admin_order_notification') ?? 0)
+            @php $admin_order_notification = \App\CentralLogics\Helpers::get_business_settings('admin_order_notification') ?? 0; @endphp
             @if($admin_order_notification)
                 setInterval(function () {
                     $.get({
@@ -879,18 +980,20 @@ if (in_array(config('module.current_module_type'), config('module.module_type'))
                 } else if (new_order_type === 'trip') {
                     location.href = '{{url('/')}}/admin/rental/trip?module_id=' + new_module_id;
                 } else if (new_order_type === 'ride_request') {
-                    @if(addon_published_status('RideShare'))
+                    @if(addon_published_status('RideShare') && \App\Models\Module::where('module_type', 'ride-share')->first()?->id)
                         location.href = '{{url('/')}}/admin/ride-share/ride/list/all?module_id=' + {{ \App\Models\Module::where('module_type', 'ride-share')->first()?->id }};
                     @else
                         location.href = '{{url('/')}}/admin/order/list/all?module_id=' + new_module_id;
                     @endif
-        } else {
+                    } else {
                     location.href = '{{url('/')}}/admin/order/list/all?module_id=' + new_module_id;
                 }
             });
 
             startFCM();
+            @if(\App\CentralLogics\Helpers::module_permission_check('customer_management'))
             conversationList();
+            @endif
             if (getUrlParameter('conversation')) {
                 conversationView();
                 vendorConversationView();
@@ -1251,10 +1354,6 @@ if (in_array(config('module.current_module_type'), config('module.module_type'))
 
 
 
-        </script>
-
-        <script>
-            if (/MSIE \d|Trident.*rv:/.test(navigator.userAgent)) document.write('<script src="{{asset('public/assets/admin')}}/vendor/babel-polyfill/polyfill.min.js"><\/script>');
         </script>
 
         <!-- Landing Tab Menu -->

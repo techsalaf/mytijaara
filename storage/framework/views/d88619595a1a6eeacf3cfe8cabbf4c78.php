@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="<?php echo e(asset('public/assets/landing/css/bootstrap.min.css')); ?>" />
     <link rel="stylesheet" href="<?php echo e(asset('public/assets/landing/css/odometer.css')); ?>" />
     <link rel="stylesheet" href="<?php echo e(asset('public/assets/admin/css/toastr.css')); ?>">
+    <link rel="stylesheet" href="<?php echo e(asset('public/assets/admin/css/app-toast.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset('public/assets/landing/css/landing.css')); ?>"/>
     <link rel="stylesheet" href="<?php echo e(asset('public/assets/admin/intltelinput/css/intlTelInput.css')); ?>">
 
@@ -80,10 +81,10 @@
     <!-- Header -->
     <nav class="main-nav">
         <div class="container">
-            <a href="<?php echo e(route('home')); ?>" class="nav-logo">
-                <img class="onerror-image" data-onerror-image="<?php echo e(asset('public/assets/admin/img/160x160/img2.jpg')); ?>" src="<?php echo e(\App\CentralLogics\Helpers::logoFullUrl()); ?>" alt="image" />
+            <a href="<?php echo e(route('home')); ?>" class="nav-logo max-w-70px-mobile">
+                <img class="onerror-image object-fit-contain" data-onerror-image="<?php echo e(asset('public/assets/admin/img/160x160/img2.jpg')); ?>" src="<?php echo e(\App\CentralLogics\Helpers::logoFullUrl()); ?>" alt="image" />
             </a>
-            <div class="nav-links">
+            <div class="nav-links gap-3 gap-lg-4">
                 <a href="<?php echo e(route('home')); ?>" class="<?php echo e(Request::is('/') ? 'active-link' : ''); ?>"><?php echo e(translate('messages.home')); ?></a>
                 <a href="<?php echo e(route('about-us')); ?>" class="<?php echo e(Request::is('about-us') ? 'active-link' : ''); ?>"><?php echo e(translate('messages.about_us')); ?></a>
                 <a href="<?php echo e(route('privacy-policy')); ?>" class="<?php echo e(Request::is('privacy-policy') ? 'active-link' : ''); ?>"><?php echo e(translate('messages.privacy_policy')); ?></a>
@@ -261,6 +262,8 @@
     <script src="<?php echo e(asset('public/assets/landing/js/viewport.jquery.js')); ?>"></script>
     <script src="<?php echo e(asset('public/assets/landing/js/odometer.min.js')); ?>"></script>
     <script src="<?php echo e(asset('public/assets/admin/js/toastr.js')); ?>"></script>
+    <script src="<?php echo e(asset('public/assets/admin/js/app-toast.js')); ?>"></script>
+    <script src="<?php echo e(asset('public/assets/admin/js/field-error-toast.js')); ?>"></script>
     <script src="<?php echo e(asset('public/assets/admin/intltelinput/js/intlTelInput.min.js')); ?>"></script>
     <?php echo Toastr::message(); ?>
 
