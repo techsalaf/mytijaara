@@ -3,7 +3,6 @@
 /public/storage
 /public/build
 /storage/*.key
-/vendor
 
 # Builder addon release zips produced by `npm run package:addon`
 /releases
